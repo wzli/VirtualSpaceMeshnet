@@ -6,11 +6,12 @@ project(VirtualSpaceMeshnet)
 set(BUILD_TESTS OFF CACHE BOOL "")
 set(ZMQ_BUILD_TESTS OFF CACHE BOOL "")
 set(WITH_DOCS OFF CACHE BOOL "")
+set(ENABLE_DRAFTS ON CACHE BOOL "")
 add_subdirectory(submodules/libzmq)
 
 set(BUILD_TESTING OFF CACHE BOOL "")
 set(CPPZMQ_BUILD_TESTS OFF CACHE BOOL "")
-set(ENABLE_DRAFTS ON CACHE BOOL "")
+ADD_DEFINITIONS (-DZMQ_BUILD_DRAFT_API=1)
 add_subdirectory(submodules/cppzmq)
 
 # C++ setup

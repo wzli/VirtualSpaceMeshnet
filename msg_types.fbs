@@ -1,20 +1,9 @@
 namespace vsmn;
 
-table Request {
-  type:short;
+enum RequestType : uint8 {
+    CONNECT,
 }
 
-table Weapon1 {
-  name:string;
-  damage:short;
-}
-
-table Weapon2 {
-  name:string;
-  damage:short;
-}
-
-rpc_service MonsterStorage {
-  Store(Weapon2):Weapon2;
-  Retrieve(Weapon1):Weapon1;
+table RequestMsg {
+  type:RequestType;
 }

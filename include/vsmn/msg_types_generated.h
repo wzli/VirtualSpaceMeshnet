@@ -8,204 +8,81 @@
 
 namespace vsmn {
 
-struct Request;
-struct RequestBuilder;
+struct RequestMsg;
+struct RequestMsgBuilder;
 
-struct Weapon1;
-struct Weapon1Builder;
+enum class RequestType : uint8_t {
+  CONNECT = 0,
+  MIN = CONNECT,
+  MAX = CONNECT
+};
 
-struct Weapon2;
-struct Weapon2Builder;
+inline const RequestType (&EnumValuesRequestType())[1] {
+  static const RequestType values[] = {
+    RequestType::CONNECT
+  };
+  return values;
+}
 
-struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef RequestBuilder Builder;
+inline const char * const *EnumNamesRequestType() {
+  static const char * const names[2] = {
+    "CONNECT",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameRequestType(RequestType e) {
+  if (flatbuffers::IsOutRange(e, RequestType::CONNECT, RequestType::CONNECT)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesRequestType()[index];
+}
+
+struct RequestMsg FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef RequestMsgBuilder Builder;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "vsmn.Request";
+    return "vsmn.RequestMsg";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TYPE = 4
   };
-  int16_t type() const {
-    return GetField<int16_t>(VT_TYPE, 0);
+  vsmn::RequestType type() const {
+    return static_cast<vsmn::RequestType>(GetField<uint8_t>(VT_TYPE, 0));
   }
-  bool mutate_type(int16_t _type) {
-    return SetField<int16_t>(VT_TYPE, _type, 0);
+  bool mutate_type(vsmn::RequestType _type) {
+    return SetField<uint8_t>(VT_TYPE, static_cast<uint8_t>(_type), 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int16_t>(verifier, VT_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_TYPE) &&
            verifier.EndTable();
   }
 };
 
-struct RequestBuilder {
-  typedef Request Table;
+struct RequestMsgBuilder {
+  typedef RequestMsg Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_type(int16_t type) {
-    fbb_.AddElement<int16_t>(Request::VT_TYPE, type, 0);
+  void add_type(vsmn::RequestType type) {
+    fbb_.AddElement<uint8_t>(RequestMsg::VT_TYPE, static_cast<uint8_t>(type), 0);
   }
-  explicit RequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit RequestMsgBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<Request> Finish() {
+  flatbuffers::Offset<RequestMsg> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Request>(end);
+    auto o = flatbuffers::Offset<RequestMsg>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<Request> CreateRequest(
+inline flatbuffers::Offset<RequestMsg> CreateRequestMsg(
     flatbuffers::FlatBufferBuilder &_fbb,
-    int16_t type = 0) {
-  RequestBuilder builder_(_fbb);
+    vsmn::RequestType type = vsmn::RequestType::CONNECT) {
+  RequestMsgBuilder builder_(_fbb);
   builder_.add_type(type);
   return builder_.Finish();
-}
-
-struct Weapon1 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef Weapon1Builder Builder;
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "vsmn.Weapon1";
-  }
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
-    VT_DAMAGE = 6
-  };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
-  }
-  flatbuffers::String *mutable_name() {
-    return GetPointer<flatbuffers::String *>(VT_NAME);
-  }
-  int16_t damage() const {
-    return GetField<int16_t>(VT_DAMAGE, 0);
-  }
-  bool mutate_damage(int16_t _damage) {
-    return SetField<int16_t>(VT_DAMAGE, _damage, 0);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
-           VerifyField<int16_t>(verifier, VT_DAMAGE) &&
-           verifier.EndTable();
-  }
-};
-
-struct Weapon1Builder {
-  typedef Weapon1 Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Weapon1::VT_NAME, name);
-  }
-  void add_damage(int16_t damage) {
-    fbb_.AddElement<int16_t>(Weapon1::VT_DAMAGE, damage, 0);
-  }
-  explicit Weapon1Builder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<Weapon1> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Weapon1>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<Weapon1> CreateWeapon1(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
-    int16_t damage = 0) {
-  Weapon1Builder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_damage(damage);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<Weapon1> CreateWeapon1Direct(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    int16_t damage = 0) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return vsmn::CreateWeapon1(
-      _fbb,
-      name__,
-      damage);
-}
-
-struct Weapon2 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef Weapon2Builder Builder;
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "vsmn.Weapon2";
-  }
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
-    VT_DAMAGE = 6
-  };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
-  }
-  flatbuffers::String *mutable_name() {
-    return GetPointer<flatbuffers::String *>(VT_NAME);
-  }
-  int16_t damage() const {
-    return GetField<int16_t>(VT_DAMAGE, 0);
-  }
-  bool mutate_damage(int16_t _damage) {
-    return SetField<int16_t>(VT_DAMAGE, _damage, 0);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
-           VerifyField<int16_t>(verifier, VT_DAMAGE) &&
-           verifier.EndTable();
-  }
-};
-
-struct Weapon2Builder {
-  typedef Weapon2 Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Weapon2::VT_NAME, name);
-  }
-  void add_damage(int16_t damage) {
-    fbb_.AddElement<int16_t>(Weapon2::VT_DAMAGE, damage, 0);
-  }
-  explicit Weapon2Builder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<Weapon2> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Weapon2>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<Weapon2> CreateWeapon2(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
-    int16_t damage = 0) {
-  Weapon2Builder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_damage(damage);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<Weapon2> CreateWeapon2Direct(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    int16_t damage = 0) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return vsmn::CreateWeapon2(
-      _fbb,
-      name__,
-      damage);
 }
 
 }  // namespace vsmn

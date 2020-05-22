@@ -51,9 +51,10 @@ public:
     }
 
     void requestMsgCb(zmq::message_t& msg) {
-        auto request = fbs::GetRoot<vsmn::Request>(msg.data());
-        std::cout << "got request: " << request->type() << " from: " << msg.gets("Peer-Address")
-                  << std::endl;
+        auto request = fbs::GetRoot<vsmn::RequestMsg>(msg.data());
+        // request = GetRequestMsg(msg.data());
+        std::cout << "got request: " << EnumNameRequestType(request->type())
+                  << " from: " << msg.gets("Peer-Address") << std::endl;
         zmq::message_t rep_msg(5);
         memcpy(rep_msg.data(), "World", 5);
         std::cout << "send response: " << rep_msg.to_string() << std::endl;
@@ -69,7 +70,7 @@ public:
         std::cout << "beacon " << std::endl;
 
         _builder.Clear();
-        auto request = CreateRequest(_builder, 5555);
+        auto request = CreateRequestMsg(_builder, RequestType::CONNECT);
         _builder.Finish(request);
         zmq::message_t req_msg(_builder.GetBufferPointer(), _builder.GetSize());
         std::cout << "send request " << std::endl;

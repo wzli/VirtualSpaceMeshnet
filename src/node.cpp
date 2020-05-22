@@ -1,5 +1,7 @@
 #include <zmq.hpp>
-#include "zmq_timers.hpp"
+#include <zmq_timers.hpp>
+//#include <vsmn/msg_types_generated.h>
+
 #include <iostream>
 
 namespace vsmn {

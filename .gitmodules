@@ -4,3 +4,6 @@
 [submodule "submodules/cppzmq"]
 	path = submodules/cppzmq
 	url = https://github.com/zeromq/cppzmq.git
+[submodule "submodules/flatbuffers"]
+	path = submodules/flatbuffers
+	url = https://github.com/google/flatbuffers.git

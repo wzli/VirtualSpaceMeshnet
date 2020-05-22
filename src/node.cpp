@@ -1,8 +1,10 @@
 #include <zmq.hpp>
 #include <zmq_timers.hpp>
-//#include <vsmn/msg_types_generated.h>
+#include <vsmn/msg_types_generated.h>
 
 #include <iostream>
+
+namespace fbs = flatbuffers;
 
 namespace vsmn {
 
@@ -31,7 +33,8 @@ public:
                {[this] (zmq::message_t& msg) {requestMsgCb(msg);}},
                {[this] (zmq::message_t& msg) {responseMsgCb(msg);}},
                {[this] (zmq::message_t& msg) {subscribeMsgCb(msg);}},
-             } {
+             }
+             , _builder(1024) {
         _rep.bind("tcp://*:" + std::to_string(_config.tcp_port));
         _sub.bind("udp://*:" + std::to_string(_config.udp_port));
         _timers.add(_config.beacon_interval, [this](int) { beaconTmrCb(); });
@@ -48,7 +51,8 @@ public:
     }
 
     void requestMsgCb(zmq::message_t& msg) {
-        std::cout << "got request: " << msg.to_string() << " from: " << msg.gets("Peer-Address")
+        auto request = fbs::GetRoot<vsmn::Request>(msg.data());
+        std::cout << "got request: " << request->type() << " from: " << msg.gets("Peer-Address")
                   << std::endl;
         zmq::message_t rep_msg(5);
         memcpy(rep_msg.data(), "World", 5);
@@ -63,9 +67,12 @@ public:
 
     void beaconTmrCb() {
         std::cout << "beacon " << std::endl;
-        zmq::message_t req_msg(6);
-        memcpy(req_msg.data(), "Hello", 6);
-        std::cout << "send request: " << req_msg.to_string() << std::endl;
+
+        _builder.Clear();
+        auto request = CreateRequest(_builder, 5555);
+        _builder.Finish(request);
+        zmq::message_t req_msg(_builder.GetBufferPointer(), _builder.GetSize());
+        std::cout << "send request " << std::endl;
         _req.send(req_msg, zmq::send_flags::dontwait);
     }
 
@@ -93,6 +100,7 @@ private:
     zmq::message_t _rx_msg;
     std::vector<zmq::pollitem_t> _poll_items;
     std::vector<std::function<void(zmq::message_t&)>> _poll_callbacks;
+    fbs::FlatBufferBuilder _builder;
 };
 
 }  // namespace vsmn

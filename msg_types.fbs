@@ -1,5 +1,9 @@
 namespace vsmn;
 
+table Request {
+  type:short;
+}
+
 table Weapon1 {
   name:string;
   damage:short;

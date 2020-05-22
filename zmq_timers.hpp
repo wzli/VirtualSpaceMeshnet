@@ -1,6 +1,7 @@
 #pragma once
 
 #include <zmq.h>
+#include <vector>
 #include <functional>
 
 namespace zmq {
@@ -12,8 +13,9 @@ public:
 
     ~timers_t() { zmq_timers_destroy(&_timers); }
 
-    int add(size_t interval, const std::function<void(int)>& handler) {
-        return zmq_timers_add(_timers, interval, callback_wrapper, (void*) &handler);
+    int add(size_t interval, std::function<void(int)> handler) {
+        _callbacks.emplace_back(std::move(handler));
+        return zmq_timers_add(_timers, interval, callback_wrapper, this);
     }
 
     int cancel(int timer_id) { return zmq_timers_cancel(_timers, timer_id); }
@@ -30,8 +32,9 @@ public:
 
 private:
     static void callback_wrapper(int timer_id, void* arg) {
-        reinterpret_cast<std::function<void(int)>*>(arg)->operator()(timer_id);
+        reinterpret_cast<timers_t*>(arg)->_callbacks[timer_id - 1](timer_id);
     }
+    std::vector<std::function<void(int)>> _callbacks;
     void* _timers;
 };
 

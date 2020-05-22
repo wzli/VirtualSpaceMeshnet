@@ -14,36 +14,68 @@ public:
 
     ZmqNode(const Config& config)
             : _config(config)
+            , _req(_ctx, zmq::socket_type::req)
+            , _rep(_ctx, zmq::socket_type::rep)
             , _pub(_ctx, zmq::socket_type::radio)
             , _sub(_ctx, zmq::socket_type::dish)
-            , _req(_ctx, zmq::socket_type::dealer)
-            , _rep(_ctx, zmq::socket_type::rep)
+            , _timers()
+            , _rx_msg()
             , _poll_items{
                       {_rep, 0, ZMQ_POLLIN, 0},
+                      {_req, 0, ZMQ_POLLIN, 0},
                       {_sub, 0, ZMQ_POLLIN, 0},
-              } {
+              } 
+            , _poll_callbacks{
+               {[this] (zmq::message_t& msg) {requestMsgCb(msg);}},
+               {[this] (zmq::message_t& msg) {responseMsgCb(msg);}},
+               {[this] (zmq::message_t& msg) {subscribeMsgCb(msg);}},
+             } {
         _rep.bind("tcp://*:" + std::to_string(_config.tcp_port));
         _sub.bind("udp://*:" + std::to_string(_config.udp_port));
+        _timers.add(_config.beacon_interval, [this](int) { beaconTmrCb(); });
     }
 
-    void connect(const std::string& addr) {}
+    void connect(const std::string& addr) {
+        _req.connect(addr);
+        std::cout << "connect to " << addr << std::endl;
+    }
 
-    void subscriptionHandler() { std::cout << "subscription " << std::endl; }
+    void subscribeMsgCb(zmq::message_t& msg) {
+        std::cout << "got message: " << msg.to_string() << " from: " << msg.gets("Peer-Address")
+                  << std::endl;
+    }
 
-    void requestHandler() { std::cout << "request " << std::endl; }
+    void requestMsgCb(zmq::message_t& msg) {
+        std::cout << "got request: " << msg.to_string() << " from: " << msg.gets("Peer-Address")
+                  << std::endl;
+        zmq::message_t rep_msg(5);
+        memcpy(rep_msg.data(), "World", 5);
+        std::cout << "send response: " << rep_msg.to_string() << std::endl;
+        _rep.send(rep_msg, zmq::send_flags::dontwait);
+    }
 
-    void beaconHandler() { std::cout << "beacon " << std::endl; }
+    void responseMsgCb(zmq::message_t& msg) {
+        std::cout << "got response: " << msg.to_string() << " from: " << msg.gets("Peer-Address")
+                  << std::endl;
+    }
+
+    void beaconTmrCb() {
+        std::cout << "beacon " << std::endl;
+        zmq::message_t req_msg(6);
+        memcpy(req_msg.data(), "Hello", 6);
+        std::cout << "send request: " << req_msg.to_string() << std::endl;
+        _req.send(req_msg, zmq::send_flags::dontwait);
+    }
 
     void run() {
-        _timers.add(_config.beacon_interval, [this](int) { beaconHandler(); });
         while (true) {
             _timers.execute();
             zmq::poll(_poll_items, std::chrono::milliseconds(_timers.timeout()));
-            if (_poll_items[0].revents & ZMQ_POLLIN) {
-                requestHandler();
-            }
-            if (_poll_items[1].revents & ZMQ_POLLIN) {
-                subscriptionHandler();
+            for (const auto& poll_item : _poll_items) {
+                if (poll_item.revents & ZMQ_POLLIN) {
+                    zmq_recvmsg(poll_item.socket, _rx_msg.handle(), ZMQ_DONTWAIT);
+                    _poll_callbacks[&poll_item - &_poll_items.front()](_rx_msg);
+                }
             }
         }
     }
@@ -51,12 +83,14 @@ public:
 private:
     Config _config;
     zmq::context_t _ctx;
-    zmq::socket_t _pub;
-    zmq::socket_t _sub;
     zmq::socket_t _req;
     zmq::socket_t _rep;
+    zmq::socket_t _pub;
+    zmq::socket_t _sub;
     zmq::timers_t _timers;
+    zmq::message_t _rx_msg;
     std::vector<zmq::pollitem_t> _poll_items;
+    std::vector<std::function<void(zmq::message_t&)>> _poll_callbacks;
 };
 
 }  // namespace vsmn

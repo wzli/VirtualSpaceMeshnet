@@ -1,9 +1,37 @@
-namespace vsmn;
+namespace vsm.msg;
 
-enum RequestType : uint8 {
-    CONNECT,
+enum Request:uint8 {
+  LINK,
+  UNLINK,
+  FIND_NEAREST,
 }
 
-table RequestMsg {
-  type:RequestType;
+enum Response:uint8 {
+  SUCCESS = 0,
+  TIMEOUT,
+  UNKNOWN,
 }
+
+table Dispatch {
+  source:NodeStatus;
+  context:uint32;
+  request:Request;
+  response:Response;
+}
+
+struct Vec2 {
+  x:float32;
+  y:float32;
+}
+
+table NodeStatus {
+  name:string;
+  address:string (key);
+  coordinates:Vec2;
+  timestamp:uint32;
+}
+
+table Beacon {
+  nodes:[NodeStatus];
+}
+

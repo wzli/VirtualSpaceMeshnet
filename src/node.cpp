@@ -2,7 +2,6 @@
 #include <zmq_timers.hpp>
 #include <vsm/msg_types_generated.h>
 
-#include <vsm/transport_interface.hpp>
 #include <vsm/node.hpp>
 
 #include <unordered_map>

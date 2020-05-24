@@ -33,6 +33,19 @@ add_executable(node src/node.cpp)
 target_include_directories(node PUBLIC include)
 target_link_libraries(node PUBLIC cppzmq flatbuffers)
 
+# add vsm library
+add_library(vsm
+  src/zmq_transport.cpp
+)
+target_link_libraries(vsm PUBLIC cppzmq flatbuffers)
+target_include_directories(vsm PUBLIC include)
+
 # add tests
-add_executable(tests test/test_main.cpp)
-target_link_libraries(tests PUBLIC Catch2)
+add_library(catch2_main test/test_main.cpp)
+target_link_libraries(catch2_main PUBLIC Catch2)
+
+add_executable(tests
+  test/test_zmq_transport.cpp
+  test/test_dummy.cpp
+)
+target_link_libraries(tests PUBLIC catch2_main vsm)

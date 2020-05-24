@@ -3,7 +3,7 @@
 
 namespace vsm {
 
-class TransportInterface {
+class Transport {
 public:
     using ReceiverCallback =
             std::function<void(const std::string& src_addr, const uint8_t* buffer, size_t len)>;

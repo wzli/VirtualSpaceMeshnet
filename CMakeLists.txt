@@ -28,13 +28,10 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wshadow")
 
-# add the executable
-add_executable(node src/node.cpp)
-target_include_directories(node PUBLIC include)
-target_link_libraries(node PUBLIC cppzmq flatbuffers)
-
 # add vsm library
 add_library(vsm
+  src/mesh_node.cpp
+  src/peer_manager.cpp
   src/zmq_transport.cpp
 )
 target_link_libraries(vsm PUBLIC cppzmq flatbuffers)
@@ -46,6 +43,7 @@ target_link_libraries(catch2_main PUBLIC Catch2)
 
 add_executable(tests
   test/test_zmq_transport.cpp
+  test/test_peer_manager.cpp
   test/test_dummy.cpp
 )
 target_link_libraries(tests PUBLIC catch2_main vsm)

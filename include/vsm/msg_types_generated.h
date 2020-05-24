@@ -12,12 +12,15 @@ struct Vector2;
 
 struct NodeInfo;
 struct NodeInfoBuilder;
+struct NodeInfoT;
 
 struct Message;
 struct MessageBuilder;
+struct MessageT;
 
 struct State;
 struct StateBuilder;
+struct StateT;
 
 enum class SyncMode : uint8_t {
   AUTHORITY = 0,
@@ -86,7 +89,22 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector2 FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Vector2, 8);
 
+struct NodeInfoT : public flatbuffers::NativeTable {
+  typedef NodeInfo TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "vsm.NodeInfoT";
+  }
+  std::string name;
+  std::string address;
+  std::unique_ptr<vsm::Vector2> coordinates;
+  uint32_t timestamp;
+  NodeInfoT()
+      : timestamp(0) {
+  }
+};
+
 struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NodeInfoT NativeTableType;
   typedef NodeInfoBuilder Builder;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.NodeInfo";
@@ -137,6 +155,9 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint32_t>(verifier, VT_TIMESTAMP) &&
            verifier.EndTable();
   }
+  NodeInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(NodeInfoT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<NodeInfo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const NodeInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct NodeInfoBuilder {
@@ -197,7 +218,28 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfoDirect(
       timestamp);
 }
 
+flatbuffers::Offset<NodeInfo> CreateNodeInfo(flatbuffers::FlatBufferBuilder &_fbb, const NodeInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct MessageT : public flatbuffers::NativeTable {
+  typedef Message TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "vsm.MessageT";
+  }
+  float range;
+  uint32_t expiry;
+  uint8_t priority;
+  std::unique_ptr<vsm::NodeInfoT> source;
+  std::vector<std::unique_ptr<vsm::NodeInfoT>> peers;
+  std::vector<std::unique_ptr<vsm::StateT>> states;
+  MessageT()
+      : range(0.0f),
+        expiry(0),
+        priority(0) {
+  }
+};
+
 struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef MessageT NativeTableType;
   typedef MessageBuilder Builder;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.Message";
@@ -261,6 +303,9 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(states()) &&
            verifier.EndTable();
   }
+  MessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(MessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<Message> Pack(flatbuffers::FlatBufferBuilder &_fbb, const MessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct MessageBuilder {
@@ -334,7 +379,27 @@ inline flatbuffers::Offset<Message> CreateMessageDirect(
       states__);
 }
 
+flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder &_fbb, const MessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct StateT : public flatbuffers::NativeTable {
+  typedef State TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "vsm.StateT";
+  }
+  vsm::SyncMode sync_mode;
+  uint32_t expiry;
+  std::string name;
+  uint32_t type;
+  std::vector<uint8_t> data;
+  StateT()
+      : sync_mode(vsm::SyncMode::AUTHORITY),
+        expiry(0),
+        type(0) {
+  }
+};
+
 struct State FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef StateT NativeTableType;
   typedef StateBuilder Builder;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.State";
@@ -393,6 +458,9 @@ struct State FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(data()) &&
            verifier.EndTable();
   }
+  StateT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(StateT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<State> Pack(flatbuffers::FlatBufferBuilder &_fbb, const StateT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct StateBuilder {
@@ -458,6 +526,122 @@ inline flatbuffers::Offset<State> CreateStateDirect(
       name__,
       type,
       data__);
+}
+
+flatbuffers::Offset<State> CreateState(flatbuffers::FlatBufferBuilder &_fbb, const StateT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+inline NodeInfoT *NodeInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<vsm::NodeInfoT> _o = std::unique_ptr<vsm::NodeInfoT>(new NodeInfoT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void NodeInfo::UnPackTo(NodeInfoT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = address(); if (_e) _o->address = _e->str(); }
+  { auto _e = coordinates(); if (_e) _o->coordinates = std::unique_ptr<vsm::Vector2>(new vsm::Vector2(*_e)); }
+  { auto _e = timestamp(); _o->timestamp = _e; }
+}
+
+inline flatbuffers::Offset<NodeInfo> NodeInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const NodeInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateNodeInfo(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(flatbuffers::FlatBufferBuilder &_fbb, const NodeInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const NodeInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
+  auto _address = _fbb.CreateString(_o->address);
+  auto _coordinates = _o->coordinates ? _o->coordinates.get() : 0;
+  auto _timestamp = _o->timestamp;
+  return vsm::CreateNodeInfo(
+      _fbb,
+      _name,
+      _address,
+      _coordinates,
+      _timestamp);
+}
+
+inline MessageT *Message::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<vsm::MessageT> _o = std::unique_ptr<vsm::MessageT>(new MessageT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void Message::UnPackTo(MessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = range(); _o->range = _e; }
+  { auto _e = expiry(); _o->expiry = _e; }
+  { auto _e = priority(); _o->priority = _e; }
+  { auto _e = source(); if (_e) _o->source = std::unique_ptr<vsm::NodeInfoT>(_e->UnPack(_resolver)); }
+  { auto _e = peers(); if (_e) { _o->peers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->peers[_i] = std::unique_ptr<vsm::NodeInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = states(); if (_e) { _o->states.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->states[_i] = std::unique_ptr<vsm::StateT>(_e->Get(_i)->UnPack(_resolver)); } } }
+}
+
+inline flatbuffers::Offset<Message> Message::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateMessage(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder &_fbb, const MessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _range = _o->range;
+  auto _expiry = _o->expiry;
+  auto _priority = _o->priority;
+  auto _source = _o->source ? CreateNodeInfo(_fbb, _o->source.get(), _rehasher) : 0;
+  auto _peers = _o->peers.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::NodeInfo>> (_o->peers.size(), [](size_t i, _VectorArgs *__va) { return CreateNodeInfo(*__va->__fbb, __va->__o->peers[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _states = _o->states.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::State>> (_o->states.size(), [](size_t i, _VectorArgs *__va) { return CreateState(*__va->__fbb, __va->__o->states[i].get(), __va->__rehasher); }, &_va ) : 0;
+  return vsm::CreateMessage(
+      _fbb,
+      _range,
+      _expiry,
+      _priority,
+      _source,
+      _peers,
+      _states);
+}
+
+inline StateT *State::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<vsm::StateT> _o = std::unique_ptr<vsm::StateT>(new StateT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void State::UnPackTo(StateT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = sync_mode(); _o->sync_mode = _e; }
+  { auto _e = expiry(); _o->expiry = _e; }
+  { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = type(); _o->type = _e; }
+  { auto _e = data(); if (_e) { _o->data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data[_i] = _e->Get(_i); } } }
+}
+
+inline flatbuffers::Offset<State> State::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StateT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateState(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<State> CreateState(flatbuffers::FlatBufferBuilder &_fbb, const StateT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StateT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _sync_mode = _o->sync_mode;
+  auto _expiry = _o->expiry;
+  auto _name = _fbb.CreateString(_o->name);
+  auto _type = _o->type;
+  auto _data = _o->data.size() ? _fbb.CreateVector(_o->data) : 0;
+  return vsm::CreateState(
+      _fbb,
+      _sync_mode,
+      _expiry,
+      _name,
+      _type,
+      _data);
 }
 
 }  // namespace vsm

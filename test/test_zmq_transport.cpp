@@ -25,7 +25,7 @@ TEST_CASE("zmq tcp req-rep") {
 
     // receive message
     zmq::message_t rx_msg;
-    rx_socket.set(zmq::sockopt::rcvtimeo, 100);
+    rx_socket.set(zmq::sockopt::rcvtimeo, 250);
     REQUIRE(zmq_recvmsg(rx_socket.handle(), rx_msg.handle(), 0) > 0);
 }
 

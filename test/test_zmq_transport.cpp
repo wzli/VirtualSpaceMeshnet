@@ -45,16 +45,29 @@ TEST_CASE("zmq transport") {
         rx_msgs.emplace_back(static_cast<const char*>(buffer), len);
     }) == 0);
 
+    // register receiver handler for group "group"
+    REQUIRE(zmq_transport.addReceiver(
+                    [&rx_msgs](const void* buffer, size_t len) {
+                        rx_msgs.emplace_back(static_cast<const char*>(buffer), len);
+                    },
+                    "group") == 0);
+
     // send message
     REQUIRE(zmq_transport.transmit(test_msg.c_str(), test_msg.size()) ==
             static_cast<int>(test_msg.size()));
     REQUIRE(zmq_transport.transmit(test_msg.c_str(), test_msg.size()) ==
             static_cast<int>(test_msg.size()));
+    REQUIRE(zmq_transport.transmit(test_msg.c_str(), test_msg.size(), "group") ==
+            static_cast<int>(test_msg.size()));
+    REQUIRE(zmq_transport.transmit(test_msg.c_str(), test_msg.size(), "reject") ==
+            static_cast<int>(test_msg.size()));
 
     // receive messages
     REQUIRE(zmq_transport.poll(100) == 0);
+    zmq_transport.poll(100);
+    zmq_transport.poll(100);
     REQUIRE(zmq_transport.poll(0) == EAGAIN);
-    REQUIRE(rx_msgs.size() == 2);
+    REQUIRE(rx_msgs.size() == 3);
     for (const auto& rx_msg : rx_msgs) {
         REQUIRE(test_msg == rx_msg);
     }

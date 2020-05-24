@@ -10,17 +10,21 @@ namespace vsm {
 
 class ZmqTransport : public Transport {
 public:
-    ZmqTransport(const std::string& addr = "udp://*:11511");
-
+    // common interface
     int connect(const std::string& dst_addr) override;
     int disconnect(const std::string& dst_addr) override;
 
-    int transmit(const std::string& group, const uint8_t* buffer, size_t len) override;
+    int transmit(const void* buffer, size_t len, const std::string& group = "") override;
 
-    int addReceiver(const std::string& group, ReceiverCallback receiver_callback) override;
+    int addReceiver(ReceiverCallback receiver_callback, const std::string& group = "") override;
     int addTimer(size_t interval, TimerCallback timer_callback) override;
 
+    // implementation specific
+    ZmqTransport(const std::string& addr = "udp://*:11511");
     int poll(int timeout);  // miliseconds, -1 = inf, 0 = non-blocking
+
+    const zmq::socket_t& getTxSocket() const { return _tx_socket; }
+    const zmq::socket_t& getRxSocket() const { return _rx_socket; }
 
 private:
     zmq::context_t _zmq_ctx;

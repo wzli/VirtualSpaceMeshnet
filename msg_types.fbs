@@ -1,37 +1,38 @@
-namespace vsm.msg;
+namespace vsm;
 
-enum Request:uint8 {
-  LINK,
-  UNLINK,
-  FIND_NEAREST,
-}
-
-enum Response:uint8 {
-  SUCCESS = 0,
-  TIMEOUT,
-  UNKNOWN,
-}
-
-table Dispatch {
-  source:NodeStatus;
-  context:uint32;
-  request:Request;
-  response:Response;
-}
-
-struct Vec2 {
+struct Vector2 {
   x:float32;
   y:float32;
 }
 
-table NodeStatus {
+table NodeInfo {
   name:string;
   address:string (key);
-  coordinates:Vec2;
+  coordinates:Vector2;
   timestamp:uint32;
 }
 
-table Beacon {
-  nodes:[NodeStatus];
+table Message {
+  range:float;
+  expiry:uint32;
+  priority:uint8;
+  source:NodeInfo;
+  peers:[NodeInfo];
+  states:[State];
 }
 
+enum SyncMode:uint8 {
+  AUTHORITY,
+  LATEST,
+  NEAREST,
+  // AVERAGE,
+  CUSTOM,
+}
+
+table State {
+  sync_mode:SyncMode;
+  expiry:uint32;
+  name:string (key);
+  type:uint32;
+  data:[uint8];
+}

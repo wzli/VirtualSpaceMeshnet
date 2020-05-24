@@ -8,6 +8,8 @@ public:
     using ReceiverCallback = std::function<void(const void* buffer, size_t len)>;
     using TimerCallback = std::function<void(int timer_id)>;
 
+    virtual const std::string& getAddress() const = 0;
+
     virtual int connect(const std::string& dst_addr) = 0;
     virtual int disconnect(const std::string& dst_addr) = 0;
 

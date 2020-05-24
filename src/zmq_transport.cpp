@@ -35,16 +35,15 @@ int ZmqTransport::poll(int timeout) {
     _timers.execute();
     timeout = std::min<int>(timeout, _timers.timeout() & 0x7FFFFFFF);
     _rx_socket.set(zmq::sockopt::rcvtimeo, timeout);
-    int bytes_received = zmq_recvmsg(_rx_socket.handle(), _rx_message.handle(), 0);
-    while (bytes_received > 0) {
+    int n_msgs = 0;
+    while (zmq_recvmsg(_rx_socket.handle(), _rx_message.handle(), n_msgs ? ZMQ_DONTWAIT : 0) > 0) {
+        ++n_msgs;
         auto receiver_callback = _receiver_callbacks.find(_rx_message.group());
         if (receiver_callback != _receiver_callbacks.end()) {
-            receiver_callback->second(_rx_message.gets("Peer-Address"),
-                    static_cast<uint8_t*>(_rx_message.data()), _rx_message.size());
+            receiver_callback->second(_rx_message.data(), _rx_message.size());
         }
-        bytes_received = zmq_recvmsg(_rx_socket.handle(), _rx_message.handle(), ZMQ_DONTWAIT);
     }
-    return zmq_errno();
+    return n_msgs ? 0 : zmq_errno();
 }
 
 }  // namespace vsm

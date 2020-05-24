@@ -1,8 +1,6 @@
 #include <catch2/catch.hpp>
 #include <vsm/zmq_transport.hpp>
 
-#include <iostream>
-
 using namespace vsm;
 
 TEST_CASE("zmq raw radio-dish") {
@@ -28,36 +26,36 @@ TEST_CASE("zmq raw radio-dish") {
 
     // receive message
     zmq::message_t rx_msg;
-    rx_socket.set(zmq::sockopt::rcvtimeo, 1);
+    rx_socket.set(zmq::sockopt::rcvtimeo, 100);
     REQUIRE(zmq_recvmsg(rx_socket.handle(), rx_msg.handle(), 0) > 0);
 }
 
-#if 0
-TEST_CASE("zmq transport inproc") {
-    ZmqTransport zmq_transport("udp://*:11511");
+TEST_CASE("zmq transport") {
+    // test inputs
+    std::string endpoint = "udp://127.0.0.1:11511";
+    std::string test_msg = "Hello!";
 
-    SECTION("register receiver handler") {
-        zmq_transport.addReceiver([](const std::string& src_addr, const void* buffer, size_t len){
-            std::cout << "got something\n";
-        });
-    }
+    // create loopback connection
+    ZmqTransport zmq_transport(endpoint);
+    REQUIRE(zmq_transport.connect(endpoint) == 0);
 
-    SECTION("make loopback connection") {
-        REQUIRE(zmq_transport.connect("udp://127.0.0.1:11511") == 0);
-    }
+    // register receiver handler
+    std::vector<std::string> rx_msgs;
+    REQUIRE(zmq_transport.addReceiver([&rx_msgs](const void* buffer, size_t len) {
+        rx_msgs.emplace_back(static_cast<const char*>(buffer), len);
+    }) == 0);
 
-    SECTION("send test message") {
-        std::string test_msg = "Hello!";
-        REQUIRE(zmq_transport.transmit(test_msg.c_str(), test_msg.size()) == test_msg.size());
-    }
+    // send message
+    REQUIRE(zmq_transport.transmit(test_msg.c_str(), test_msg.size()) ==
+            static_cast<int>(test_msg.size()));
+    REQUIRE(zmq_transport.transmit(test_msg.c_str(), test_msg.size()) ==
+            static_cast<int>(test_msg.size()));
 
-    SECTION("poll timeout") {
-        int error = zmq_transport.poll(50);
-        std::cout << zmq_strerror(error) << std::endl;
-        #if 0
-        REQUIRE(zmq_transport.poll(0) == 0);
-        REQUIRE(zmq_transport.poll(1) == EAGAIN);
-        #endif
+    // receive messages
+    REQUIRE(zmq_transport.poll(100) == 0);
+    REQUIRE(zmq_transport.poll(0) == EAGAIN);
+    REQUIRE(rx_msgs.size() == 2);
+    for (const auto& rx_msg : rx_msgs) {
+        REQUIRE(test_msg == rx_msg);
     }
 }
-#endif

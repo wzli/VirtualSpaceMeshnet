@@ -5,8 +5,7 @@ namespace vsm {
 
 class Transport {
 public:
-    using ReceiverCallback =
-            std::function<void(const std::string& src_addr, const void* buffer, size_t len)>;
+    using ReceiverCallback = std::function<void(const void* buffer, size_t len)>;
     using TimerCallback = std::function<void(int timer_id)>;
 
     virtual int connect(const std::string& dst_addr) = 0;

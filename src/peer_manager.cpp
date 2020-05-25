@@ -4,10 +4,10 @@ namespace vsm {
 
 PeerManager::PeerManager() {}
 
-void PeerManager::contactPeer(const std::string& address, uint32_t expiry) {
+void PeerManager::latchPeer(const std::string& address, uint32_t latch_until) {
     auto& peer = _peers[address];
     peer.node_info.address = address;
-    peer.last_contact = expiry;
+    peer.latch_until = latch_until;
 }
 
 bool PeerManager::updatePeer(const NodeInfo* node_info) {

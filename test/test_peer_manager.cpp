@@ -18,7 +18,7 @@ TEST_CASE("peer_manager") {
     auto node_info = fbs::GetRoot<NodeInfo>(fbs_builder.GetBufferPointer());
 
     // verify schema
-    flatbuffers::Verifier verifier(fbs_builder.GetBufferPointer(), fbs_builder.GetSize());
+    fbs::Verifier verifier(fbs_builder.GetBufferPointer(), fbs_builder.GetSize());
     REQUIRE(node_info->Verify(verifier));
 
     // verity data

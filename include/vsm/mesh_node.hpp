@@ -11,15 +11,19 @@ public:
         uint16_t beacon_interval = 1000;
     };
 
-    MeshNode(const Config& config, std::unique_ptr<Transport> transport);
+    MeshNode(std::unique_ptr<Transport> transport);
 
-    void addPeer(const std::string& peer_address);
+    int init(const Config& config);
 
-    const Transport& getTransport() const { return *_transport; }
-    const PeerManager& getPeerManager() const { return _peer_manager; }
+    Transport& getTransport() { return *_transport; }
+    PeerManager& getPeerManager() { return _peer_manager; }
+
+    static const Message* getMessage(const void* buffer, size_t len);
 
 private:
-    Config _config;
+    void recvPeerUpdates(const void* buffer, size_t len);
+    void recvStateUpdates(const void* buffer, size_t len);
+
     std::unique_ptr<Transport> _transport;
     PeerManager _peer_manager;
 };

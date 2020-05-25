@@ -9,14 +9,14 @@ namespace vsm {
 
 struct Peer {
     NodeInfoT node_info;
-    uint32_t last_contact;
+    uint32_t latch_until;
 };
 
 class PeerManager {
 public:
     PeerManager();
 
-    void contactPeer(const std::string& address, uint32_t expiry);
+    void latchPeer(const std::string& address, uint32_t latch_until);
     bool updatePeer(const NodeInfo* node_info);
 
     void generateBeacon();

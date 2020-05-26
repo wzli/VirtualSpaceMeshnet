@@ -44,6 +44,7 @@ target_link_libraries(catch2_main PUBLIC Catch2)
 add_executable(tests
   test/test_zmq_transport.cpp
   test/test_peer_manager.cpp
+  test/test_logger.cpp
   test/test_dummy.cpp
 )
 target_link_libraries(tests PUBLIC catch2_main vsm)

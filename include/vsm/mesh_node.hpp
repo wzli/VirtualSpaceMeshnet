@@ -16,6 +16,8 @@ public:
 
     struct Config {
         uint16_t beacon_interval = 1000;
+        std::string node_name = "node";
+        Vector2 start_coordinates = {0, 0};
         Logger::Level log_level = Logger::FATAL;
         Logger::LogHandler log_handler = nullptr;
     };

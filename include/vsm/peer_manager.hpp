@@ -14,16 +14,19 @@ struct Peer {
 
 class PeerManager {
 public:
-    PeerManager();
+    PeerManager(std::string name, Vector2 coordinates);
 
-    void latchPeer(const std::string& address, uint32_t latch_until);
+    void latchPeer(std::string address, uint32_t latch_until);
     bool updatePeer(const NodeInfo* node_info);
 
     void generateBeacon();
 
     const std::unordered_map<std::string, Peer>& getPeers() const { return _peers; }
 
+    NodeInfoT& editNodeInfo() { return _node_info; }
+
 private:
+    NodeInfoT _node_info;
     std::unordered_map<std::string, Peer> _peers;
     std::vector<Peer*> _peer_rankings;
 };

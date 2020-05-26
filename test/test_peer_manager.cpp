@@ -28,7 +28,7 @@ TEST_CASE("peer_manager") {
     REQUIRE(node_info->coordinates()->y() == peer_coords.y());
     REQUIRE(node_info->timestamp() == 100);
 
-    PeerManager peer_manager;
+    PeerManager peer_manager("node_name", {0, 0});
     REQUIRE(peer_manager.updatePeer(node_info));
     REQUIRE(peer_manager.getPeers().size() == 1);
 }

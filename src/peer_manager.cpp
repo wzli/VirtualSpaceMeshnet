@@ -2,11 +2,14 @@
 
 namespace vsm {
 
-PeerManager::PeerManager() {}
+PeerManager::PeerManager(std::string name, Vector2 coordinates) {
+    _node_info.name = std::move(name);
+    _node_info.coordinates = std::unique_ptr<Vector2>(new Vector2(std::move(coordinates)));
+}
 
-void PeerManager::latchPeer(const std::string& address, uint32_t latch_until) {
+void PeerManager::latchPeer(std::string address, uint32_t latch_until) {
     auto& peer = _peers[address];
-    peer.node_info.address = address;
+    peer.node_info.address = std::move(address);
     peer.latch_until = latch_until;
 }
 

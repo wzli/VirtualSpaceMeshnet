@@ -6,6 +6,7 @@ namespace fbs = flatbuffers;
 
 MeshNode::MeshNode(Config config, std::unique_ptr<Transport> transport)
         : _stats()
+        , _peer_manager(std::move(config.node_name), std::move(config.start_coordinates))
         , _transport(std::move(transport)) {
     _logger.addLogHandler(config.log_level, std::move(config.log_handler));
     if (int err_code = _transport->addReceiver(

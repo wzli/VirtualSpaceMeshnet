@@ -12,7 +12,7 @@ TEST_CASE("logger") {
     const void* test_data = test_error.msg;
     size_t test_data_len = 3;
 
-    int log_count[Logger::N_LEVELS] = {0};
+    int log_count[Logger::ALL] = {0};
     auto add_log_counter = [&](Logger::Level level) {
         logger.addLogHandler(
                 level, [&](Logger::Level err_lv, Error error, const void* data, size_t len) {
@@ -24,13 +24,13 @@ TEST_CASE("logger") {
                     REQUIRE(len == test_data_len);
                 });
     };
-    for (int i = 0; i < Logger::N_LEVELS; ++i) {
+    for (int i = 0; i < Logger::ALL; ++i) {
         add_log_counter(static_cast<Logger::Level>(i));
     }
-    for (int i = 0; i < Logger::N_LEVELS; ++i) {
+    for (int i = 0; i < Logger::ALL; ++i) {
         logger.log(static_cast<Logger::Level>(i), test_error, test_data, test_data_len);
     }
-    for (int i = 0; i < Logger::N_LEVELS; ++i) {
+    for (int i = 0; i < Logger::ALL; ++i) {
         REQUIRE(log_count[i] == i + 1);
     }
 }

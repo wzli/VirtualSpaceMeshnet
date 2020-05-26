@@ -50,9 +50,10 @@ MeshNode::MeshNode(Config config)
 const Message* MeshNode::getMessage(const void* buffer, size_t& len) {
     const uint8_t* buf = static_cast<const uint8_t*>(buffer);
     auto msg = fbs::GetRoot<Message>(buf);
-#ifdef FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     fbs::Verifier verifier(buf, len);
+#ifdef FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     len = verifier.GetComputedSize();
+#endif
     if (msg->Verify(verifier)) {
         return msg;
     } else {
@@ -63,9 +64,7 @@ const Message* MeshNode::getMessage(const void* buffer, size_t& len) {
         ++_stats.message_verify_failures;
         return nullptr;
     }
-#else
     return msg;
-#endif
 }
 
 void MeshNode::recvPeerUpdates(const void* buffer, size_t len) {

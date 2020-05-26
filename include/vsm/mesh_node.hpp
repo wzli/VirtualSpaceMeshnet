@@ -1,31 +1,50 @@
 #pragma once
 
-#include <vsm/transport.hpp>
+#include <vsm/logger.hpp>
 #include <vsm/peer_manager.hpp>
+#include <vsm/transport.hpp>
 
 namespace vsm {
 
 class MeshNode {
 public:
+    enum Error {
+        SUCCESS,
+        MESSAGE_VERIFY_FAIL,
+    };
+
     struct Config {
         uint16_t beacon_interval = 1000;
+
+        Logger::Level log_level = Logger::FATAL;
+        Logger::LogHandler log_handler = nullptr;
+    };
+
+    struct Stats {
+        uint32_t peer_updates_received;
+        uint32_t state_updates_received;
+        uint32_t message_verify_failures;
     };
 
     MeshNode(std::unique_ptr<Transport> transport);
 
-    int init(const Config& config);
+    int init(Config config);
 
-    Transport& getTransport() { return *_transport; }
+    Logger& getLogger() { return _logger; }
     PeerManager& getPeerManager() { return _peer_manager; }
+    Transport& getTransport() { return *_transport; }
 
-    static const Message* getMessage(const void* buffer, size_t len);
+    const Stats& getStats() const { return _stats; }
 
 private:
+    const Message* getMessage(const void* buffer, size_t len);
     void recvPeerUpdates(const void* buffer, size_t len);
     void recvStateUpdates(const void* buffer, size_t len);
 
-    std::unique_ptr<Transport> _transport;
+    Stats _stats;
+    Logger _logger;
     PeerManager _peer_manager;
+    std::unique_ptr<Transport> _transport;
 };
 
 }  // namespace vsm

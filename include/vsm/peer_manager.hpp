@@ -15,10 +15,20 @@ struct Peer {
 
 class PeerManager {
 public:
-    PeerManager(std::string name, Vector2 coordinates, Logger* logger = nullptr);
+    enum ErrorType {
+        START_OFFSET = 200,
+        // Warn
+        PEER_ADDRESS_MISSING,
+        PEER_TIMESTAMP_STALE,
+        // Trace
+        PEER_UPDATED,
+        BEACON_GENERATED,
+    };
+
+    PeerManager(std::string name, Vector2 coordinates, std::shared_ptr<Logger> logger = nullptr);
 
     void latchPeer(std::string address, uint32_t latch_until);
-    bool updatePeer(const NodeInfo* node_info);
+    bool updatePeer(const NodeInfo* node_info, size_t buf_size);
 
     void generateBeacon();
 
@@ -27,7 +37,7 @@ public:
     NodeInfoT& editNodeInfo() { return _node_info; }
 
 private:
-    Logger* _logger;
+    std::shared_ptr<Logger> _logger;
     NodeInfoT _node_info;
     std::unordered_map<std::string, Peer> _peers;
     std::vector<Peer*> _peer_rankings;

@@ -27,7 +27,7 @@ public:
         WARN,
         ERROR,
         FATAL,
-        ALL,
+        N_LEVELS,
     };
 
     using LogHandler = std::function<void(Level, Error error, const void*, size_t)>;

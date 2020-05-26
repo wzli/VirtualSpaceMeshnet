@@ -35,9 +35,10 @@ public:
         return _timers.add(interval, timer_callback);
     }
 
+    int poll(int timeout);
+
     // implementation specific
     ZmqTransport(const std::string& addr = "udp://*:11511");
-    int poll(int timeout);  // miliseconds, -1 = inf, 0 = non-blocking
 
     const zmq::socket_t& getTxSocket() const { return _tx_socket; }
     const zmq::socket_t& getRxSocket() const { return _rx_socket; }

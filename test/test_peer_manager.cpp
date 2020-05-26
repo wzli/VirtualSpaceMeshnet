@@ -9,18 +9,21 @@ using namespace vsm;
 namespace fbs = flatbuffers;
 
 TEST_CASE("mesh_node") {
-    auto zmq_transport = std::unique_ptr<ZmqTransport>(new ZmqTransport("udp://127.0.0.1:11611"));
-    MeshNode::Config mesh_node_config;
-    mesh_node_config.log_level = Logger::TRACE;
-    mesh_node_config.log_handler = [](Logger::Level level, Error error, const void*, size_t) {
-        std::cout << "lv: " << level << ", type: " << error.type << ", code: " << error.code
-                  << ", msg: " << error.what() << std::endl;
-    };
-    MeshNode mesh_node(std::move(mesh_node_config), std::move(zmq_transport));
+    MeshNode::Config config;
+    config.beacon_interval = 5;
+    config.transport = std::make_shared<ZmqTransport>("udp://127.0.0.1:11611");
+    config.logger = std::make_shared<Logger>();
+    config.logger->addLogHandler(
+            Logger::TRACE, [](Logger::Level level, Error error, const void*, size_t) {
+                std::cout << "lv: " << level << ", type: " << error.type << ", code: " << error.code
+                          << ", msg: " << error.what() << std::endl;
+            });
+    MeshNode mesh_node(std::move(config));
 
-    dynamic_cast<ZmqTransport*>(&mesh_node.getTransport())->poll(1100);
-    dynamic_cast<ZmqTransport*>(&mesh_node.getTransport())->poll(1100);
-    dynamic_cast<ZmqTransport*>(&mesh_node.getTransport())->poll(1100);
+    mesh_node.getTransport().poll(5);
+    mesh_node.getTransport().poll(5);
+    mesh_node.getTransport().poll(5);
+    mesh_node.getTransport().poll(5);
 }
 
 TEST_CASE("peer_manager") {
@@ -38,6 +41,9 @@ TEST_CASE("peer_manager") {
     // verify schema
     fbs::Verifier verifier(fbs_builder.GetBufferPointer(), fbs_builder.GetSize());
     REQUIRE(node_info->Verify(verifier));
+#ifdef FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+    REQUIRE(verifier.GetComputedSize() == fbs_builder.GetSize());
+#endif
 
     // verity data
     REQUIRE(node_info->name()->str() == "peer_name");
@@ -47,6 +53,6 @@ TEST_CASE("peer_manager") {
     REQUIRE(node_info->timestamp() == 100);
 
     PeerManager peer_manager("node_name", {0, 0});
-    REQUIRE(peer_manager.updatePeer(node_info));
+    REQUIRE(peer_manager.updatePeer(node_info, verifier.GetComputedSize()));
     REQUIRE(peer_manager.getPeers().size() == 1);
 }

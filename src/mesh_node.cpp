@@ -4,25 +4,30 @@ namespace vsm {
 
 namespace fbs = flatbuffers;
 
-MeshNode::MeshNode(std::unique_ptr<Transport> transport)
+MeshNode::MeshNode(Config config, std::unique_ptr<Transport> transport)
         : _stats()
-        , _transport(std::move(transport)) {}
-
-int MeshNode::init(Config config) {
+        , _transport(std::move(transport)) {
     _logger.addLogHandler(config.log_level, std::move(config.log_handler));
-    if (int error = _transport->addReceiver(
+    if (int err_code = _transport->addReceiver(
                 [this](const void* buffer, size_t len) { recvStateUpdates(buffer, len); }, "")) {
-        return error;
+        auto error =
+                Error("Failed to add state updates receiver.", ADD_MESSAGE_HANDLER_FAIL, err_code);
+        _logger.log(Logger::ERROR, error);
+        throw error;
     }
-    if (int error = _transport->addReceiver(
+    if (int err_code = _transport->addReceiver(
                 [this](const void* buffer, size_t len) { recvPeerUpdates(buffer, len); }, "B")) {
-        return error;
+        auto error =
+                Error("Failed to add peer updates receiver.", ADD_MESSAGE_HANDLER_FAIL, err_code);
+        _logger.log(Logger::ERROR, error);
+        throw error;
     }
-    if (int error = _transport->addTimer(
+    if (int err_code = _transport->addTimer(
                 config.beacon_interval, [this](int) { _peer_manager.generateBeacon(); })) {
-        return error;
+        auto error = Error("Failed to add beacon timer.", ADD_TIMER_FAIL, err_code);
+        _logger.log(Logger::ERROR, error);
+        throw error;
     }
-    return 0;
 }
 
 const Message* MeshNode::getMessage(const void* buffer, size_t len) {
@@ -32,7 +37,8 @@ const Message* MeshNode::getMessage(const void* buffer, size_t len) {
     if (msg->Verify(verifier)) {
         return msg;
     } else {
-        _logger.log(Logger::WARN, "Failed to verify message.", MESSAGE_VERIFY_FAIL, buffer, len);
+        auto error = Error("Failed to verify message.", MESSAGE_VERIFY_FAIL);
+        _logger.log(Logger::WARN, error, buffer, len);
         ++_stats.message_verify_failures;
         return nullptr;
     }

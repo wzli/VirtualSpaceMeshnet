@@ -8,14 +8,14 @@ namespace vsm {
 
 class MeshNode {
 public:
-    enum Error {
-        SUCCESS,
+    enum ErrorType {
+        ADD_MESSAGE_HANDLER_FAIL,
+        ADD_TIMER_FAIL,
         MESSAGE_VERIFY_FAIL,
     };
 
     struct Config {
         uint16_t beacon_interval = 1000;
-
         Logger::Level log_level = Logger::FATAL;
         Logger::LogHandler log_handler = nullptr;
     };
@@ -26,9 +26,7 @@ public:
         uint32_t message_verify_failures;
     };
 
-    MeshNode(std::unique_ptr<Transport> transport);
-
-    int init(Config config);
+    MeshNode(Config config, std::unique_ptr<Transport> transport);
 
     Logger& getLogger() { return _logger; }
     PeerManager& getPeerManager() { return _peer_manager; }

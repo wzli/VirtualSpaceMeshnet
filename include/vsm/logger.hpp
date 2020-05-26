@@ -27,7 +27,7 @@ public:
         INFO,
         DEBUG,
         TRACE,
-        N_LEVELS,
+        ALL,
     };
 
     using LogHandler = std::function<void(Level, Error error, const void*, size_t)>;

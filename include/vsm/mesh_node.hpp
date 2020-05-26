@@ -12,6 +12,10 @@ public:
         ADD_MESSAGE_HANDLER_FAIL,
         ADD_TIMER_FAIL,
         MESSAGE_VERIFY_FAIL,
+        // non-errors events
+        INITIALIZED,
+        PEER_UPDATES_RECEIVED,
+        STATE_UPDATES_RECEIVED,
     };
 
     struct Config {

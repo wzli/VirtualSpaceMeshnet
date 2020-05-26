@@ -1,9 +1,27 @@
 #include <catch2/catch.hpp>
 #include <vsm/zmq_transport.hpp>
 #include <vsm/peer_manager.hpp>
+#include <vsm/mesh_node.hpp>
+
+#include <iostream>
 
 using namespace vsm;
 namespace fbs = flatbuffers;
+
+TEST_CASE("mesh_node") {
+    auto zmq_transport = std::unique_ptr<ZmqTransport>(new ZmqTransport("udp://127.0.0.1:11611"));
+    MeshNode::Config mesh_node_config;
+    mesh_node_config.log_level = Logger::TRACE;
+    mesh_node_config.log_handler = [](Logger::Level level, Error error, const void*, size_t) {
+        std::cout << "lv: " << level << ", type: " << error.type << ", code: " << error.code
+                  << ", msg: " << error.what() << std::endl;
+    };
+    MeshNode mesh_node(std::move(mesh_node_config), std::move(zmq_transport));
+
+    dynamic_cast<ZmqTransport*>(&mesh_node.getTransport())->poll(1100);
+    dynamic_cast<ZmqTransport*>(&mesh_node.getTransport())->poll(1100);
+    dynamic_cast<ZmqTransport*>(&mesh_node.getTransport())->poll(1100);
+}
 
 TEST_CASE("peer_manager") {
     // serialize NodeInfo Msg

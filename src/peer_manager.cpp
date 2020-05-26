@@ -2,7 +2,8 @@
 
 namespace vsm {
 
-PeerManager::PeerManager(std::string name, Vector2 coordinates) {
+PeerManager::PeerManager(std::string name, Vector2 coordinates, Logger* logger)
+        : _logger(logger) {
     _node_info.name = std::move(name);
     _node_info.coordinates = std::unique_ptr<Vector2>(new Vector2(std::move(coordinates)));
 }
@@ -25,6 +26,8 @@ bool PeerManager::updatePeer(const NodeInfo* node_info) {
     return true;
 }
 
-void PeerManager::generateBeacon() {}
+void PeerManager::generateBeacon() {
+    _logger ? _logger->log(Logger::TRACE, Error("Beacon Tick")) : void(0);
+}
 
 }  // namespace vsm

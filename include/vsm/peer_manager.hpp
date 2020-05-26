@@ -1,4 +1,5 @@
 #pragma once
+#include <vsm/logger.hpp>
 #include <vsm/msg_types_generated.h>
 
 #include <string>
@@ -14,7 +15,7 @@ struct Peer {
 
 class PeerManager {
 public:
-    PeerManager(std::string name, Vector2 coordinates);
+    PeerManager(std::string name, Vector2 coordinates, Logger* logger = nullptr);
 
     void latchPeer(std::string address, uint32_t latch_until);
     bool updatePeer(const NodeInfo* node_info);
@@ -26,6 +27,7 @@ public:
     NodeInfoT& editNodeInfo() { return _node_info; }
 
 private:
+    Logger* _logger;
     NodeInfoT _node_info;
     std::unordered_map<std::string, Peer> _peers;
     std::vector<Peer*> _peer_rankings;

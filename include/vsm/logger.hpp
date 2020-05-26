@@ -21,27 +21,27 @@ struct Error : public std::exception {
 class Logger {
 public:
     enum Level {
-        FATAL,
-        ERROR,
-        WARN,
-        INFO,
-        DEBUG,
         TRACE,
+        DEBUG,
+        INFO,
+        WARN,
+        ERROR,
+        FATAL,
         ALL,
     };
 
     using LogHandler = std::function<void(Level, Error error, const void*, size_t)>;
 
     void addLogHandler(Level level, LogHandler log_handler) {
-        _log_handlers.insert({level, std::move(log_handler)});
+        if (log_handler) {
+            _log_handlers.insert({level, std::move(log_handler)});
+        }
     };
 
-    void log(Level level, Error error, const void* data = nullptr, size_t data_len = 0) {
-        for (const auto log_handler : _log_handlers) {
-            if (log_handler.first > level) {
-                break;
-            }
-            log_handler.second(level, error, data, data_len);
+    void log(Level level, Error error, const void* data = nullptr, size_t data_len = 0) const {
+        for (auto handler = _log_handlers.begin();
+                handler != _log_handlers.end() && handler->first <= level; ++handler) {
+            handler->second(level, error, data, data_len);
         }
     };
 

@@ -1,12 +1,22 @@
 #include <vsm/peer_manager.hpp>
+#include <cmath>
 
 namespace vsm {
 
 PeerManager::PeerManager(Config config)
-        : _logger(std::move(config.logger)) {
-    _node_info.name = std::move(config.name);
-    _node_info.address = std::move(config.address);
-    _node_info.coordinates = std::make_unique<Vector2>(std::move(config.coordinates));
+        : _config(std::move(config))
+        , _logger(std::move(_config.logger)) {
+    if (_config.rank_decay < 0) {
+        Error error("Negative rank decay.", NEGATIVE_RANK_DECAY);
+        IF_PTR(_logger, log, Logger::ERROR, error);
+        throw error;
+    }
+    _node_info.name = std::move(_config.name);
+    _node_info.address = std::move(_config.address);
+    _node_info.coordinates = std::make_unique<Vector2>(std::move(_config.coordinates));
+
+    Error error = Error("Peer manager initialized.", INITIALIZED);
+    IF_PTR(_logger, log, Logger::INFO, error);
 }
 
 void PeerManager::latchPeer(std::string address, uint32_t latch_until) {
@@ -45,17 +55,18 @@ void PeerManager::generateBeacon() {
 }
 
 void PeerManager::updatePeerRankings(uint32_t current_time) {
-    std::sort(_peer_rankings.begin(), _peer_rankings.end(),
-            [this, current_time](const Peer* a, const Peer* b) {
-                bool a_latched = a->latch_until > current_time;
-                bool b_latched = b->latch_until > current_time;
-                float a_distance_sqr =
-                        distanceSqr(*(a->node_info.coordinates), *_node_info.coordinates);
-                float b_distance_sqr =
-                        distanceSqr(*(b->node_info.coordinates), *_node_info.coordinates);
-                return (a_latched > b_latched) ||
-                       ((a_latched == b_latched) && a_distance_sqr < b_distance_sqr);
-            });
+    for (auto& peer : _peers) {
+        peer.second.rank_cost =
+                distanceSqr(*(peer.second.node_info.coordinates), *(_node_info.coordinates)) *
+                std::exp(_config.rank_decay * (current_time - peer.second.node_info.timestamp));
+    }
+    auto comp = [this, current_time](const Peer* a, const Peer* b) {
+        bool a_latched = a->latch_until >= current_time;
+        bool b_latched = b->latch_until >= current_time;
+        return (a_latched > b_latched) ||
+               ((a_latched == b_latched) && (a->rank_cost < b->rank_cost));
+    };
+    std::sort(_peer_rankings.begin(), _peer_rankings.end(), comp);
     for (auto& ranking : _peer_rankings) {
         printf("name %s x %f latch %d\n", ranking->node_info.name.c_str(),
                 ranking->node_info.coordinates->x(), ranking->latch_until);

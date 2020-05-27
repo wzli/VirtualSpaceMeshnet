@@ -8,7 +8,7 @@
 
 namespace vsm {
 
-static float distanceSqr(const Vector2& a, const Vector2& b) {
+inline float distanceSqr(const Vector2& a, const Vector2& b) {
     float dx = b.x() - a.x();
     float dy = b.y() - a.y();
     return (dx * dx) + (dy * dy);
@@ -17,6 +17,7 @@ static float distanceSqr(const Vector2& a, const Vector2& b) {
 struct Peer {
     NodeInfoT node_info;
     uint32_t latch_until;
+    float rank_cost;
 };
 
 class PeerManager {
@@ -25,10 +26,13 @@ public:
 
     enum ErrorType {
         START_OFFSET = 200,
+        // Error
+        NEGATIVE_RANK_DECAY,
         // Warn
         PEER_ADDRESS_MISSING,
         PEER_TIMESTAMP_STALE,
         // Info
+        INITIALIZED,
         NEW_PEER_DISCOVERED,
         // Trace
         PEER_UPDATED,
@@ -40,8 +44,11 @@ public:
         std::string address;
         Vector2 coordinates;
         std::shared_ptr<Logger> logger;
+
         uint16_t connection_degree = 10;
-        uint16_t peer_lookup_size = 128;
+        uint16_t latch_duration = 1000;
+        uint16_t lookup_size = 128;
+        float rank_decay = 0.001f;
     };
 
     PeerManager(Config config);
@@ -58,10 +65,11 @@ public:
     NodeInfoT& getNodeInfo() { return _node_info; }
 
 private:
-    std::shared_ptr<Logger> _logger;
+    Config _config;
     NodeInfoT _node_info;
     PeerLookup _peers;
     std::vector<Peer*> _peer_rankings;
+    std::shared_ptr<Logger> _logger;
 };
 
 }  // namespace vsm

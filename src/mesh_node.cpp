@@ -2,7 +2,7 @@
 
 namespace vsm {
 
-namespace fbs = flatbuffers;
+using namespace flatbuffers;
 
 MeshNode::MeshNode(Config config)
         : _stats()
@@ -48,8 +48,8 @@ MeshNode::MeshNode(Config config)
 
 const Message* MeshNode::getMessage(const void* buffer, size_t& len) {
     const uint8_t* buf = static_cast<const uint8_t*>(buffer);
-    auto msg = fbs::GetRoot<Message>(buf);
-    fbs::Verifier verifier(buf, len);
+    auto msg = GetRoot<Message>(buf);
+    Verifier verifier(buf, len);
 #ifdef FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     len = verifier.GetComputedSize();
 #endif
@@ -91,8 +91,8 @@ void MeshNode::recvStateUpdates(const void* buffer, size_t len) {
         _logger->log(Logger::TRACE, error, buffer, len);
     }
     ++_stats.state_updates_received;
-    for (auto state : *msg->states()) {
-    }
+    //    for (auto state : *msg->states()) {
+    //    }
 }
 
 }  // namespace vsm

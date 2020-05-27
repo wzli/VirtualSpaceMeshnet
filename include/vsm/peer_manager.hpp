@@ -15,6 +15,8 @@ struct Peer {
 
 class PeerManager {
 public:
+    using PeerLookup = std::unordered_map<std::string, Peer>;
+
     enum ErrorType {
         START_OFFSET = 200,
         // Warn
@@ -35,18 +37,19 @@ public:
     PeerManager(Config config);
 
     void latchPeer(std::string address, uint32_t latch_until);
+    bool updatePeer(NodeInfoT node_info);
     bool updatePeer(const NodeInfo* node_info, size_t buf_size);
 
     void generateBeacon();
 
-    const std::unordered_map<std::string, Peer>& getPeers() const { return _peers; }
+    const PeerLookup& getPeers() const { return _peers; }
 
     NodeInfoT& getNodeInfo() { return _node_info; }
 
 private:
     std::shared_ptr<Logger> _logger;
     NodeInfoT _node_info;
-    std::unordered_map<std::string, Peer> _peers;
+    PeerLookup _peers;
     std::vector<Peer*> _peer_rankings;
 };
 

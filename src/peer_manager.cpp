@@ -2,10 +2,11 @@
 
 namespace vsm {
 
-PeerManager::PeerManager(std::string name, Vector2 coordinates, std::shared_ptr<Logger> logger)
-        : _logger(std::move(logger)) {
-    _node_info.name = std::move(name);
-    _node_info.coordinates = std::unique_ptr<Vector2>(new Vector2(std::move(coordinates)));
+PeerManager::PeerManager(Config config)
+        : _logger(std::move(config.logger)) {
+    _node_info.name = std::move(config.name);
+    _node_info.address = std::move(config.address);
+    _node_info.coordinates = std::make_unique<Vector2>(std::move(config.coordinates));
 }
 
 void PeerManager::latchPeer(std::string address, uint32_t latch_until) {
@@ -32,8 +33,8 @@ bool PeerManager::updatePeer(const NodeInfo* node_info, size_t buf_size) {
     }
     node_info->UnPackTo(&(peer.node_info));
     if (_logger) {
-        _logger->log(
-                Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &node_info, sizeof(NodeInfoT));
+        _logger->log(Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &peer.node_info,
+                sizeof(NodeInfoT));
     }
     return true;
 }

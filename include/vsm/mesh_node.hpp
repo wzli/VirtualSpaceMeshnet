@@ -24,10 +24,9 @@ public:
 
     struct Config {
         uint16_t beacon_interval = 1000;
-        std::string node_name = "node";
-        Vector2 start_coordinates = {0, 0};
+        PeerManager::Config peer_manager;
         std::shared_ptr<Transport> transport;
-        std::shared_ptr<Logger> logger = nullptr;
+        std::shared_ptr<Logger> logger;
     };
 
     struct Stats {

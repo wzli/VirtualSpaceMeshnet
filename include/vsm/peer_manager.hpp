@@ -25,7 +25,14 @@ public:
         BEACON_GENERATED,
     };
 
-    PeerManager(std::string name, Vector2 coordinates, std::shared_ptr<Logger> logger = nullptr);
+    struct Config {
+        std::string name;
+        std::string address;
+        Vector2 coordinates;
+        std::shared_ptr<Logger> logger;
+    };
+
+    PeerManager(Config config);
 
     void latchPeer(std::string address, uint32_t latch_until);
     bool updatePeer(const NodeInfo* node_info, size_t buf_size);
@@ -34,7 +41,7 @@ public:
 
     const std::unordered_map<std::string, Peer>& getPeers() const { return _peers; }
 
-    NodeInfoT& editNodeInfo() { return _node_info; }
+    NodeInfoT& getNodeInfo() { return _node_info; }
 
 private:
     std::shared_ptr<Logger> _logger;

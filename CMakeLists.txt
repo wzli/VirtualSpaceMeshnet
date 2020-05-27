@@ -24,7 +24,7 @@ set(CATCH_BUILD_TESTING OFF CACHE BOOL "")
 add_subdirectory(submodules/Catch2)
 
 # C++ setup
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wshadow")
 

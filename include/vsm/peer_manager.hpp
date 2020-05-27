@@ -8,6 +8,12 @@
 
 namespace vsm {
 
+static float distanceSqr(const Vector2& a, const Vector2& b) {
+    float dx = b.x() - a.x();
+    float dy = b.y() - a.y();
+    return (dx * dx) + (dy * dy);
+}
+
 struct Peer {
     NodeInfoT node_info;
     uint32_t latch_until;
@@ -22,9 +28,11 @@ public:
         // Warn
         PEER_ADDRESS_MISSING,
         PEER_TIMESTAMP_STALE,
+        // Info
+        NEW_PEER_DISCOVERED,
         // Trace
         PEER_UPDATED,
-        BEACON_GENERATED,
+        PEER_UPDATES_GENERATED,
     };
 
     struct Config {
@@ -32,15 +40,18 @@ public:
         std::string address;
         Vector2 coordinates;
         std::shared_ptr<Logger> logger;
+        uint16_t connection_degree = 10;
+        uint16_t peer_lookup_size = 128;
     };
 
     PeerManager(Config config);
 
     void latchPeer(std::string address, uint32_t latch_until);
-    bool updatePeer(NodeInfoT node_info);
     bool updatePeer(const NodeInfo* node_info, size_t buf_size);
 
     void generateBeacon();
+
+    void updatePeerRankings(uint32_t current_time);
 
     const PeerLookup& getPeers() const { return _peers; }
 

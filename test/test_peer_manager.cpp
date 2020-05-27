@@ -67,7 +67,7 @@ TEST_CASE("node info serialization") {
             "name",     // name
             "address",  // address
             {0, 0},     // coordinates
-            nullptr,    // coordinates
+            nullptr,    // logger
     };
     PeerManager peer_manager(config);
     REQUIRE(peer_manager.updatePeer(node_info, verifier.GetComputedSize()));
@@ -76,17 +76,22 @@ TEST_CASE("node info serialization") {
 }
 
 TEST_CASE("Peer Ranking") {
+    auto logger = std::make_shared<Logger>();
+    logger->addLogHandler(Logger::TRACE, [](Logger::Level level, Error error, const void*, size_t) {
+        std::cout << "lv: " << level << ", type: " << error.type << ", code: " << error.code
+                  << ", msg: " << error.what() << std::endl;
+    });
     PeerManager::Config config{
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
-            nullptr,       // coordinates
+            logger,        // logger
     };
     PeerManager peer_manager(config);
 
     FlatBufferBuilder fbb;
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 9; i >= 0; --i) {
         NodeInfoT peer;
         peer.name = "peer" + std::to_string(i);
         peer.address = "address" + std::to_string(i);
@@ -95,8 +100,12 @@ TEST_CASE("Peer Ranking") {
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
         peer_manager.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()), fbb.GetSize());
     }
+    for (int i = 3; i < 8; ++i) {
+        peer_manager.latchPeer("address" + std::to_string(i), 2);
+    }
     REQUIRE(peer_manager.getPeers().size() == 10);
     for (auto& peer : peer_manager.getPeers()) {
         std::cout << peer.first << " name " << peer.second.node_info.name << std::endl;
     }
+    peer_manager.updatePeerRankings(1);
 }

@@ -17,31 +17,48 @@ void PeerManager::latchPeer(std::string address, uint32_t latch_until) {
 
 bool PeerManager::updatePeer(const NodeInfo* node_info, size_t buf_size) {
     if (!node_info || !node_info->address()) {
-        if (_logger) {
-            _logger->log(Logger::WARN, Error("Peer address missing.", PEER_ADDRESS_MISSING),
-                    node_info, buf_size);
-        }
+        IF_PTR(_logger, log, Logger::WARN, Error("Peer address missing.", PEER_ADDRESS_MISSING),
+                node_info, buf_size);
         return false;
     }
-    auto& peer = _peers[node_info->address()->str()];
-    if (node_info->timestamp() < peer.node_info.timestamp) {
-        if (_logger) {
-            _logger->log(Logger::TRACE, Error("Peer timestamp is stale.", PEER_TIMESTAMP_STALE),
-                    node_info, buf_size);
+    auto emplace_result = _peers.emplace(node_info->address()->str(), Peer{});
+    auto& peer = emplace_result.first->second;
+    if (emplace_result.second) {
+        IF_PTR(_logger, log, Logger::INFO, Error("New Peer discovered.", NEW_PEER_DISCOVERED),
+                node_info, buf_size);
+        _peer_rankings.emplace_back(&peer);
+    } else {
+        if (node_info->timestamp() < peer.node_info.timestamp) {
+            IF_PTR(_logger, log, Logger::WARN,
+                    Error("Peer timestamp is stale.", PEER_TIMESTAMP_STALE), node_info, buf_size);
+            return false;
         }
-        return false;
-    }
-    node_info->UnPackTo(&(peer.node_info));
-    if (_logger) {
-        _logger->log(Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &peer.node_info,
+        IF_PTR(_logger, log, Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &peer.node_info,
                 sizeof(NodeInfoT));
     }
+    node_info->UnPackTo(&(peer.node_info));
     return true;
 }
 
 void PeerManager::generateBeacon() {
-    if (_logger) {
-        _logger->log(Logger::TRACE, Error("Beacon generated.", BEACON_GENERATED));
+    IF_PTR(_logger, log, Logger::TRACE, Error("Peer updates generated.", PEER_UPDATES_GENERATED));
+}
+
+void PeerManager::updatePeerRankings(uint32_t current_time) {
+    std::sort(_peer_rankings.begin(), _peer_rankings.end(),
+            [this, current_time](const Peer* a, const Peer* b) {
+                bool a_latched = a->latch_until > current_time;
+                bool b_latched = b->latch_until > current_time;
+                float a_distance_sqr =
+                        distanceSqr(*(a->node_info.coordinates), *_node_info.coordinates);
+                float b_distance_sqr =
+                        distanceSqr(*(b->node_info.coordinates), *_node_info.coordinates);
+                return (a_latched > b_latched) ||
+                       ((a_latched == b_latched) && a_distance_sqr < b_distance_sqr);
+            });
+    for (auto& ranking : _peer_rankings) {
+        printf("name %s x %f latch %d\n", ranking->node_info.name.c_str(),
+                ranking->node_info.coordinates->x(), ranking->latch_until);
     }
 }
 

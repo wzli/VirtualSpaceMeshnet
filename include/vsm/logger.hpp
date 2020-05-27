@@ -3,6 +3,10 @@
 #include <functional>
 #include <exception>
 
+#define IF_PTR(ptr, func, ...) \
+    if (ptr)                   \
+    ptr->func(__VA_ARGS__)
+
 namespace vsm {
 
 struct Error : public std::exception {

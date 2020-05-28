@@ -58,7 +58,7 @@ void MeshNode::sendPeerUpdates() {
     auto msg = msg_builder.Finish();
     _fbb.Finish(msg);
     // send message
-    _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize(), "P");
+    _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
     IF_PTR(_logger, log, Logger::TRACE, Error("Peer updates sent.", PEER_UPDATES_SENT));
 }
 

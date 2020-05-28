@@ -40,6 +40,7 @@ public:
         // Info
         INITIALIZED,
         NEW_PEER_DISCOVERED,
+        PEER_LATCHED,
         // Trace
         PEER_UPDATED,
         PEER_IS_SELF,

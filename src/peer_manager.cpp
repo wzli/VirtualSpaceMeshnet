@@ -40,6 +40,11 @@ void PeerManager::latchPeer(const char* address, uint32_t latch_until) {
     if (peer.node_info.address.empty()) {
         peer.node_info.address = address;
         peer.node_info.coordinates = std::make_unique<Vec2>();
+        _peer_rankings.emplace_back(&peer);
+    }
+    if (latch_until - peer.latch_until > _config.latch_duration) {
+        Error error("Peer Latched.", PEER_LATCHED);
+        IF_PTR(_logger, log, Logger::INFO, error, address);
     }
     peer.latch_until = latch_until;
 }

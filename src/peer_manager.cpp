@@ -21,8 +21,7 @@ PeerManager::PeerManager(Config config)
     _node_info.address = std::move(_config.address);
     _node_info.coordinates = std::make_unique<Vec2>(std::move(_config.coordinates));
 
-    Error error = Error("Peer manager initialized.", INITIALIZED);
-    IF_PTR(_logger, log, Logger::INFO, error);
+    IF_PTR(_logger, log, Logger::INFO, Error("Peer manager initialized.", INITIALIZED));
 }
 
 void PeerManager::latchPeer(const char* address, uint32_t latch_until) {
@@ -42,9 +41,8 @@ void PeerManager::latchPeer(const char* address, uint32_t latch_until) {
         peer.node_info.coordinates = std::make_unique<Vec2>();
         _peer_rankings.emplace_back(&peer);
     }
-    if (latch_until - peer.latch_until > _config.latch_duration) {
-        Error error("Peer Latched.", PEER_LATCHED);
-        IF_PTR(_logger, log, Logger::INFO, error, address);
+    if (_logger && ((latch_until - peer.latch_until) > _config.latch_duration)) {
+        _logger->log(Logger::INFO, Error("Peer latched.", PEER_LATCHED), address);
     }
     peer.latch_until = latch_until;
 }
@@ -74,7 +72,7 @@ PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
     auto emplace_result = _peers.emplace(peer_address, Peer{});
     auto& peer = emplace_result.first->second;
     if (emplace_result.second) {
-        IF_PTR(_logger, log, Logger::INFO, Error("New Peer discovered.", NEW_PEER_DISCOVERED),
+        IF_PTR(_logger, log, Logger::INFO, Error("New peer discovered.", NEW_PEER_DISCOVERED),
                 node_info);
         _peer_rankings.emplace_back(&peer);
     } else {

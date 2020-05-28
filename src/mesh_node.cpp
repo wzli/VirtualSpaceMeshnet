@@ -54,9 +54,12 @@ void MeshNode::sendPeerUpdates() {
     std::set_difference(_recipients_buffer.begin(), _recipients_buffer.end(),
             _connected_peers.begin(), _connected_peers.end(), std::back_inserter(connector));
     _connected_peers.swap(_recipients_buffer);
+    // add source info to peer vector
+    auto source = NodeInfo::Pack(_fbb, &_peer_manager.getNodeInfo());
+    ranked_peers.emplace_back(source);
     // write message
     MessageBuilder msg_builder(_fbb);
-    msg_builder.add_source(NodeInfo::Pack(_fbb, &_peer_manager.getNodeInfo()));
+    msg_builder.add_source(source);
     msg_builder.add_peers(_fbb.CreateVector(ranked_peers));
     auto msg = msg_builder.Finish();
     _fbb.Finish(msg);
@@ -91,9 +94,7 @@ void MeshNode::recvPeerUpdates(const void* buffer, size_t len) {
     Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
     IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
     ++_stats.peer_updates_received;
-    for (auto node_info : *msg->peers()) {
-        _peer_manager.updatePeer(node_info, len);
-    }
+    _peer_manager.recvPeerUpdates(msg->peers());
 }
 
 void MeshNode::recvStateUpdates(const void* buffer, size_t len) {

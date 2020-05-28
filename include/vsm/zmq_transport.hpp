@@ -38,7 +38,7 @@ public:
     int poll(int timeout);
 
     // implementation specific
-    ZmqTransport(const std::string& addr = "udp://*:11511");
+    ZmqTransport(const std::string& address = "udp://*:11511");
 
     const zmq::socket_t& getTxSocket() const { return _tx_socket; }
     const zmq::socket_t& getRxSocket() const { return _rx_socket; }

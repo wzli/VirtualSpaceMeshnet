@@ -2,8 +2,8 @@
 
 namespace vsm {
 
-ZmqTransport::ZmqTransport(const std::string& addr)
-        : _address(addr)
+ZmqTransport::ZmqTransport(const std::string& address)
+        : _address(address)
         , _tx_socket(_zmq_ctx, zmq::socket_type::radio)
         , _rx_socket(_zmq_ctx, zmq::socket_type::dish) {
     _rx_socket.bind(_address);

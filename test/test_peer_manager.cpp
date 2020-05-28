@@ -68,7 +68,7 @@ TEST_CASE("node info serialization") {
             {0, 0},     // coordinates
             nullptr,    // logger
     });
-    REQUIRE(peer_manager.updatePeer(node_info, verifier.GetComputedSize()));
+    REQUIRE(peer_manager.updatePeer(node_info));
     REQUIRE(peer_manager.getPeers().size() == 1);
     REQUIRE(peer_manager.getPeers().at("peer_addr").node_info.name == "peer_name");
 }
@@ -123,7 +123,7 @@ TEST_CASE("Peer Ranking") {
         peer.coordinates = std::make_unique<Vec2>(i, i);
         peer.timestamp = i;
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
-        peer_manager.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()), fbb.GetSize());
+        peer_manager.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()));
     }
     // latch some peers
     for (int i = latch_start; i < latch_end; ++i) {

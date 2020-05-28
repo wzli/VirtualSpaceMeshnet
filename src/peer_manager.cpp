@@ -4,8 +4,6 @@
 
 namespace vsm {
 
-namespace fb = flatbuffers;
-
 PeerManager::PeerManager(Config config)
         : _config(std::move(config))
         , _logger(std::move(_config.logger)) {
@@ -33,22 +31,29 @@ void PeerManager::latchPeer(std::string address, uint32_t latch_until) {
     peer.latch_until = latch_until;
 }
 
-bool PeerManager::updatePeer(const NodeInfo* node_info, size_t buf_size) {
+bool PeerManager::updatePeer(const NodeInfo* node_info) {
+    // null check
     if (!node_info || !node_info->address()) {
         IF_PTR(_logger, log, Logger::WARN, Error("Peer address missing.", PEER_ADDRESS_MISSING),
-                node_info, buf_size);
+                node_info);
         return false;
     }
-    auto emplace_result = _peers.emplace(node_info->address()->str(), Peer{});
+    // reject updates corresponds to this node
+    auto peer_address = node_info->address()->c_str();
+    if (_node_info.address == peer_address) {
+        return false;
+    }
+    // check if peer exists in lookup
+    auto emplace_result = _peers.emplace(peer_address, Peer{});
     auto& peer = emplace_result.first->second;
     if (emplace_result.second) {
         IF_PTR(_logger, log, Logger::INFO, Error("New Peer discovered.", NEW_PEER_DISCOVERED),
-                node_info, buf_size);
+                node_info);
         _peer_rankings.emplace_back(&peer);
     } else {
         if (node_info->timestamp() < peer.node_info.timestamp) {
             IF_PTR(_logger, log, Logger::WARN,
-                    Error("Peer timestamp is stale.", PEER_TIMESTAMP_STALE), node_info, buf_size);
+                    Error("Peer timestamp is stale.", PEER_TIMESTAMP_STALE), node_info);
             return false;
         }
         IF_PTR(_logger, log, Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &peer.node_info,
@@ -58,7 +63,13 @@ bool PeerManager::updatePeer(const NodeInfo* node_info, size_t buf_size) {
     return true;
 }
 
-PeerManager::PeersVector PeerManager::updatePeerRankings(
+void PeerManager::recvPeerUpdates(const fb::Vector<fb::Offset<NodeInfo>>* peer_updates) {
+    for (auto node_info : *peer_updates) {
+        updatePeer(node_info);
+    }
+}
+
+std::vector<fb::Offset<NodeInfo>> PeerManager::updatePeerRankings(
         fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients, uint32_t current_time) {
     // compute rank costs
     for (auto& peer : _peers) {
@@ -83,7 +94,7 @@ PeerManager::PeersVector PeerManager::updatePeerRankings(
     const auto latched_end =
             std::lower_bound(_peer_rankings.begin(), _peer_rankings.end(), &latched_div, comp);
     // build ranked peers vector
-    PeersVector ranked_peers;
+    std::vector<fb::Offset<NodeInfo>> ranked_peers;
     auto latched_peer = _peer_rankings.begin();
     auto ranked_peer = latched_end;
     while (!(latched_peer == latched_end && ranked_peer == _peer_rankings.end()) &&

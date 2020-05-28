@@ -8,6 +8,8 @@
 
 namespace vsm {
 
+namespace fb = flatbuffers;
+
 inline float distanceSqr(const Vec2& a, const Vec2& b) {
     float dx = b.x() - a.x();
     float dy = b.y() - a.y();
@@ -23,7 +25,6 @@ struct Peer {
 class PeerManager {
 public:
     using PeerLookup = std::unordered_map<std::string, Peer>;
-    using PeersVector = std::vector<flatbuffers::Offset<NodeInfo>>;
 
     enum ErrorType {
         START_OFFSET = 200,
@@ -51,15 +52,17 @@ public:
         uint16_t connection_degree = 10;
         uint16_t latch_duration = 1000;
         uint16_t lookup_size = 128;
-        float rank_decay = 0.001f;
+        float rank_decay = 0.00001f;
     };
 
     PeerManager(Config config);
 
     void latchPeer(std::string address, uint32_t latch_until);
-    bool updatePeer(const NodeInfo* node_info, size_t buf_size);
+    bool updatePeer(const NodeInfo* node_info);
 
-    PeersVector updatePeerRankings(flatbuffers::FlatBufferBuilder& fbb,
+    void recvPeerUpdates(const fb::Vector<fb::Offset<NodeInfo>>* peer_updates);
+
+    std::vector<fb::Offset<NodeInfo>> updatePeerRankings(fb::FlatBufferBuilder& fbb,
             std::vector<std::string>& recipients, uint32_t current_time);
 
     const PeerLookup& getPeers() const { return _peers; }

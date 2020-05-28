@@ -17,13 +17,14 @@ public:
         MESSAGE_VERIFY_FAIL,
         // Info
         INITIALIZED,
+        PEER_UPDATES_SENT,
         // Trace
         PEER_UPDATES_RECEIVED,
         STATE_UPDATES_RECEIVED,
     };
 
     struct Config {
-        uint16_t beacon_interval = 1000;
+        uint16_t peer_update_interval = 1000;
         PeerManager::Config peer_manager;
         std::shared_ptr<Transport> transport;
         std::shared_ptr<Logger> logger;
@@ -36,6 +37,8 @@ public:
     };
 
     MeshNode(Config config);
+
+    void sendPeerUpdates();
 
     PeerManager& getPeerManager() { return _peer_manager; }
     Transport& getTransport() { return *_transport; }

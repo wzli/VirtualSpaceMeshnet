@@ -1,6 +1,6 @@
 namespace vsm;
 
-struct Vector2 {
+struct Vec2 {
   x:float32;
   y:float32;
 }
@@ -8,7 +8,7 @@ struct Vector2 {
 table NodeInfo {
   name:string;
   address:string (key);
-  coordinates:Vector2;
+  coordinates:Vec2;
   timestamp:uint32;
 }
 

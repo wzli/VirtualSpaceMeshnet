@@ -21,19 +21,22 @@ MeshNode::MeshNode(Config config)
         throw error;
     }
     if (int err_code = _transport->addReceiver(
-                [this](const void* buffer, size_t len) { recvPeerUpdates(buffer, len); }, "B")) {
+                [this](const void* buffer, size_t len) { recvPeerUpdates(buffer, len); }, "P")) {
         Error error("Failed to add peer updates receiver.", ADD_MESSAGE_HANDLER_FAIL, err_code);
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
-    if (0 > _transport->addTimer(
-                    config.beacon_interval, [this](int) { _peer_manager.generateBeacon(); })) {
-        Error error("Failed to add beacon timer.", ADD_TIMER_FAIL);
+    if (0 > _transport->addTimer(config.peer_update_interval, [this](int) { sendPeerUpdates(); })) {
+        Error error("Failed to add peer update timer.", ADD_TIMER_FAIL);
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
     Error error = Error("Mesh node initialized.", INITIALIZED);
     IF_PTR(_logger, log, Logger::INFO, error);
+}
+
+void MeshNode::sendPeerUpdates() {
+    IF_PTR(_logger, log, Logger::TRACE, Error("Peer updates sent.", PEER_UPDATES_SENT));
 }
 
 const Message* MeshNode::getMessage(const void* buffer, size_t& len) {

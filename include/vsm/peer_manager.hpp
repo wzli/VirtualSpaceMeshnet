@@ -8,7 +8,7 @@
 
 namespace vsm {
 
-inline float distanceSqr(const Vector2& a, const Vector2& b) {
+inline float distanceSqr(const Vec2& a, const Vec2& b) {
     float dx = b.x() - a.x();
     float dy = b.y() - a.y();
     return (dx * dx) + (dy * dy);
@@ -28,6 +28,7 @@ public:
     enum ErrorType {
         START_OFFSET = 200,
         // Error
+        EMPTY_ADDRESS,
         NEGATIVE_RANK_DECAY,
         // Warn
         PEER_ADDRESS_MISSING,
@@ -44,7 +45,7 @@ public:
     struct Config {
         std::string name;
         std::string address;
-        Vector2 coordinates;
+        Vec2 coordinates;
         std::shared_ptr<Logger> logger;
 
         uint16_t connection_degree = 10;
@@ -57,8 +58,6 @@ public:
 
     void latchPeer(std::string address, uint32_t latch_until);
     bool updatePeer(const NodeInfo* node_info, size_t buf_size);
-
-    void generateBeacon();
 
     PeersVector updatePeerRankings(flatbuffers::FlatBufferBuilder& fbb,
             std::vector<std::string>& recipients, uint32_t current_time);

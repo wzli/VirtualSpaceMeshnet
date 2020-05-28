@@ -9,6 +9,11 @@ namespace fb = flatbuffers;
 PeerManager::PeerManager(Config config)
         : _config(std::move(config))
         , _logger(std::move(_config.logger)) {
+    if (_config.name.empty()) {
+        Error error("Empty address.", EMPTY_ADDRESS);
+        IF_PTR(_logger, log, Logger::ERROR, error);
+        throw error;
+    }
     if (_config.rank_decay < 0) {
         Error error("Negative rank decay.", NEGATIVE_RANK_DECAY);
         IF_PTR(_logger, log, Logger::ERROR, error);
@@ -16,7 +21,7 @@ PeerManager::PeerManager(Config config)
     }
     _node_info.name = std::move(_config.name);
     _node_info.address = std::move(_config.address);
-    _node_info.coordinates = std::make_unique<Vector2>(std::move(_config.coordinates));
+    _node_info.coordinates = std::make_unique<Vec2>(std::move(_config.coordinates));
 
     Error error = Error("Peer manager initialized.", INITIALIZED);
     IF_PTR(_logger, log, Logger::INFO, error);
@@ -51,10 +56,6 @@ bool PeerManager::updatePeer(const NodeInfo* node_info, size_t buf_size) {
     }
     node_info->UnPackTo(&(peer.node_info));
     return true;
-}
-
-void PeerManager::generateBeacon() {
-    IF_PTR(_logger, log, Logger::TRACE, Error("Peer rankings generated.", PEER_RANKINGS_GENERATED));
 }
 
 PeerManager::PeersVector PeerManager::updatePeerRankings(

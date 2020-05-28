@@ -10,9 +10,13 @@ using namespace flatbuffers;
 
 TEST_CASE("beacon tick") {
     auto logger = std::make_shared<Logger>();
-    int beacon_count = 0;
+    int peer_updates_sent = 0;
     logger->addLogHandler(Logger::TRACE,
-            [&beacon_count](Logger::Level, Error, const void*, size_t) { ++beacon_count; });
+            [&peer_updates_sent](Logger::Level level, Error error, const void*, size_t) {
+                peer_updates_sent += error.type == MeshNode::PEER_UPDATES_SENT;
+                // std::cout << "lv: " << level << ", type: " << error.type << ", code: " <<
+                // error.code << ", msg: " << error.what() << std::endl;
+            });
     PeerManager::Config peer_manager_config{
             "node_name",              // name
             "udp://127.0.0.1:11611",  // address
@@ -29,7 +33,7 @@ TEST_CASE("beacon tick") {
     for (int i = 0; i < 5; ++i) {
         mesh_node.getTransport().poll(2);
     }
-    REQUIRE(beacon_count >= 5);
+    REQUIRE(peer_updates_sent >= 4);
 }
 
 TEST_CASE("node info serialization") {
@@ -37,7 +41,7 @@ TEST_CASE("node info serialization") {
     FlatBufferBuilder fbb;
     auto peer_name = fbb.CreateString("peer_name");
     auto peer_addr = fbb.CreateString("peer_addr");
-    Vector2 peer_coords(3, 4);
+    Vec2 peer_coords(3, 4);
     auto node_info_offset = CreateNodeInfo(fbb, peer_name, peer_addr, &peer_coords, 100);
     fbb.Finish(node_info_offset);
 
@@ -116,7 +120,7 @@ TEST_CASE("Peer Ranking") {
         NodeInfoT peer;
         peer.name = "peer" + std::to_string(i);
         peer.address = "address" + std::to_string(i);
-        peer.coordinates = std::make_unique<Vector2>(i, i);
+        peer.coordinates = std::make_unique<Vec2>(i, i);
         peer.timestamp = i;
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
         peer_manager.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()), fbb.GetSize());

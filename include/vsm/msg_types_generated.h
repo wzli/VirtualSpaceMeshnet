@@ -8,7 +8,7 @@
 
 namespace vsm {
 
-struct Vector2;
+struct Vec2;
 
 struct NodeInfo;
 struct NodeInfoBuilder;
@@ -58,19 +58,19 @@ inline const char *EnumNameSyncMode(SyncMode e) {
   return EnumNamesSyncMode()[index];
 }
 
-FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector2 FLATBUFFERS_FINAL_CLASS {
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vec2 FLATBUFFERS_FINAL_CLASS {
  private:
   float x_;
   float y_;
 
  public:
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "vsm.Vector2";
+    return "vsm.Vec2";
   }
-  Vector2() {
-    memset(static_cast<void *>(this), 0, sizeof(Vector2));
+  Vec2() {
+    memset(static_cast<void *>(this), 0, sizeof(Vec2));
   }
-  Vector2(float _x, float _y)
+  Vec2(float _x, float _y)
       : x_(flatbuffers::EndianScalar(_x)),
         y_(flatbuffers::EndianScalar(_y)) {
   }
@@ -87,7 +87,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector2 FLATBUFFERS_FINAL_CLASS {
     flatbuffers::WriteScalar(&y_, _y);
   }
 };
-FLATBUFFERS_STRUCT_END(Vector2, 8);
+FLATBUFFERS_STRUCT_END(Vec2, 8);
 
 struct NodeInfoT : public flatbuffers::NativeTable {
   typedef NodeInfo TableType;
@@ -96,7 +96,7 @@ struct NodeInfoT : public flatbuffers::NativeTable {
   }
   std::string name;
   std::string address;
-  std::unique_ptr<vsm::Vector2> coordinates;
+  std::unique_ptr<vsm::Vec2> coordinates;
   uint32_t timestamp;
   NodeInfoT()
       : timestamp(0) {
@@ -133,11 +133,11 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int KeyCompareWithValue(const char *val) const {
     return strcmp(address()->c_str(), val);
   }
-  const vsm::Vector2 *coordinates() const {
-    return GetStruct<const vsm::Vector2 *>(VT_COORDINATES);
+  const vsm::Vec2 *coordinates() const {
+    return GetStruct<const vsm::Vec2 *>(VT_COORDINATES);
   }
-  vsm::Vector2 *mutable_coordinates() {
-    return GetStruct<vsm::Vector2 *>(VT_COORDINATES);
+  vsm::Vec2 *mutable_coordinates() {
+    return GetStruct<vsm::Vec2 *>(VT_COORDINATES);
   }
   uint32_t timestamp() const {
     return GetField<uint32_t>(VT_TIMESTAMP, 0);
@@ -151,7 +151,7 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyOffsetRequired(verifier, VT_ADDRESS) &&
            verifier.VerifyString(address()) &&
-           VerifyField<vsm::Vector2>(verifier, VT_COORDINATES) &&
+           VerifyField<vsm::Vec2>(verifier, VT_COORDINATES) &&
            VerifyField<uint32_t>(verifier, VT_TIMESTAMP) &&
            verifier.EndTable();
   }
@@ -170,7 +170,7 @@ struct NodeInfoBuilder {
   void add_address(flatbuffers::Offset<flatbuffers::String> address) {
     fbb_.AddOffset(NodeInfo::VT_ADDRESS, address);
   }
-  void add_coordinates(const vsm::Vector2 *coordinates) {
+  void add_coordinates(const vsm::Vec2 *coordinates) {
     fbb_.AddStruct(NodeInfo::VT_COORDINATES, coordinates);
   }
   void add_timestamp(uint32_t timestamp) {
@@ -192,7 +192,7 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::String> address = 0,
-    const vsm::Vector2 *coordinates = 0,
+    const vsm::Vec2 *coordinates = 0,
     uint32_t timestamp = 0) {
   NodeInfoBuilder builder_(_fbb);
   builder_.add_timestamp(timestamp);
@@ -206,7 +206,7 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfoDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     const char *address = nullptr,
-    const vsm::Vector2 *coordinates = 0,
+    const vsm::Vec2 *coordinates = 0,
     uint32_t timestamp = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto address__ = address ? _fbb.CreateString(address) : 0;
@@ -541,7 +541,7 @@ inline void NodeInfo::UnPackTo(NodeInfoT *_o, const flatbuffers::resolver_functi
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
   { auto _e = address(); if (_e) _o->address = _e->str(); }
-  { auto _e = coordinates(); if (_e) _o->coordinates = std::unique_ptr<vsm::Vector2>(new vsm::Vector2(*_e)); }
+  { auto _e = coordinates(); if (_e) _o->coordinates = std::unique_ptr<vsm::Vec2>(new vsm::Vec2(*_e)); }
   { auto _e = timestamp(); _o->timestamp = _e; }
 }
 

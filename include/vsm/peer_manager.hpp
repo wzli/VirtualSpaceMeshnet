@@ -33,7 +33,9 @@ public:
         ADDRESS_CONFIG_EMPTY,
         NEGATIVE_RANK_DECAY,
         // Warn
+        PEER_IS_NULL,
         PEER_ADDRESS_MISSING,
+        PEER_COORDINATES_MISSING,
         PEER_TIMESTAMP_STALE,
         // Info
         INITIALIZED,

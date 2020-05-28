@@ -39,16 +39,26 @@ void PeerManager::latchPeer(const char* address, uint32_t latch_until) {
     auto& peer = _peers[address];
     if (peer.node_info.address.empty()) {
         peer.node_info.address = address;
+        peer.node_info.coordinates = std::make_unique<Vec2>();
     }
     peer.latch_until = latch_until;
 }
 
 PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
     // null check
-    if (!node_info || !node_info->address()) {
+    if (!node_info) {
+        IF_PTR(_logger, log, Logger::WARN, Error("Peer is null.", PEER_IS_NULL), node_info);
+        return PEER_IS_NULL;
+    }
+    if (!node_info->address()) {
         IF_PTR(_logger, log, Logger::WARN, Error("Peer address missing.", PEER_ADDRESS_MISSING),
                 node_info);
         return PEER_ADDRESS_MISSING;
+    }
+    if (!node_info->coordinates()) {
+        IF_PTR(_logger, log, Logger::WARN,
+                Error("Peer coordinates missing.", PEER_COORDINATES_MISSING), node_info);
+        return PEER_COORDINATES_MISSING;
     }
     // reject updates corresponds to this node
     auto peer_address = node_info->address()->c_str();

@@ -11,8 +11,8 @@ using namespace flatbuffers;
 TEST_CASE("beacon tick") {
     auto logger = std::make_shared<Logger>();
     int peer_updates_sent = 0;
-    logger->addLogHandler(Logger::TRACE,
-            [&peer_updates_sent](Logger::Level level, Error error, const void*, size_t) {
+    logger->addLogHandler(
+            Logger::TRACE, [&peer_updates_sent](Logger::Level, Error error, const void*, size_t) {
                 peer_updates_sent += error.type == MeshNode::PEER_UPDATES_SENT;
                 // std::cout << "lv: " << level << ", type: " << error.type << ", code: " <<
                 // error.code << ", msg: " << error.what() << std::endl;

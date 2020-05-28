@@ -36,6 +36,24 @@ MeshNode::MeshNode(Config config)
 }
 
 void MeshNode::sendPeerUpdates() {
+    _fbb.Clear();
+    // get peer rankings
+    auto ranked_peers = _peer_manager.updatePeerRankings(_fbb, _recipients_buffer, _current_time);
+    // update peer connections
+    std::sort(_recipients_buffer.begin(), _recipients_buffer.end());
+    std::set_difference(_connected_peers.begin(), _connected_peers.end(),
+            _recipients_buffer.begin(), _recipients_buffer.end(), _transport->disconnectIterator());
+    std::set_difference(_recipients_buffer.begin(), _recipients_buffer.end(),
+            _connected_peers.begin(), _connected_peers.end(), _transport->connectIterator());
+    _connected_peers.swap(_recipients_buffer);
+    // write message
+    MessageBuilder msg_builder(_fbb);
+    msg_builder.add_source(NodeInfo::Pack(_fbb, &_peer_manager.getNodeInfo()));
+    msg_builder.add_peers(_fbb.CreateVector(ranked_peers));
+    auto msg = msg_builder.Finish();
+    _fbb.Finish(msg);
+    // send message
+    _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize(), "P");
     IF_PTR(_logger, log, Logger::TRACE, Error("Peer updates sent.", PEER_UPDATES_SENT));
 }
 

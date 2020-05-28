@@ -52,9 +52,13 @@ private:
     void recvStateUpdates(const void* buffer, size_t len);
 
     Stats _stats;
+    uint32_t _current_time;
     PeerManager _peer_manager;
     std::shared_ptr<Transport> _transport;
     std::shared_ptr<Logger> _logger;
+    flatbuffers::FlatBufferBuilder _fbb;
+    std::vector<std::string> _recipients_buffer;
+    std::vector<std::string> _connected_peers;
 };
 
 }  // namespace vsm

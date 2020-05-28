@@ -39,12 +39,20 @@ void MeshNode::sendPeerUpdates() {
     _fbb.Clear();
     // get peer rankings
     auto ranked_peers = _peer_manager.updatePeerRankings(_fbb, _recipients_buffer, _current_time);
-    // update peer connections
+    // create iterators for updating connections
+    struct BackAssigner {
+        using value_type = std::string;
+        void push_back(const std::string& address) { assign(address); };
+        std::function<void(const std::string&)> assign;
+    };
+    BackAssigner disconnector{[this](const std::string& addr) { _transport->disconnect(addr); }};
+    BackAssigner connector{[this](const std::string& addr) { _transport->connect(addr); }};
+    // update transport connections
     std::sort(_recipients_buffer.begin(), _recipients_buffer.end());
     std::set_difference(_connected_peers.begin(), _connected_peers.end(),
-            _recipients_buffer.begin(), _recipients_buffer.end(), _transport->disconnectIterator());
+            _recipients_buffer.begin(), _recipients_buffer.end(), std::back_inserter(disconnector));
     std::set_difference(_recipients_buffer.begin(), _recipients_buffer.end(),
-            _connected_peers.begin(), _connected_peers.end(), _transport->connectIterator());
+            _connected_peers.begin(), _connected_peers.end(), std::back_inserter(connector));
     _connected_peers.swap(_recipients_buffer);
     // write message
     MessageBuilder msg_builder(_fbb);

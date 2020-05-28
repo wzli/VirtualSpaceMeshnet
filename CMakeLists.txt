@@ -15,7 +15,7 @@ add_subdirectory(submodules/cppzmq)
 
 # flatbuffers setup
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
-ADD_DEFINITIONS(-DFLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE)
+#ADD_DEFINITIONS(-DFLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE)
 add_subdirectory(submodules/flatbuffers
   ${CMAKE_CURRENT_BINARY_DIR}/flatbuffers-build EXCLUDE_FROM_ALL)
 

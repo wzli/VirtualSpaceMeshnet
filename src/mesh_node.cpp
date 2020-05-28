@@ -94,7 +94,7 @@ void MeshNode::recvPeerUpdates(const void* buffer, size_t len) {
     Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
     IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
     ++_stats.peer_updates_received;
-    _peer_manager.recvPeerUpdates(msg->peers());
+    _peer_manager.recvPeerUpdates(msg, _current_time);
 }
 
 void MeshNode::recvStateUpdates(const void* buffer, size_t len) {

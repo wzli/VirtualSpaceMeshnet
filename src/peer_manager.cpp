@@ -8,7 +8,7 @@ PeerManager::PeerManager(Config config)
         : _config(std::move(config))
         , _logger(std::move(_config.logger)) {
     if (_config.name.empty()) {
-        Error error("Empty address.", EMPTY_ADDRESS);
+        Error error("Address config empty.", ADDRESS_CONFIG_EMPTY);
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
@@ -25,23 +25,35 @@ PeerManager::PeerManager(Config config)
     IF_PTR(_logger, log, Logger::INFO, error);
 }
 
-void PeerManager::latchPeer(std::string address, uint32_t latch_until) {
+void PeerManager::latchPeer(const char* address, uint32_t latch_until) {
+    if (!address) {
+        Error error("Peer address missing.", PEER_ADDRESS_MISSING);
+        IF_PTR(_logger, log, Logger::ERROR, error, address);
+        throw error;
+    }
+    if (_node_info.address == address) {
+        Error error("Cannot latch self address.", PEER_IS_SELF);
+        IF_PTR(_logger, log, Logger::ERROR, error, address);
+        throw error;
+    }
     auto& peer = _peers[address];
-    peer.node_info.address = std::move(address);
+    if (peer.node_info.address.empty()) {
+        peer.node_info.address = address;
+    }
     peer.latch_until = latch_until;
 }
 
-bool PeerManager::updatePeer(const NodeInfo* node_info) {
+PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
     // null check
     if (!node_info || !node_info->address()) {
         IF_PTR(_logger, log, Logger::WARN, Error("Peer address missing.", PEER_ADDRESS_MISSING),
                 node_info);
-        return false;
+        return PEER_ADDRESS_MISSING;
     }
     // reject updates corresponds to this node
     auto peer_address = node_info->address()->c_str();
     if (_node_info.address == peer_address) {
-        return false;
+        return PEER_IS_SELF;
     }
     // check if peer exists in lookup
     auto emplace_result = _peers.emplace(peer_address, Peer{});
@@ -54,18 +66,20 @@ bool PeerManager::updatePeer(const NodeInfo* node_info) {
         if (node_info->timestamp() < peer.node_info.timestamp) {
             IF_PTR(_logger, log, Logger::WARN,
                     Error("Peer timestamp is stale.", PEER_TIMESTAMP_STALE), node_info);
-            return false;
+            return PEER_TIMESTAMP_STALE;
         }
         IF_PTR(_logger, log, Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &peer.node_info,
                 sizeof(NodeInfoT));
     }
     node_info->UnPackTo(&(peer.node_info));
-    return true;
+    return SUCCESS;
 }
 
-void PeerManager::recvPeerUpdates(const fb::Vector<fb::Offset<NodeInfo>>* peer_updates) {
-    for (auto node_info : *peer_updates) {
-        updatePeer(node_info);
+void PeerManager::recvPeerUpdates(const Message* msg, uint32_t current_time) {
+    for (auto node_info : *msg->peers()) {
+        if (updatePeer(node_info) == PEER_IS_SELF) {
+            latchPeer(msg->source()->address()->c_str(), current_time + _config.latch_duration);
+        }
     }
 }
 

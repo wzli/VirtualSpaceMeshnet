@@ -27,9 +27,10 @@ public:
     using PeerLookup = std::unordered_map<std::string, Peer>;
 
     enum ErrorType {
+        SUCCESS = 0,
         START_OFFSET = 200,
         // Error
-        EMPTY_ADDRESS,
+        ADDRESS_CONFIG_EMPTY,
         NEGATIVE_RANK_DECAY,
         // Warn
         PEER_ADDRESS_MISSING,
@@ -39,6 +40,7 @@ public:
         NEW_PEER_DISCOVERED,
         // Trace
         PEER_UPDATED,
+        PEER_IS_SELF,
         PEER_RANKINGS_GENERATED,
         PEER_LOOKUP_TRUNCATED,
     };
@@ -57,10 +59,11 @@ public:
 
     PeerManager(Config config);
 
-    void latchPeer(std::string address, uint32_t latch_until);
-    bool updatePeer(const NodeInfo* node_info);
+    void latchPeer(const char* address, uint32_t latch_until);
 
-    void recvPeerUpdates(const fb::Vector<fb::Offset<NodeInfo>>* peer_updates);
+    ErrorType updatePeer(const NodeInfo* node_info);
+
+    void recvPeerUpdates(const Message* msg, uint32_t current_time);
 
     std::vector<fb::Offset<NodeInfo>> updatePeerRankings(fb::FlatBufferBuilder& fbb,
             std::vector<std::string>& recipients, uint32_t current_time);

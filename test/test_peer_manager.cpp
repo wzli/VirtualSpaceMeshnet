@@ -68,7 +68,7 @@ TEST_CASE("node info serialization") {
             {0, 0},     // coordinates
             nullptr,    // logger
     });
-    REQUIRE(peer_manager.updatePeer(node_info));
+    REQUIRE(peer_manager.updatePeer(node_info) == PeerManager::SUCCESS);
     REQUIRE(peer_manager.getPeers().size() == 1);
     REQUIRE(peer_manager.getPeers().at("peer_addr").node_info.name == "peer_name");
 }
@@ -127,7 +127,7 @@ TEST_CASE("Peer Ranking") {
     }
     // latch some peers
     for (int i = latch_start; i < latch_end; ++i) {
-        peer_manager.latchPeer("address" + std::to_string(i), 2);
+        peer_manager.latchPeer(("address" + std::to_string(i)).c_str(), 2);
     }
     REQUIRE(peer_manager.getPeers().size() == n_peers);
     // generate peer rankings

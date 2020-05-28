@@ -37,7 +37,8 @@ public:
         NEW_PEER_DISCOVERED,
         // Trace
         PEER_UPDATED,
-        PEER_UPDATES_GENERATED,
+        PEER_RANKINGS_GENERATED,
+        PEER_LOOKUP_TRUNCATED,
     };
 
     struct Config {

@@ -54,7 +54,7 @@ bool PeerManager::updatePeer(const NodeInfo* node_info, size_t buf_size) {
 }
 
 void PeerManager::generateBeacon() {
-    IF_PTR(_logger, log, Logger::TRACE, Error("Peer updates generated.", PEER_UPDATES_GENERATED));
+    IF_PTR(_logger, log, Logger::TRACE, Error("Peer rankings generated.", PEER_RANKINGS_GENERATED));
 }
 
 PeerManager::PeersVector PeerManager::updatePeerRankings(
@@ -97,18 +97,21 @@ PeerManager::PeersVector PeerManager::updatePeerRankings(
             ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*latched_peer++)->node_info)));
         }
     }
+    // build recipients vector
     recipients.clear();
     for (auto recipient = _peer_rankings.begin(); recipient != ranked_peer; ++recipient) {
-        recipients.emplace_back((*recipient)->node_info.name);
+        recipients.emplace_back((*recipient)->node_info.address);
     }
-
-    for (auto& ranking : _peer_rankings) {
-        printf("name %s x %f latch %d ts %d\n", ranking->node_info.name.c_str(),
-                ranking->node_info.coordinates->x(), ranking->latch_until,
-                ranking->node_info.timestamp);
+    IF_PTR(_logger, log, Logger::TRACE, Error("Peer rankings generated.", PEER_RANKINGS_GENERATED));
+    // remove lowest ranked peers
+    if (_peers.size() > _config.lookup_size) {
+        for (auto low_rank_peer = _peer_rankings.begin() + _config.lookup_size;
+                low_rank_peer != _peer_rankings.end(); ++low_rank_peer) {
+            _peers.erase((*low_rank_peer)->node_info.address);
+        }
+        _peer_rankings.resize(_config.lookup_size);
+        IF_PTR(_logger, log, Logger::TRACE, Error("Peer lookup truncated.", PEER_LOOKUP_TRUNCATED));
     }
-    printf("dividor name %s x %f latch %d\n", (*latched_end)->node_info.name.c_str(),
-            (*latched_end)->node_info.coordinates->x(), (*latched_end)->latch_until);
     return ranked_peers;
 }
 

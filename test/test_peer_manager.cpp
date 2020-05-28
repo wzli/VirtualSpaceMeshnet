@@ -11,13 +11,8 @@ using namespace flatbuffers;
 TEST_CASE("beacon tick") {
     auto logger = std::make_shared<Logger>();
     int beacon_count = 0;
-    logger->addLogHandler(
-            Logger::TRACE, [&beacon_count](Logger::Level, Error, const void*, size_t) {
-                // std::cout << "lv: " << level << ", type: " << error.type << ", code: " <<
-                // error.code
-                //          << ", msg: " << error.what() << std::endl;
-                ++beacon_count;
-            });
+    logger->addLogHandler(Logger::TRACE,
+            [&beacon_count](Logger::Level, Error, const void*, size_t) { ++beacon_count; });
     PeerManager::Config peer_manager_config{
             "node_name",              // name
             "udp://127.0.0.1:11611",  // address
@@ -63,24 +58,30 @@ TEST_CASE("node info serialization") {
     REQUIRE(node_info->coordinates()->y() == peer_coords.y());
     REQUIRE(node_info->timestamp() == 100);
 
-    PeerManager::Config config{
+    PeerManager peer_manager({
             "name",     // name
             "address",  // address
             {0, 0},     // coordinates
             nullptr,    // logger
-    };
-    PeerManager peer_manager(config);
+    });
     REQUIRE(peer_manager.updatePeer(node_info, verifier.GetComputedSize()));
     REQUIRE(peer_manager.getPeers().size() == 1);
     REQUIRE(peer_manager.getPeers().at("peer_addr").node_info.name == "peer_name");
 }
 
 TEST_CASE("Peer Ranking") {
+    FlatBufferBuilder fbb;
     auto logger = std::make_shared<Logger>();
+#if 0
     logger->addLogHandler(Logger::TRACE, [](Logger::Level level, Error error, const void*, size_t) {
         std::cout << "lv: " << level << ", type: " << error.type << ", code: " << error.code
                   << ", msg: " << error.what() << std::endl;
     });
+#endif
+    // configer and create peer manager
+    size_t n_peers = 10;
+    int latch_start = 3;
+    int latch_end = 6;
     PeerManager::Config config{
             "my_name",     // name
             "my_address",  // address
@@ -88,14 +89,30 @@ TEST_CASE("Peer Ranking") {
             logger,        // logger
             7,             // connection_degree
             5,             // latch duration
-            10,            // lookup size
-            0.001,         // rank decay
+            20,            // lookup size
+            0.000,         // rank decay
     };
+
+    SECTION("1") { config.connection_degree = 3; }
+
+    SECTION("2") { config.connection_degree = 5; }
+
+    SECTION("3") {
+        latch_end = 7;
+        config.connection_degree = 8;
+    }
+
+    SECTION("4") {
+        n_peers = 1000;
+        latch_start = 300;
+        latch_end = 600;
+        config.connection_degree = 400;
+        config.lookup_size = 500;
+    }
+
     PeerManager peer_manager(config);
-
-    FlatBufferBuilder fbb;
-
-    for (int i = 9; i >= 0; --i) {
+    // add 10 peers
+    for (size_t i = 0; i < n_peers; ++i) {
         NodeInfoT peer;
         peer.name = "peer" + std::to_string(i);
         peer.address = "address" + std::to_string(i);
@@ -104,24 +121,30 @@ TEST_CASE("Peer Ranking") {
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
         peer_manager.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()), fbb.GetSize());
     }
-    for (int i = 3; i < 6; ++i) {
+    // latch some peers
+    for (int i = latch_start; i < latch_end; ++i) {
         peer_manager.latchPeer("address" + std::to_string(i), 2);
     }
-    REQUIRE(peer_manager.getPeers().size() == 10);
-    for (auto& peer : peer_manager.getPeers()) {
-        std::cout << peer.first << " name " << peer.second.node_info.name << std::endl;
-    }
-
+    REQUIRE(peer_manager.getPeers().size() == n_peers);
+    // generate peer rankings
     fbb.Clear();
     std::vector<std::string> recipients;
     auto ranked_peers = peer_manager.updatePeerRankings(fbb, recipients, 1);
-    for (const auto& recipient : recipients) {
-        std::cout << " recipient " << recipient << std::endl;
-    }
     fbb.Finish(fbb.CreateVector(ranked_peers));
     auto rankings = GetRoot<Vector<Offset<NodeInfo>>>(fbb.GetBufferPointer());
-
+    // require that lookup size is not exceeded
+    REQUIRE(peer_manager.getPeers().size() == std::min<size_t>(n_peers, config.lookup_size));
+    // required latched peers to be in recipients list
+    for (int i = latch_start; i < latch_end; ++i) {
+        REQUIRE(recipients.end() !=
+                std::find(recipients.begin(), recipients.end(), "address" + std::to_string(i)));
+    }
+    // require that ranked size matches connection degree
+    REQUIRE(ranked_peers.size() == config.connection_degree);
+    float last_distance_squared = 0;
     for (const auto& ranked : *rankings) {
-        std::cout << " ranked " << ranked->name()->str() << std::endl;
+        float distance_squared = distanceSqr(config.coordinates, *ranked->coordinates());
+        REQUIRE(distance_squared >= last_distance_squared);
+        last_distance_squared = distance_squared;
     }
 }

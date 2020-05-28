@@ -86,6 +86,10 @@ TEST_CASE("Peer Ranking") {
             "my_address",  // address
             {0, 0},        // coordinates
             logger,        // logger
+            7,             // connection_degree
+            5,             // latch duration
+            10,            // lookup size
+            0.001,         // rank decay
     };
     PeerManager peer_manager(config);
 
@@ -100,12 +104,24 @@ TEST_CASE("Peer Ranking") {
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
         peer_manager.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()), fbb.GetSize());
     }
-    for (int i = 3; i < 8; ++i) {
+    for (int i = 3; i < 6; ++i) {
         peer_manager.latchPeer("address" + std::to_string(i), 2);
     }
     REQUIRE(peer_manager.getPeers().size() == 10);
     for (auto& peer : peer_manager.getPeers()) {
         std::cout << peer.first << " name " << peer.second.node_info.name << std::endl;
     }
-    peer_manager.updatePeerRankings(1);
+
+    fbb.Clear();
+    std::vector<std::string> recipients;
+    auto ranked_peers = peer_manager.updatePeerRankings(fbb, recipients, 1);
+    for (const auto& recipient : recipients) {
+        std::cout << " recipient " << recipient << std::endl;
+    }
+    fbb.Finish(fbb.CreateVector(ranked_peers));
+    auto rankings = GetRoot<Vector<Offset<NodeInfo>>>(fbb.GetBufferPointer());
+
+    for (const auto& ranked : *rankings) {
+        std::cout << " ranked " << ranked->name()->str() << std::endl;
+    }
 }

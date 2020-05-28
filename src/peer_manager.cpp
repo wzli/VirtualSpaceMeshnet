@@ -1,7 +1,10 @@
 #include <vsm/peer_manager.hpp>
+#include <algorithm>
 #include <cmath>
 
 namespace vsm {
+
+namespace fb = flatbuffers;
 
 PeerManager::PeerManager(Config config)
         : _config(std::move(config))
@@ -54,23 +57,59 @@ void PeerManager::generateBeacon() {
     IF_PTR(_logger, log, Logger::TRACE, Error("Peer updates generated.", PEER_UPDATES_GENERATED));
 }
 
-void PeerManager::updatePeerRankings(uint32_t current_time) {
+PeerManager::PeersVector PeerManager::updatePeerRankings(
+        fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients, uint32_t current_time) {
+    // compute rank costs
     for (auto& peer : _peers) {
         peer.second.rank_cost =
-                distanceSqr(*(peer.second.node_info.coordinates), *(_node_info.coordinates)) *
-                std::exp(_config.rank_decay * (current_time - peer.second.node_info.timestamp));
+                distanceSqr(*(peer.second.node_info.coordinates), *(_node_info.coordinates));
+        int32_t elapsed_time = current_time - peer.second.node_info.timestamp;
+        if (elapsed_time > 0) {
+            peer.second.rank_cost *= std::exp(_config.rank_decay * elapsed_time);
+        }
     }
+    // prioritized latched peers
     auto comp = [this, current_time](const Peer* a, const Peer* b) {
-        bool a_latched = a->latch_until >= current_time;
-        bool b_latched = b->latch_until >= current_time;
+        bool a_latched = a->latch_until > current_time;
+        bool b_latched = b->latch_until > current_time;
         return (a_latched > b_latched) ||
                ((a_latched == b_latched) && (a->rank_cost < b->rank_cost));
     };
+    // compute ranking
     std::sort(_peer_rankings.begin(), _peer_rankings.end(), comp);
-    for (auto& ranking : _peer_rankings) {
-        printf("name %s x %f latch %d\n", ranking->node_info.name.c_str(),
-                ranking->node_info.coordinates->x(), ranking->latch_until);
+    // find the boundary between latched and non-latched peers
+    const Peer latched_div{{}, current_time, 0};
+    const auto latched_end =
+            std::lower_bound(_peer_rankings.begin(), _peer_rankings.end(), &latched_div, comp);
+    // build ranked peers vector
+    PeersVector ranked_peers;
+    auto latched_peer = _peer_rankings.begin();
+    auto ranked_peer = latched_end;
+    while (!(latched_peer == latched_end && ranked_peer == _peer_rankings.end()) &&
+            ranked_peers.size() < _config.connection_degree) {
+        if (latched_peer == latched_end) {
+            ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*ranked_peer++)->node_info)));
+        } else if (ranked_peer == _peer_rankings.end()) {
+            ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*latched_peer++)->node_info)));
+        } else if ((*latched_peer)->rank_cost > (*ranked_peer)->rank_cost) {
+            ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*ranked_peer++)->node_info)));
+        } else {
+            ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*latched_peer++)->node_info)));
+        }
     }
+    recipients.clear();
+    for (auto recipient = _peer_rankings.begin(); recipient != ranked_peer; ++recipient) {
+        recipients.emplace_back((*recipient)->node_info.name);
+    }
+
+    for (auto& ranking : _peer_rankings) {
+        printf("name %s x %f latch %d ts %d\n", ranking->node_info.name.c_str(),
+                ranking->node_info.coordinates->x(), ranking->latch_until,
+                ranking->node_info.timestamp);
+    }
+    printf("dividor name %s x %f latch %d\n", (*latched_end)->node_info.name.c_str(),
+            (*latched_end)->node_info.coordinates->x(), (*latched_end)->latch_until);
+    return ranked_peers;
 }
 
 }  // namespace vsm

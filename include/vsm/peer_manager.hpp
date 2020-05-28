@@ -23,6 +23,7 @@ struct Peer {
 class PeerManager {
 public:
     using PeerLookup = std::unordered_map<std::string, Peer>;
+    using PeersVector = std::vector<flatbuffers::Offset<NodeInfo>>;
 
     enum ErrorType {
         START_OFFSET = 200,
@@ -58,7 +59,8 @@ public:
 
     void generateBeacon();
 
-    void updatePeerRankings(uint32_t current_time);
+    PeersVector updatePeerRankings(flatbuffers::FlatBufferBuilder& fbb,
+            std::vector<std::string>& recipients, uint32_t current_time);
 
     const PeerLookup& getPeers() const { return _peers; }
 

@@ -1,42 +1,11 @@
 #include <catch2/catch.hpp>
-#include <vsm/zmq_transport.hpp>
 #include <vsm/peer_manager.hpp>
-#include <vsm/mesh_node.hpp>
-
 #include <iostream>
 
 using namespace vsm;
 using namespace flatbuffers;
 
-TEST_CASE("beacon tick") {
-    auto logger = std::make_shared<Logger>();
-    int peer_updates_sent = 0;
-    logger->addLogHandler(
-            Logger::TRACE, [&peer_updates_sent](Logger::Level, Error error, const void*, size_t) {
-                peer_updates_sent += error.type == MeshNode::PEER_UPDATES_SENT;
-                // std::cout << "lv: " << level << ", type: " << error.type << ", code: " <<
-                // error.code << ", msg: " << error.what() << std::endl;
-            });
-    PeerManager::Config peer_manager_config{
-            "node_name",              // name
-            "udp://127.0.0.1:11611",  // address
-            {0, 0},                   // coordinates
-            logger,                   // logger
-    };
-    MeshNode::Config mesh_node_config{
-            1,                                                // beacon_interval
-            std::move(peer_manager_config),                   // peer_manager
-            std::make_shared<ZmqTransport>("udp://*:11611"),  // transport
-            logger,                                           // logger
-    };
-    MeshNode mesh_node(std::move(mesh_node_config));
-    for (int i = 0; i < 5; ++i) {
-        mesh_node.getTransport().poll(2);
-    }
-    REQUIRE(peer_updates_sent >= 4);
-}
-
-TEST_CASE("node info serialization") {
+TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_manager]") {
     // serialize NodeInfo Msg
     FlatBufferBuilder fbb;
     auto peer_name = fbb.CreateString("peer_name");
@@ -73,7 +42,7 @@ TEST_CASE("node info serialization") {
     REQUIRE(peer_manager.getPeers().at("peer_addr").node_info.name == "peer_name");
 }
 
-TEST_CASE("Peer Ranking") {
+TEST_CASE("Peer Panking", "[peer_manager]") {
     FlatBufferBuilder fbb;
     auto logger = std::make_shared<Logger>();
 #if 0

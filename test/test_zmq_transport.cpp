@@ -3,7 +3,7 @@
 
 using namespace vsm;
 
-TEST_CASE("zmq tcp req-rep") {
+TEST_CASE("ZMQ TCP Req-Rep", "[zmq]") {
     // create sockets
     zmq::context_t ctx;
     zmq::socket_t tx_socket(ctx, zmq::socket_type::req);
@@ -29,7 +29,7 @@ TEST_CASE("zmq tcp req-rep") {
     REQUIRE(zmq_recvmsg(rx_socket.handle(), rx_msg.handle(), 0) > 0);
 }
 
-TEST_CASE("zmq udp radio-dish") {
+TEST_CASE("ZMQ UDP Radio-Dish", "[zmq]") {
     // create sockets
     zmq::context_t ctx;
     zmq::socket_t tx_socket(ctx, zmq::socket_type::radio);
@@ -56,7 +56,7 @@ TEST_CASE("zmq udp radio-dish") {
     REQUIRE(zmq_recvmsg(rx_socket.handle(), rx_msg.handle(), 0) > 0);
 }
 
-TEST_CASE("zmq transport") {
+TEST_CASE("ZMQ Transport Loopback", "[zmq][transport]") {
     // test inputs
     std::string endpoint = "udp://127.0.0.1:11511";
     std::string test_msg = "Hello!";

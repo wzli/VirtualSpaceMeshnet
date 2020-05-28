@@ -6,7 +6,7 @@
 
 using namespace vsm;
 
-TEST_CASE("logger") {
+TEST_CASE("Logger") {
     Logger logger;
     Error test_error("test_msg", 5, 6);
     const void* test_data = test_error.msg;

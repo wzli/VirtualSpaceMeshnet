@@ -47,9 +47,7 @@ public:
     const Stats& getStats() const { return _stats; }
 
 private:
-    const Message* getMessage(const void* buffer, size_t& len);
-    void recvPeerUpdates(const void* buffer, size_t len);
-    void recvStateUpdates(const void* buffer, size_t len);
+    void receiveMessageHandler(const void* buffer, size_t len);
 
     Stats _stats;
     uint32_t _current_time;

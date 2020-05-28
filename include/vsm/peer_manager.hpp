@@ -63,7 +63,7 @@ public:
 
     ErrorType updatePeer(const NodeInfo* node_info);
 
-    void recvPeerUpdates(const Message* msg, uint32_t current_time);
+    void receivePeerUpdates(const Message* msg, uint32_t current_time);
 
     std::vector<fb::Offset<NodeInfo>> updatePeerRankings(fb::FlatBufferBuilder& fbb,
             std::vector<std::string>& recipients, uint32_t current_time);

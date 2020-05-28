@@ -75,9 +75,9 @@ PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
     return SUCCESS;
 }
 
-void PeerManager::recvPeerUpdates(const Message* msg, uint32_t current_time) {
+void PeerManager::receivePeerUpdates(const Message* msg, uint32_t current_time) {
     for (auto node_info : *msg->peers()) {
-        if (updatePeer(node_info) == PEER_IS_SELF) {
+        if (updatePeer(node_info) == PEER_IS_SELF && msg->source()->address()) {
             latchPeer(msg->source()->address()->c_str(), current_time + _config.latch_duration);
         }
     }

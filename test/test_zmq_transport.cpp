@@ -2,6 +2,7 @@
 #include <vsm/zmq_transport.hpp>
 
 using namespace vsm;
+using namespace std::chrono_literals;
 
 TEST_CASE("ZMQ TCP Req-Rep", "[zmq]") {
     // create sockets
@@ -89,10 +90,10 @@ TEST_CASE("ZMQ Transport Loopback", "[zmq][transport]") {
             static_cast<int>(test_msg.size()));
 
     // receive messages
-    REQUIRE(zmq_transport.poll(100) == 0);
-    zmq_transport.poll(100);
-    zmq_transport.poll(100);
-    REQUIRE(zmq_transport.poll(0) == EAGAIN);
+    REQUIRE(zmq_transport.poll(100ms) == 0);
+    zmq_transport.poll(100ms);
+    zmq_transport.poll(100ms);
+    REQUIRE(zmq_transport.poll(0ms) == EAGAIN);
     REQUIRE(rx_msgs.size() == 3);
     for (const auto& rx_msg : rx_msgs) {
         REQUIRE(test_msg == rx_msg);

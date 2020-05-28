@@ -24,7 +24,7 @@ PeerManager::PeerManager(Config config)
     IF_PTR(_logger, log, Logger::INFO, Error("Peer manager initialized.", INITIALIZED));
 }
 
-void PeerManager::latchPeer(const char* address, uint32_t latch_until) {
+void PeerManager::latchPeer(const char* address, msecs latch_until) {
     if (!address) {
         Error error("Peer address missing.", PEER_ADDRESS_MISSING);
         IF_PTR(_logger, log, Logger::ERROR, error, address);
@@ -88,7 +88,7 @@ PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
     return SUCCESS;
 }
 
-void PeerManager::receivePeerUpdates(const Message* msg, uint32_t current_time) {
+void PeerManager::receivePeerUpdates(const Message* msg, msecs current_time) {
     for (auto node_info : *msg->peers()) {
         if (updatePeer(node_info) == PEER_IS_SELF && msg->source()->address()) {
             latchPeer(msg->source()->address()->c_str(), current_time + _config.latch_duration);
@@ -97,12 +97,12 @@ void PeerManager::receivePeerUpdates(const Message* msg, uint32_t current_time) 
 }
 
 std::vector<fb::Offset<NodeInfo>> PeerManager::updatePeerRankings(
-        fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients, uint32_t current_time) {
+        fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients, msecs current_time) {
     // compute rank costs
     for (auto& peer : _peers) {
         peer.second.rank_cost =
                 distanceSqr(*(peer.second.node_info.coordinates), *(_node_info.coordinates));
-        int32_t elapsed_time = current_time - peer.second.node_info.timestamp;
+        int32_t elapsed_time = current_time.count() - peer.second.node_info.timestamp;
         if (elapsed_time > 0) {
             peer.second.rank_cost *= std::exp(_config.rank_decay * elapsed_time);
         }

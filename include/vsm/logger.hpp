@@ -1,8 +1,8 @@
 #pragma once
 #include <chrono>
-#include <map>
-#include <functional>
 #include <exception>
+#include <functional>
+#include <map>
 
 #define IF_PTR(ptr, func, ...) \
     if (ptr)                   \
@@ -37,7 +37,9 @@ public:
         N_LEVELS,
     };
 
-    using LogHandler = std::function<void(Level, Error error, const void*, size_t)>;
+    using LogHandler = std::function<void(msecs time, Level, Error error, const void*, size_t)>;
+
+    void setClock(std::function<msecs(void)> get_time) { _get_time = std::move(get_time); }
 
     void addLogHandler(Level level, LogHandler log_handler) {
         if (log_handler) {
@@ -46,13 +48,18 @@ public:
     };
 
     void log(Level level, Error error, const void* data = nullptr, size_t data_len = 0) const {
+        static const auto start_time = std::chrono::steady_clock::now();
+        auto time = _get_time ? _get_time()
+                              : std::chrono::duration_cast<msecs>(
+                                        std::chrono::steady_clock::now() - start_time);
         for (auto handler = _log_handlers.begin();
                 handler != _log_handlers.end() && handler->first <= level; ++handler) {
-            handler->second(level, error, data, data_len);
+            handler->second(time, level, error, data, data_len);
         }
     };
 
 private:
+    std::function<msecs(void)> _get_time;
     std::multimap<Level, LogHandler> _log_handlers;
 };
 

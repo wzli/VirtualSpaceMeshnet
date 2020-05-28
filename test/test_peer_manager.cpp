@@ -60,8 +60,8 @@ TEST_CASE("Peer Panking", "[peer_manager]") {
             "my_address",  // address
             {0, 0},        // coordinates
             logger,        // logger
+            msecs(5),      // latch duration
             7,             // connection_degree
-            5,             // latch duration
             20,            // lookup size
             0.000,         // rank decay
     };
@@ -96,13 +96,13 @@ TEST_CASE("Peer Panking", "[peer_manager]") {
     }
     // latch some peers
     for (int i = latch_start; i < latch_end; ++i) {
-        peer_manager.latchPeer(("address" + std::to_string(i)).c_str(), 2);
+        peer_manager.latchPeer(("address" + std::to_string(i)).c_str(), msecs(2));
     }
     REQUIRE(peer_manager.getPeers().size() == n_peers);
     // generate peer rankings
     fbb.Clear();
     std::vector<std::string> recipients;
-    auto ranked_peers = peer_manager.updatePeerRankings(fbb, recipients, 1);
+    auto ranked_peers = peer_manager.updatePeerRankings(fbb, recipients, msecs(1));
     fbb.Finish(fbb.CreateVector(ranked_peers));
     auto rankings = GetRoot<Vector<Offset<NodeInfo>>>(fbb.GetBufferPointer());
     // require that lookup size is not exceeded

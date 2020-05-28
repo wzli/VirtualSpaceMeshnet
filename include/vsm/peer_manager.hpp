@@ -18,7 +18,7 @@ inline float distanceSqr(const Vec2& a, const Vec2& b) {
 
 struct Peer {
     NodeInfoT node_info;
-    uint32_t latch_until;
+    msecs latch_until;
     float rank_cost;
 };
 
@@ -54,22 +54,22 @@ public:
         Vec2 coordinates;
         std::shared_ptr<Logger> logger;
 
+        msecs latch_duration = msecs(1000);
         uint16_t connection_degree = 10;
-        uint16_t latch_duration = 1000;
         uint16_t lookup_size = 128;
         float rank_decay = 0.00001f;
     };
 
     PeerManager(Config config);
 
-    void latchPeer(const char* address, uint32_t latch_until);
+    void latchPeer(const char* address, msecs latch_until);
 
     ErrorType updatePeer(const NodeInfo* node_info);
 
-    void receivePeerUpdates(const Message* msg, uint32_t current_time);
+    void receivePeerUpdates(const Message* msg, msecs current_time);
 
-    std::vector<fb::Offset<NodeInfo>> updatePeerRankings(fb::FlatBufferBuilder& fbb,
-            std::vector<std::string>& recipients, uint32_t current_time);
+    std::vector<fb::Offset<NodeInfo>> updatePeerRankings(
+            fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients, msecs current_time);
 
     const PeerLookup& getPeers() const { return _peers; }
 

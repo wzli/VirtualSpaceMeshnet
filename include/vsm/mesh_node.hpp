@@ -24,7 +24,7 @@ public:
     };
 
     struct Config {
-        uint16_t peer_update_interval = 1000;
+        msecs peer_update_interval = msecs(1000);
         PeerManager::Config peer_manager;
         std::shared_ptr<Transport> transport;
         std::shared_ptr<Logger> logger;
@@ -50,7 +50,7 @@ private:
     void receiveMessageHandler(const void* buffer, size_t len);
 
     Stats _stats;
-    uint32_t _current_time;
+    msecs _current_time;
     PeerManager _peer_manager;
     std::shared_ptr<Transport> _transport;
     std::shared_ptr<Logger> _logger;

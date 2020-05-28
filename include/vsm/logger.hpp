@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <map>
 #include <functional>
 #include <exception>
@@ -8,6 +9,8 @@
     ptr->func(__VA_ARGS__)
 
 namespace vsm {
+
+using msecs = std::chrono::milliseconds;
 
 struct Error : public std::exception {
     Error(const char* err_msg, int err_type = 0, int err_code = 0)

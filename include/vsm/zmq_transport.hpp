@@ -31,11 +31,11 @@ public:
         return zmq_join(_rx_socket.handle(), group.c_str());
     }
 
-    int addTimer(size_t interval, TimerCallback timer_callback) override {
-        return _timers.add(interval, timer_callback);
+    int addTimer(std::chrono::milliseconds interval, TimerCallback timer_callback) override {
+        return _timers.add(interval.count(), timer_callback);
     }
 
-    int poll(int timeout);
+    int poll(std::chrono::milliseconds timeout);
 
     // implementation specific
     ZmqTransport(const std::string& address = "udp://*:11511");

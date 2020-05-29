@@ -35,7 +35,7 @@ PeerManager::ErrorType PeerManager::latchPeer(const char* address, msecs latch_u
     if (_node_info.address == address) {
         Error error("Cannot latch self address.", PEER_IS_SELF);
         IF_PTR(_logger, log, Logger::ERROR, error, address);
-        throw PEER_IS_SELF;
+        return PEER_IS_SELF;
     }
     auto& peer = _peers[address];
     if (peer.node_info.address.empty()) {

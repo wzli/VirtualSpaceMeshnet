@@ -43,7 +43,7 @@ public:
             std::cout << strerror(errno) << " - Error saving graph\r\n";
             return errno;
         }
-        file << "digraph {\r\n";
+        file << "digraph {\r\n  overlap = false;\r\n  spline = true;\r\n";
         for (const auto& node : _nodes) {
             if (node.first == ignore_address) {
                 continue;
@@ -53,7 +53,7 @@ public:
             if (!node.second.info.name.empty()) {
                 file << "label=\"" << node.second.info.name << "\" ";
             }
-            file << "pos=\"" << coords->x() << "," << coords->y() << "\"]\r\n";
+            file << "pos=\"" << coords->x() << "," << coords->y() << "!\"]\r\n";
             for (const auto& peer : node.second.peers) {
                 if (peer != ignore_address && peer != node.first) {
                     file << "  \"" << node.first << "\" -> \"" << peer << "\"\r\n";

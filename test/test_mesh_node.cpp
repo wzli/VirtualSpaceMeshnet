@@ -131,46 +131,58 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
 
 TEST_CASE("MeshNode Graph", "[mesh_node]") {
     auto make_config = [](int id, Vec2 coords) {
-        auto id_str = std::to_string(id);
+        char buf[10];
+        sprintf(buf, "%02d", id);
+        std::string id_str = buf;
         return MeshNode::Config{
                 msecs(1),  // peer update interval
                 {
-                        "node" + id_str,                  // name
-                        "udp://127.0.0.1:1150" + id_str,  // address
-                        coords,                           // coordinates
-                        msecs(3),                         // latch duration
-                        2,                                // connection_degree
-                        20,                               // lookup size
-                        0,                                // rank decay
+                        "node" + id_str,                 // name
+                        "udp://127.0.0.1:115" + id_str,  // address
+                        coords,                          // coordinates
+                        msecs(10),                       // latch duration
+                        4,                               // connection_degree
+                        100,                             // lookup size
+                        0,                               // rank decay
                 },
-                std::make_shared<ZmqTransport>("udp://*:1150" + id_str),  // transport
-                std::make_shared<Logger>(),                               // logger
+                std::make_shared<ZmqTransport>("udp://*:115" + id_str),  // transport
+                std::make_shared<Logger>(),                              // logger
         };
     };
-    std::vector<MeshNode::Config> configs{
-            make_config(0, Vec2(0, 0)),
-            make_config(1, Vec2(0, 1)),
-            make_config(2, Vec2(1, 0)),
-            make_config(3, Vec2(1, 1)),
-            make_config(4, Vec2(5, 5)),
-    };
-    configs.back().peer_manager.connection_degree = configs.size();
+    std::vector<MeshNode::Config> configs;
+    int N = 4;
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            configs.emplace_back(make_config(N * j + i, Vec2(10 * i, 10 * j)));
+        }
+    }
 
     std::deque<MeshNode> mesh_nodes;
     const char* previous_address = nullptr;
     for (auto& config : configs) {
-        config.logger->addLogHandler(Logger::FATAL,
+        config.logger->addLogHandler(Logger::ERROR,
                 [&config](msecs time, Logger::Level level, Error error, const void*, size_t) {
                     std::cout << time.count() << " " << config.peer_manager.name << " lv: " << level
                               << ", type: " << error.type << ", code: " << error.code
                               << ", msg: " << error.what() << std::endl;
                 });
         mesh_nodes.emplace_back(config);
+#if 0
+        mesh_nodes.back().getPeerManager().latchPeer(configs.front().peer_manager.address.c_str(), msecs(0));
+#else
         if (previous_address) {
             mesh_nodes.back().getPeerManager().latchPeer(previous_address, msecs(4));
         }
         previous_address = config.peer_manager.address.c_str();
+#endif
     }
+
+    // configs.back().peer_manager.connection_degree = configs.size();
+    for (auto& config : configs) {
+        mesh_nodes.back().getPeerManager().latchPeer(
+                config.peer_manager.address.c_str(), msecs(99999));
+    }
+
     Graphviz graphviz;
     configs.back().logger->addLogHandler(Logger::TRACE,
             [&graphviz](msecs, Logger::Level, Error error, const void* data, size_t) {
@@ -178,7 +190,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                     graphviz.receivePeerUpdates(fb::GetRoot<Message>(data));
                 }
             });
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 50; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }

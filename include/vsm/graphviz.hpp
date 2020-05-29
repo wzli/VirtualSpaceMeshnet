@@ -43,7 +43,7 @@ public:
             std::cout << strerror(errno) << " - Error saving graph\r\n";
             return errno;
         }
-        file << "digraph {\r\n  overlap = false;\r\n  spline = true;\r\n";
+        file << "digraph {\r\n  overlap = false;\r\n  spline = true;\r\n  node [shape=circle]\r\n";
         for (const auto& node : _nodes) {
             if (node.first == ignore_address) {
                 continue;

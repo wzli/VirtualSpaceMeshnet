@@ -67,7 +67,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
     std::deque<MeshNode> mesh_nodes;
     const char* previous_address = nullptr;
     for (auto& config : configs) {
-        config.logger->addLogHandler(Logger::INFO,
+        config.logger->addLogHandler(Logger::ERROR,
                 [&config](msecs time, Logger::Level level, Error error, const void*, size_t) {
                     std::cout << time.count() << " " << config.peer_manager.name << " lv: " << level
                               << ", type: " << error.type << ", code: " << error.code
@@ -150,17 +150,18 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
         };
     };
     std::vector<MeshNode::Config> configs;
-    int N = 4;
+    int N = 7;
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            configs.emplace_back(make_config(N * j + i, Vec2(10 * i, 10 * j)));
+            configs.emplace_back(make_config(N * i + j, Vec2(j, i)));
         }
     }
+    configs.back().peer_manager.connection_degree = configs.size();
 
     std::deque<MeshNode> mesh_nodes;
     const char* previous_address = nullptr;
     for (auto& config : configs) {
-        config.logger->addLogHandler(Logger::ERROR,
+        config.logger->addLogHandler(Logger::FATAL,
                 [&config](msecs time, Logger::Level level, Error error, const void*, size_t) {
                     std::cout << time.count() << " " << config.peer_manager.name << " lv: " << level
                               << ", type: " << error.type << ", code: " << error.code
@@ -177,7 +178,6 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
 #endif
     }
 
-    // configs.back().peer_manager.connection_degree = configs.size();
     for (auto& config : configs) {
         mesh_nodes.back().getPeerManager().latchPeer(
                 config.peer_manager.address.c_str(), msecs(99999));
@@ -196,6 +196,5 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
         }
         graphviz.saveGraph(
                 "test_graph" + std::to_string(i) + ".gv", configs.back().peer_manager.address);
-        printf("tick %d\n", i);
     }
 }

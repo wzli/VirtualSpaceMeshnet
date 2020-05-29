@@ -31,7 +31,7 @@ public:
         return true;
     };
 
-    int saveGraph(const std::string& file_name, const std::string& ignore_address = "") {
+    int saveGraph(const std::string& file_name, const std::string& ignore_address = "") const {
         std::ofstream file;
         file.open(file_name);
         if (file.fail()) {
@@ -41,8 +41,11 @@ public:
         file << "digraph {\r\n";
         for (const auto& node : _nodes) {
             const auto& coords = node.second.info.coordinates;
-            file << "  \"" << node.first << "\" [label=\"" << node.second.info.name << "\" pos=\""
-                 << coords->x() << "," << coords->y() << "\"]\r\n";
+            file << "  \"" << node.first << "\" [";
+            if (!node.second.info.name.empty()) {
+                file << "label=\"" << node.second.info.name << "\" ";
+            }
+            file << "pos=\"" << coords->x() << "," << coords->y() << "\"]\r\n";
             for (const auto& peer : node.second.peers) {
                 if (peer != ignore_address && peer != node.first) {
                     file << "  \"" << node.first << "\" -> \"" << peer << "\"\r\n";

@@ -9,7 +9,7 @@ PeerManager::PeerManager(Config config, std::shared_ptr<Logger> logger)
         , _ranked_end(_peer_rankings.begin())
         , _latched_end(_peer_rankings.begin())
         , _logger(std::move(logger)) {
-    if (_config.name.empty()) {
+    if (_config.address.empty()) {
         Error error("Address config empty.", ADDRESS_CONFIG_EMPTY);
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;

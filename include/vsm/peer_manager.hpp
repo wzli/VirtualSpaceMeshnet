@@ -66,7 +66,7 @@ public:
 
     PeerManager(Config config, std::shared_ptr<Logger> logger = nullptr);
 
-    void latchPeer(const char* address, msecs latch_until);
+    ErrorType latchPeer(const char* address, msecs latch_until);
 
     ErrorType updatePeer(const NodeInfo* node_info);
 

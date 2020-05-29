@@ -26,16 +26,16 @@ PeerManager::PeerManager(Config config, std::shared_ptr<Logger> logger)
     IF_PTR(_logger, log, Logger::INFO, Error("Peer manager initialized.", INITIALIZED));
 }
 
-void PeerManager::latchPeer(const char* address, msecs latch_until) {
+PeerManager::ErrorType PeerManager::latchPeer(const char* address, msecs latch_until) {
     if (!address) {
         Error error("Peer address missing.", PEER_ADDRESS_MISSING);
         IF_PTR(_logger, log, Logger::ERROR, error, address);
-        throw error;
+        return PEER_ADDRESS_MISSING;
     }
     if (_node_info.address == address) {
         Error error("Cannot latch self address.", PEER_IS_SELF);
         IF_PTR(_logger, log, Logger::ERROR, error, address);
-        throw error;
+        throw PEER_IS_SELF;
     }
     auto& peer = _peers[address];
     if (peer.node_info.address.empty()) {
@@ -47,6 +47,7 @@ void PeerManager::latchPeer(const char* address, msecs latch_until) {
         _logger->log(Logger::INFO, Error("Peer latched.", PEER_LATCHED), address);
     }
     peer.latch_until = latch_until;
+    return SUCCESS;
 }
 
 PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {

@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 #include <vsm/mesh_node.hpp>
 #include <vsm/zmq_transport.hpp>
+#include <vsm/graphviz.hpp>
 #include <deque>
 #include <iostream>
 
@@ -126,4 +127,80 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
         }
     }
 #endif
+}
+
+TEST_CASE("MeshNode Graph", "[mesh_node]") {
+    std::vector<MeshNode::Config> configs{
+            {
+                    msecs(1),  // peer update interval
+                    {
+                            "node1",                  // name
+                            "udp://127.0.0.1:11611",  // address
+                            {0, 0},                   // coordinates
+                            msecs(3),                 // latch duration
+                            2,                        // connection_degree
+                            20,                       // lookup size
+                            0,                        // rank decay
+                    },
+                    std::make_shared<ZmqTransport>("udp://*:11611"),  // transport
+                    std::make_shared<Logger>(),                       // logger
+            },
+            {
+                    msecs(1),  // peer update interval
+                    {
+                            "node2",                  // name
+                            "udp://127.0.0.1:11612",  // address
+                            {1, 1},                   // coordinates
+                            msecs(3),                 // latch duration
+                            2,                        // connection_degree
+                            20,                       // lookup size
+                            0,                        // rank decay
+                    },
+                    std::make_shared<ZmqTransport>("udp://*:11612"),  // transport
+                    std::make_shared<Logger>(),                       // logger
+            },
+            {
+                    msecs(1),  // peer update interval
+                    {
+                            "node3",                  // name
+                            "udp://127.0.0.1:11613",  // address
+                            {1, 1},                   // coordinates
+                            msecs(3),                 // latch duration
+                            2,                        // connection_degree
+                            20,                       // lookup size
+                            0,                        // rank decay
+                    },
+                    std::make_shared<ZmqTransport>("udp://*:11613"),  // transport
+                    std::make_shared<Logger>(),                       // logger
+            }};
+
+    std::deque<MeshNode> mesh_nodes;
+    const char* previous_address = nullptr;
+    for (auto& config : configs) {
+        config.logger->addLogHandler(Logger::INFO,
+                [&config](msecs time, Logger::Level level, Error error, const void*, size_t) {
+                    std::cout << time.count() << " " << config.peer_manager.name << " lv: " << level
+                              << ", type: " << error.type << ", code: " << error.code
+                              << ", msg: " << error.what() << std::endl;
+                });
+        mesh_nodes.emplace_back(config);
+        if (previous_address) {
+            mesh_nodes.back().getPeerManager().latchPeer(previous_address, msecs(4));
+        }
+        previous_address = config.peer_manager.address.c_str();
+    }
+    Graphviz graphviz;
+    configs.back().logger->addLogHandler(Logger::TRACE,
+            [&graphviz](msecs, Logger::Level, Error error, const void* data, size_t) {
+                if (error.type == MeshNode::PEER_UPDATES_RECEIVED) {
+                    graphviz.receivePeerUpdates(fb::GetRoot<Message>(data));
+                }
+            });
+    for (int i = 0; i < 10; ++i) {
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
+        graphviz.saveGraph(
+                "test_graph" + std::to_string(i) + ".gv", configs.back().peer_manager.address);
+    }
 }

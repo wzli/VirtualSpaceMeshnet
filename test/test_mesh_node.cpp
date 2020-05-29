@@ -55,7 +55,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                             "udp://127.0.0.1:11612",  // address
                             {1, 1},                   // coordinates
                             msecs(3),                 // latch duration
-                            1,                        // connection_degree
+                            0,                        // connection_degree
                             20,                       // lookup size
                             0,                        // rank decay
                     },
@@ -83,4 +83,47 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
             mesh_node.getTransport().poll(msecs(1));
         }
     }
+    std::vector<const Peer*> ranked_peers;
+    PeerManager::PeerRange peer_range;
+
+    // node 1 doesn't latch node 2
+    peer_range = mesh_nodes[0].getPeerManager().getLatchedPeers();
+    REQUIRE(peer_range.begin == peer_range.end);
+    // node 1 sends to node 2
+    peer_range = mesh_nodes[0].getPeerManager().getRecipientPeers();
+    REQUIRE(peer_range.begin + 1 == peer_range.end);
+    REQUIRE((*peer_range.begin)->node_info.address == configs[1].peer_manager.address);
+    // node 1 ranks node 2
+    mesh_nodes[0].getPeerManager().getRankedPeers(ranked_peers);
+    REQUIRE(ranked_peers.size() == 1);
+    REQUIRE(ranked_peers.front()->node_info.address == configs[1].peer_manager.address);
+
+    // node 2 latches node 1
+    peer_range = mesh_nodes[1].getPeerManager().getLatchedPeers();
+    REQUIRE((*peer_range.begin)->node_info.address == configs[0].peer_manager.address);
+    // node 2 sends to node 1
+    peer_range = mesh_nodes[1].getPeerManager().getRecipientPeers();
+    REQUIRE(peer_range.begin + 1 == peer_range.end);
+    REQUIRE((*peer_range.begin)->node_info.address == configs[0].peer_manager.address);
+    // node 2 doesn't ranks node 1
+    mesh_nodes[1].getPeerManager().getRankedPeers(ranked_peers);
+    REQUIRE(ranked_peers.empty());
+
+#if 0
+    for (auto& mesh_node : mesh_nodes) {
+        std::cout << mesh_node.getPeerManager().getNodeInfo().name << ":\n";
+        for (auto peers = mesh_node.getPeerManager().getLatchedPeers(); peers.begin != peers.end;
+                ++peers.begin) {
+            std::cout << (*peers.begin)->node_info.address << " latched\n";
+        }
+        for (auto peers = mesh_node.getPeerManager().getRecipientPeers(); peers.begin != peers.end;
+                ++peers.begin) {
+            std::cout << (*peers.begin)->node_info.address << " recipient\n";
+        }
+        mesh_node.getPeerManager().getRankedPeers(ranked_peers);
+        for (auto& peer : ranked_peers) {
+            std::cout << peer->node_info.address << " ranked\n";
+        }
+    }
+#endif
 }

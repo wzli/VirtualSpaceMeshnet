@@ -81,9 +81,13 @@ public:
 
     const PeerLookup& getPeers() const { return _peers; }
 
+    PeerRange getRecipientPeers() const {
+        return {_peer_rankings.begin(), _peer_rankings.begin() + _ranked_end};
+    }
+    PeerRange getLatchedPeers() const {
+        return {_peer_rankings.begin(), _peer_rankings.begin() + _latched_end};
+    }
     void getRankedPeers(std::vector<const Peer*>& ranked_peers) const;
-    PeerRange getRecipientPeers() const { return {_peer_rankings.begin(), _ranked_end}; }
-    PeerRange getLatchedPeers() const { return {_peer_rankings.begin(), _latched_end}; }
 
     NodeInfoT& getNodeInfo() { return _node_info; }
     Logger* getLogger() { return _logger.get(); }
@@ -93,9 +97,9 @@ private:
     NodeInfoT _node_info;
     PeerLookup _peers;
     std::vector<Peer*> _peer_rankings;
-    std::vector<Peer*>::const_iterator _ranked_end;
-    std::vector<Peer*>::const_iterator _latched_end;
     std::shared_ptr<Logger> _logger;
+    size_t _latched_end;
+    size_t _ranked_end;
 };
 
 }  // namespace vsm

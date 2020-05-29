@@ -52,7 +52,6 @@ public:
         std::string name;
         std::string address;
         Vec2 coordinates;
-        std::shared_ptr<Logger> logger;
 
         msecs latch_duration = msecs(1000);
         uint16_t connection_degree = 10;
@@ -60,7 +59,7 @@ public:
         float rank_decay = 0.00001f;
     };
 
-    PeerManager(Config config);
+    PeerManager(Config config, std::shared_ptr<Logger> logger = nullptr);
 
     void latchPeer(const char* address, msecs latch_until);
 
@@ -74,6 +73,7 @@ public:
     const PeerLookup& getPeers() const { return _peers; }
 
     NodeInfoT& getNodeInfo() { return _node_info; }
+    Logger* getLogger() { return _logger.get(); }
 
 private:
     Config _config;

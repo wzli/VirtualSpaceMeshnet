@@ -35,7 +35,6 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_manager]") {
             "name",     // name
             "address",  // address
             {0, 0},     // coordinates
-            nullptr,    // logger
     });
     REQUIRE(peer_manager.updatePeer(node_info) == PeerManager::SUCCESS);
     REQUIRE(peer_manager.getPeers().size() == 1);
@@ -59,7 +58,6 @@ TEST_CASE("Peer Panking", "[peer_manager]") {
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
-            logger,        // logger
             msecs(5),      // latch duration
             7,             // connection_degree
             20,            // lookup size
@@ -83,7 +81,7 @@ TEST_CASE("Peer Panking", "[peer_manager]") {
         config.lookup_size = 500;
     }
 
-    PeerManager peer_manager(config);
+    PeerManager peer_manager(config, logger);
     // add 10 peers
     for (size_t i = 0; i < n_peers; ++i) {
         NodeInfoT peer;

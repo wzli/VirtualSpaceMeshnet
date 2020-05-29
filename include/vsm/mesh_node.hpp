@@ -42,7 +42,7 @@ public:
 
     PeerManager& getPeerManager() { return _peer_manager; }
     Transport& getTransport() { return *_transport; }
-    Logger& getLogger() { return *_logger; }
+    Logger* getLogger() { return _logger.get(); }
 
     const Stats& getStats() const { return _stats; }
 

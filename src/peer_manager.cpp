@@ -4,9 +4,9 @@
 
 namespace vsm {
 
-PeerManager::PeerManager(Config config)
+PeerManager::PeerManager(Config config, std::shared_ptr<Logger> logger)
         : _config(std::move(config))
-        , _logger(std::move(_config.logger)) {
+        , _logger(std::move(logger)) {
     if (_config.name.empty()) {
         Error error("Address config empty.", ADDRESS_CONFIG_EMPTY);
         IF_PTR(_logger, log, Logger::ERROR, error);

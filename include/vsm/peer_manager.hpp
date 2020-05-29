@@ -18,8 +18,8 @@ inline float distanceSqr(const Vec2& a, const Vec2& b) {
 
 struct Peer {
     NodeInfoT node_info;
-    msecs latch_until;
-    float rank_cost;
+    msecs latch_until = msecs(0);
+    float rank_cost = 0;
 };
 
 class PeerManager {

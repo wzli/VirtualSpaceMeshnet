@@ -6,6 +6,7 @@ using namespace flatbuffers;
 
 MeshNode::MeshNode(Config config)
         : _stats()
+        , _current_time(0)
         , _peer_manager(std::move(config.peer_manager), config.logger)
         , _transport(std::move(config.transport))
         , _logger(std::move(config.logger)) {

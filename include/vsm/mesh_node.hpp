@@ -38,6 +38,12 @@ public:
 
     MeshNode(Config config);
 
+    // no copy or move since there are callbacks anchored
+    MeshNode(const MeshNode&) = delete;
+    MeshNode& operator=(const MeshNode&) = delete;
+    MeshNode(MeshNode&&) = delete;
+    MeshNode& operator=(MeshNode&&) = delete;
+
     void sendPeerUpdates();
 
     PeerManager& getPeerManager() { return _peer_manager; }

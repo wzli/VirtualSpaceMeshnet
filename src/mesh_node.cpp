@@ -60,7 +60,7 @@ void MeshNode::sendPeerUpdates() {
     _fbb.Finish(msg);
     // send message
     _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
-    IF_PTR(_logger, log, Logger::TRACE, Error("Peer updates sent.", PEER_UPDATES_SENT));
+    IF_PTR(_logger, log, Logger::INFO, Error("Peer updates sent.", PEER_UPDATES_SENT));
 }
 
 void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {

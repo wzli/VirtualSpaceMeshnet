@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 #include <vsm/mesh_node.hpp>
 #include <vsm/zmq_transport.hpp>
+#include <deque>
 #include <iostream>
 
 using namespace vsm;
@@ -32,57 +33,54 @@ TEST_CASE("MeshNode Update Tick", "[mesh_node]") {
 }
 
 TEST_CASE("MeshNode Loopback", "[mesh_node]") {
-    PeerManager::Config pm_config_1{
-            "node1",                  // name
-            "udp://127.0.0.1:11611",  // address
-            {0, 0},                   // coordinates
-            msecs(20),                // latch duration
-            1,                        // connection_degree
-            20,                       // lookup size
-            0,                        // rank decay
-    };
+    std::vector<MeshNode::Config> configs{
+            {
+                    msecs(1),  // peer update interval
+                    {
+                            "node1",                  // name
+                            "udp://127.0.0.1:11611",  // address
+                            {0, 0},                   // coordinates
+                            msecs(3),                 // latch duration
+                            1,                        // connection_degree
+                            20,                       // lookup size
+                            0,                        // rank decay
+                    },
+                    std::make_shared<ZmqTransport>("udp://*:11611"),  // transport
+                    std::make_shared<Logger>(),                       // logger
+            },
+            {
+                    msecs(1),  // peer update interval
+                    {
+                            "node2",                  // name
+                            "udp://127.0.0.1:11612",  // address
+                            {1, 1},                   // coordinates
+                            msecs(3),                 // latch duration
+                            1,                        // connection_degree
+                            20,                       // lookup size
+                            0,                        // rank decay
+                    },
+                    std::make_shared<ZmqTransport>("udp://*:11612"),  // transport
+                    std::make_shared<Logger>(),                       // logger
+            }};
 
-    PeerManager::Config pm_config_2{
-            "node2",                  // name
-            "udp://127.0.0.1:11612",  // address
-            {1, 1},                   // coordinates
-            msecs(20),                // latch duration
-            1,                        // connection_degree
-            20,                       // lookup size
-            0,                        // rank decay
-    };
-
-    MeshNode::Config mn_config_1{
-            msecs(1),                                         // peer update interval
-            pm_config_1,                                      // peer manager
-            std::make_shared<ZmqTransport>("udp://*:11611"),  // transport
-            std::make_shared<Logger>(),                       // logger
-    };
-
-    MeshNode::Config mn_config_2{
-            msecs(1),                                         // peer update interval
-            pm_config_2,                                      // peer manager
-            std::make_shared<ZmqTransport>("udp://*:11612"),  // transport
-            std::make_shared<Logger>(),                       // logger
-    };
-
-    mn_config_1.logger->addLogHandler(
-            Logger::TRACE, [](msecs time, Logger::Level level, Error error, const void*, size_t) {
-                std::cout << time.count() << " 1 - lv: " << level << ", type: " << error.type
-                          << ", code: " << error.code << ", msg: " << error.what() << std::endl;
-            });
-
-    mn_config_2.logger->addLogHandler(
-            Logger::TRACE, [](msecs time, Logger::Level level, Error error, const void*, size_t) {
-                std::cout << time.count() << " 2 - lv: " << level << ", type: " << error.type
-                          << ", code: " << error.code << ", msg: " << error.what() << std::endl;
-            });
-
-    MeshNode mesh_node_1(mn_config_1);
-    MeshNode mesh_node_2(mn_config_2);
-    mesh_node_1.getPeerManager().latchPeer(pm_config_2.address.c_str(), msecs(0));
+    std::deque<MeshNode> mesh_nodes;
+    const char* previous_address = nullptr;
+    for (auto& config : configs) {
+        config.logger->addLogHandler(Logger::INFO,
+                [&config](msecs time, Logger::Level level, Error error, const void*, size_t) {
+                    std::cout << time.count() << " " << config.peer_manager.name << " lv: " << level
+                              << ", type: " << error.type << ", code: " << error.code
+                              << ", msg: " << error.what() << std::endl;
+                });
+        mesh_nodes.emplace_back(config);
+        if (previous_address) {
+            mesh_nodes.back().getPeerManager().latchPeer(previous_address, msecs(4));
+        }
+        previous_address = config.peer_manager.address.c_str();
+    }
     for (int i = 0; i < 5; ++i) {
-        mesh_node_1.getTransport().poll(msecs(1));
-        mesh_node_2.getTransport().poll(msecs(1));
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
     }
 }

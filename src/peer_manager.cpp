@@ -40,7 +40,6 @@ PeerManager::ErrorType PeerManager::latchPeer(const char* address, msecs latch_u
     auto& peer = _peers[address];
     if (peer.node_info.address.empty()) {
         peer.node_info.address = address;
-        peer.node_info.coordinates = std::make_unique<Vec2>();
         _peer_rankings.emplace_back(&peer);
     }
     if (_logger && ((latch_until - peer.latch_until) > _config.latch_duration)) {
@@ -56,20 +55,22 @@ PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
         IF_PTR(_logger, log, Logger::WARN, Error("Peer is null.", PEER_IS_NULL), node_info);
         return PEER_IS_NULL;
     }
+    // reject missing address
     if (!node_info->address()) {
         IF_PTR(_logger, log, Logger::WARN, Error("Peer address missing.", PEER_ADDRESS_MISSING),
                 node_info);
         return PEER_ADDRESS_MISSING;
     }
-    if (!node_info->coordinates()) {
-        IF_PTR(_logger, log, Logger::WARN,
-                Error("Peer coordinates missing.", PEER_COORDINATES_MISSING), node_info);
-        return PEER_COORDINATES_MISSING;
-    }
     // reject updates corresponds to this node
     auto peer_address = node_info->address()->c_str();
     if (_node_info.address == peer_address) {
         return PEER_IS_SELF;
+    }
+    // reject missing coordinates
+    if (!node_info->coordinates()) {
+        IF_PTR(_logger, log, Logger::WARN,
+                Error("Peer coordinates missing.", PEER_COORDINATES_MISSING), node_info);
+        return PEER_COORDINATES_MISSING;
     }
     // check if peer exists in lookup
     auto emplace_result = _peers.emplace(peer_address, Peer{});
@@ -104,7 +105,7 @@ std::vector<fb::Offset<NodeInfo>> PeerManager::updatePeerRankings(
     // compute rank costs
     for (auto& peer : _peers) {
         peer.second.rank_cost =
-                distanceSqr(*(peer.second.node_info.coordinates), *(_node_info.coordinates));
+                distanceSqr(peer.second.node_info.coordinates.get(), _node_info.coordinates.get());
         int32_t elapsed_time = current_time.count() - peer.second.node_info.timestamp;
         if (elapsed_time > 0) {
             peer.second.rank_cost *= std::exp(_config.rank_decay * elapsed_time);

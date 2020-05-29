@@ -130,54 +130,36 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
 }
 
 TEST_CASE("MeshNode Graph", "[mesh_node]") {
+    auto make_config = [](int id, Vec2 coords) {
+        auto id_str = std::to_string(id);
+        return MeshNode::Config{
+                msecs(1),  // peer update interval
+                {
+                        "node" + id_str,                  // name
+                        "udp://127.0.0.1:1150" + id_str,  // address
+                        coords,                           // coordinates
+                        msecs(3),                         // latch duration
+                        2,                                // connection_degree
+                        20,                               // lookup size
+                        0,                                // rank decay
+                },
+                std::make_shared<ZmqTransport>("udp://*:1150" + id_str),  // transport
+                std::make_shared<Logger>(),                               // logger
+        };
+    };
     std::vector<MeshNode::Config> configs{
-            {
-                    msecs(1),  // peer update interval
-                    {
-                            "node1",                  // name
-                            "udp://127.0.0.1:11611",  // address
-                            {0, 0},                   // coordinates
-                            msecs(3),                 // latch duration
-                            2,                        // connection_degree
-                            20,                       // lookup size
-                            0,                        // rank decay
-                    },
-                    std::make_shared<ZmqTransport>("udp://*:11611"),  // transport
-                    std::make_shared<Logger>(),                       // logger
-            },
-            {
-                    msecs(1),  // peer update interval
-                    {
-                            "node2",                  // name
-                            "udp://127.0.0.1:11612",  // address
-                            {1, 1},                   // coordinates
-                            msecs(3),                 // latch duration
-                            2,                        // connection_degree
-                            20,                       // lookup size
-                            0,                        // rank decay
-                    },
-                    std::make_shared<ZmqTransport>("udp://*:11612"),  // transport
-                    std::make_shared<Logger>(),                       // logger
-            },
-            {
-                    msecs(1),  // peer update interval
-                    {
-                            "node3",                  // name
-                            "udp://127.0.0.1:11613",  // address
-                            {1, 1},                   // coordinates
-                            msecs(3),                 // latch duration
-                            2,                        // connection_degree
-                            20,                       // lookup size
-                            0,                        // rank decay
-                    },
-                    std::make_shared<ZmqTransport>("udp://*:11613"),  // transport
-                    std::make_shared<Logger>(),                       // logger
-            }};
+            make_config(0, Vec2(0, 0)),
+            make_config(1, Vec2(0, 1)),
+            make_config(2, Vec2(1, 0)),
+            make_config(3, Vec2(1, 1)),
+            make_config(4, Vec2(5, 5)),
+    };
+    configs.back().peer_manager.connection_degree = configs.size();
 
     std::deque<MeshNode> mesh_nodes;
     const char* previous_address = nullptr;
     for (auto& config : configs) {
-        config.logger->addLogHandler(Logger::INFO,
+        config.logger->addLogHandler(Logger::FATAL,
                 [&config](msecs time, Logger::Level level, Error error, const void*, size_t) {
                     std::cout << time.count() << " " << config.peer_manager.name << " lv: " << level
                               << ", type: " << error.type << ", code: " << error.code
@@ -196,11 +178,12 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                     graphviz.receivePeerUpdates(fb::GetRoot<Message>(data));
                 }
             });
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 20; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }
         graphviz.saveGraph(
                 "test_graph" + std::to_string(i) + ".gv", configs.back().peer_manager.address);
+        printf("tick %d\n", i);
     }
 }

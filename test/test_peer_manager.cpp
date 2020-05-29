@@ -114,7 +114,7 @@ TEST_CASE("Peer Panking", "[peer_manager]") {
     REQUIRE(ranked_peers.size() == config.connection_degree);
     float last_distance_squared = 0;
     for (const auto& ranked : *rankings) {
-        float distance_squared = distanceSqr(config.coordinates, *ranked->coordinates());
+        float distance_squared = distanceSqr(&config.coordinates, ranked->coordinates());
         REQUIRE(distance_squared >= last_distance_squared);
         last_distance_squared = distance_squared;
     }

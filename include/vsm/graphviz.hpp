@@ -14,7 +14,8 @@ public:
     };
 
     bool receivePeerUpdates(const Message* msg) {
-        if (!msg || !msg->peers() || !msg->source() || !msg->source()->address()) {
+        if (!msg || !msg->peers() || !msg->source() || !msg->source()->address() ||
+                !msg->source()->coordinates()) {
             return false;
         }
         auto& node = _nodes[msg->source()->address()->c_str()];
@@ -24,8 +25,12 @@ public:
         msg->source()->UnPackTo(&(node.info));
         node.peers.clear();
         for (auto peer : *msg->peers()) {
-            if (peer->address()) {
+            if (peer->address() && peer->coordinates()) {
                 node.peers.emplace_back(peer->address()->c_str());
+                auto& peer_node = _nodes[node.peers.back()];
+                if (peer->timestamp() >= peer_node.info.timestamp) {
+                    peer->UnPackTo(&(peer_node.info));
+                }
             }
         }
         return true;
@@ -40,6 +45,9 @@ public:
         }
         file << "digraph {\r\n";
         for (const auto& node : _nodes) {
+            if (node.first == ignore_address) {
+                continue;
+            }
             const auto& coords = node.second.info.coordinates;
             file << "  \"" << node.first << "\" [";
             if (!node.second.info.name.empty()) {

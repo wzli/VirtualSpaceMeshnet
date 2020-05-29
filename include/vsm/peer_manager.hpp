@@ -2,6 +2,7 @@
 #include <vsm/logger.hpp>
 #include <vsm/msg_types_generated.h>
 
+#include <limits>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -10,9 +11,12 @@ namespace vsm {
 
 namespace fb = flatbuffers;
 
-inline float distanceSqr(const Vec2& a, const Vec2& b) {
-    float dx = b.x() - a.x();
-    float dy = b.y() - a.y();
+inline float distanceSqr(const Vec2* a, const Vec2* b) {
+    if (!a || !b) {
+        return std::numeric_limits<float>::max();
+    }
+    float dx = b->x() - a->x();
+    float dy = b->y() - a->y();
     return (dx * dx) + (dy * dy);
 }
 

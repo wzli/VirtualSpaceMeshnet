@@ -6,6 +6,8 @@ namespace vsm {
 
 PeerManager::PeerManager(Config config, std::shared_ptr<Logger> logger)
         : _config(std::move(config))
+        , _ranked_end(_peer_rankings.begin())
+        , _latched_end(_peer_rankings.begin())
         , _logger(std::move(logger)) {
     if (_config.name.empty()) {
         Error error("Address config empty.", ADDRESS_CONFIG_EMPTY);
@@ -118,27 +120,27 @@ std::vector<fb::Offset<NodeInfo>> PeerManager::updatePeerRankings(
     std::sort(_peer_rankings.begin(), _peer_rankings.end(), comp);
     // find the boundary between latched and non-latched peers
     const Peer latched_div{{}, current_time, 0};
-    const auto latched_end =
+    _latched_end =
             std::lower_bound(_peer_rankings.begin(), _peer_rankings.end(), &latched_div, comp);
     // build ranked peers vector
     std::vector<fb::Offset<NodeInfo>> ranked_peers;
     auto latched_peer = _peer_rankings.begin();
-    auto ranked_peer = latched_end;
-    while (!(latched_peer == latched_end && ranked_peer == _peer_rankings.end()) &&
+    _ranked_end = _latched_end;
+    while (!(latched_peer == _latched_end && _ranked_end == _peer_rankings.end()) &&
             ranked_peers.size() < _config.connection_degree) {
-        if (latched_peer == latched_end) {
-            ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*ranked_peer++)->node_info)));
-        } else if (ranked_peer == _peer_rankings.end()) {
+        if (latched_peer == _latched_end) {
+            ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*_ranked_end++)->node_info)));
+        } else if (_ranked_end == _peer_rankings.end()) {
             ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*latched_peer++)->node_info)));
-        } else if ((*latched_peer)->rank_cost > (*ranked_peer)->rank_cost) {
-            ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*ranked_peer++)->node_info)));
+        } else if ((*latched_peer)->rank_cost > (*_ranked_end)->rank_cost) {
+            ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*_ranked_end++)->node_info)));
         } else {
             ranked_peers.emplace_back(NodeInfo::Pack(fbb, &((*latched_peer++)->node_info)));
         }
     }
     // build recipients vector
     recipients.clear();
-    for (auto recipient = _peer_rankings.begin(); recipient != ranked_peer; ++recipient) {
+    for (auto recipient = _peer_rankings.begin(); recipient != _ranked_end; ++recipient) {
         recipients.emplace_back((*recipient)->node_info.address);
     }
     IF_PTR(_logger, log, Logger::TRACE, Error("Peer rankings generated.", PEER_RANKINGS_GENERATED));
@@ -152,6 +154,14 @@ std::vector<fb::Offset<NodeInfo>> PeerManager::updatePeerRankings(
         IF_PTR(_logger, log, Logger::TRACE, Error("Peer lookup truncated.", PEER_LOOKUP_TRUNCATED));
     }
     return ranked_peers;
+}
+
+void PeerManager::getRankedPeers(std::vector<const Peer*>& ranked_peers) const {
+    ranked_peers.assign(_peer_rankings.begin(), _ranked_end);
+    size_t ranked_size = std::min(ranked_peers.size(), _config.connection_degree);
+    std::partial_sort(ranked_peers.begin(), ranked_peers.begin() + ranked_size, ranked_peers.end(),
+            [](const Peer* a, const Peer* b) { return a->rank_cost < b->rank_cost; });
+    ranked_peers.resize(ranked_size);
 }
 
 }  // namespace vsm

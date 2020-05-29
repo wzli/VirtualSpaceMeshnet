@@ -26,6 +26,11 @@ class PeerManager {
 public:
     using PeerLookup = std::unordered_map<std::string, Peer>;
 
+    struct PeerRange {
+        std::vector<Peer*>::const_iterator begin;
+        std::vector<Peer*>::const_iterator end;
+    };
+
     enum ErrorType {
         SUCCESS = 0,
         START_OFFSET = 200,
@@ -54,8 +59,8 @@ public:
         Vec2 coordinates;
 
         msecs latch_duration = msecs(1000);
-        uint16_t connection_degree = 10;
-        uint16_t lookup_size = 128;
+        size_t connection_degree = 10;
+        size_t lookup_size = 128;
         float rank_decay = 0.00001f;
     };
 
@@ -72,6 +77,10 @@ public:
 
     const PeerLookup& getPeers() const { return _peers; }
 
+    void getRankedPeers(std::vector<const Peer*>& ranked_peers) const;
+    PeerRange getRecipientPeers() const { return {_peer_rankings.begin(), _ranked_end}; }
+    PeerRange getLatchedPeers() const { return {_peer_rankings.begin(), _latched_end}; }
+
     NodeInfoT& getNodeInfo() { return _node_info; }
     Logger* getLogger() { return _logger.get(); }
 
@@ -80,6 +89,8 @@ private:
     NodeInfoT _node_info;
     PeerLookup _peers;
     std::vector<Peer*> _peer_rankings;
+    std::vector<Peer*>::const_iterator _ranked_end;
+    std::vector<Peer*>::const_iterator _latched_end;
     std::shared_ptr<Logger> _logger;
 };
 

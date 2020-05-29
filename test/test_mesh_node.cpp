@@ -142,7 +142,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                         coords,                          // coordinates
                         msecs(10),                       // latch duration
                         4,                               // connection_degree
-                        100,                             // lookup size
+                        200,                             // lookup size
                         0,                               // rank decay
                 },
                 std::make_shared<ZmqTransport>("udp://*:115" + id_str),  // transport
@@ -150,7 +150,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
         };
     };
     std::vector<MeshNode::Config> configs;
-    int N = 7;
+    int N = 8;
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
             configs.emplace_back(make_config(N * i + j, Vec2(j, i)));
@@ -168,7 +168,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                               << ", msg: " << error.what() << std::endl;
                 });
         mesh_nodes.emplace_back(config);
-#if 0
+#if 1
         mesh_nodes.back().getPeerManager().latchPeer(configs.front().peer_manager.address.c_str(), msecs(0));
 #else
         if (previous_address) {
@@ -186,15 +186,22 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
     Graphviz graphviz;
     configs.back().logger->addLogHandler(Logger::TRACE,
             [&graphviz](msecs, Logger::Level, Error error, const void* data, size_t) {
-                if (error.type == MeshNode::PEER_UPDATES_RECEIVED) {
-                    graphviz.receivePeerUpdates(fb::GetRoot<Message>(data));
+                switch (error.type) {
+                    case MeshNode::PEER_UPDATES_RECEIVED:
+                        graphviz.receivePeerUpdates(fb::GetRoot<Message>(data));
+                        break;
+                    case PeerManager::PEER_UPDATED:
+                        NodeInfoT* node_info =
+                                reinterpret_cast<NodeInfoT*>(const_cast<void*>(data));
+                        node_info->coordinates.reset();
+                        break;
                 }
             });
-    for (int i = 0; i < 50; ++i) {
+    for (int i = 0; i < 100; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }
         graphviz.saveGraph(
-                "test_graph" + std::to_string(i) + ".gv", configs.back().peer_manager.address);
+                "test_graph_" + std::to_string(i) + ".gv", configs.back().peer_manager.address);
     }
 }

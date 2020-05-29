@@ -83,10 +83,10 @@ PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
                     Error("Peer timestamp is stale.", PEER_TIMESTAMP_STALE), node_info);
             return PEER_TIMESTAMP_STALE;
         }
-        IF_PTR(_logger, log, Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &peer.node_info,
-                sizeof(NodeInfoT));
     }
     node_info->UnPackTo(&(peer.node_info));
+    IF_PTR(_logger, log, Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &peer.node_info,
+            sizeof(NodeInfoT));
     return SUCCESS;
 }
 

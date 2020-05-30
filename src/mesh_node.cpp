@@ -1,4 +1,5 @@
 #include <vsm/mesh_node.hpp>
+#include <vsm/time_sync.hpp>
 
 namespace vsm {
 
@@ -6,8 +7,8 @@ using namespace flatbuffers;
 
 MeshNode::MeshNode(Config config)
         : _stats()
-        , _current_time(0)
         , _peer_manager(std::move(config.peer_manager), config.logger)
+        , _time_sync(std::move(config.local_clock))
         , _transport(std::move(config.transport))
         , _logger(std::move(config.logger)) {
     if (!_transport) {
@@ -33,7 +34,8 @@ MeshNode::MeshNode(Config config)
 void MeshNode::sendPeerUpdates() {
     _fbb.Clear();
     // get peer rankings
-    auto ranked_peers = _peer_manager.updatePeerRankings(_fbb, _recipients_buffer, _current_time);
+    auto ranked_peers =
+            _peer_manager.updatePeerRankings(_fbb, _recipients_buffer, _time_sync.getTime());
     // create iterators for updating connections
     struct BackAssigner {
         using value_type = std::string;
@@ -76,8 +78,13 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         ++_stats.message_verify_failures;
         return;
     }
+    if (msg->source() && msg->source()->timestamp() != 0) {
+        auto recipients = _peer_manager.getRecipientPeers();
+        float weight = 1.0f / (1 + std::distance(recipients.begin, recipients.end));
+        _time_sync.syncTime(msecs(msg->source()->timestamp()), weight);
+    }
     if (msg->peers()) {
-        _peer_manager.receivePeerUpdates(msg, _current_time);
+        _peer_manager.receivePeerUpdates(msg, _time_sync.getTime());
         Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
         IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
         ++_stats.peer_updates_received;

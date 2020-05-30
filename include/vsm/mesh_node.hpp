@@ -2,6 +2,7 @@
 
 #include <vsm/logger.hpp>
 #include <vsm/peer_manager.hpp>
+#include <vsm/time_sync.hpp>
 #include <vsm/transport.hpp>
 
 namespace vsm {
@@ -28,6 +29,10 @@ public:
         PeerManager::Config peer_manager;
         std::shared_ptr<Transport> transport;
         std::shared_ptr<Logger> logger;
+        std::function<msecs(void)> local_clock = []() {
+            return std::chrono::duration_cast<msecs>(
+                    std::chrono::steady_clock::now().time_since_epoch());
+        };
     };
 
     struct Stats {
@@ -47,6 +52,7 @@ public:
     void sendPeerUpdates();
 
     PeerManager& getPeerManager() { return _peer_manager; }
+    TimeSync<msecs>& getTimeSync() { return _time_sync; }
     Transport& getTransport() { return *_transport; }
     Logger* getLogger() { return _logger.get(); }
 
@@ -56,8 +62,8 @@ private:
     void receiveMessageHandler(const void* buffer, size_t len);
 
     Stats _stats;
-    msecs _current_time;
     PeerManager _peer_manager;
+    TimeSync<msecs> _time_sync;
     std::shared_ptr<Transport> _transport;
     std::shared_ptr<Logger> _logger;
     flatbuffers::FlatBufferBuilder _fbb;

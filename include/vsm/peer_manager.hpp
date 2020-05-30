@@ -72,9 +72,10 @@ public:
 
     ErrorType latchPeer(const char* address, msecs latch_until);
 
-    ErrorType updatePeer(const NodeInfo* node_info);
+    ErrorType updatePeer(const NodeInfo* node_info,
+            uint32_t max_timestamp = std::numeric_limits<uint32_t>::max());
 
-    void receivePeerUpdates(const Message* msg, msecs current_time);
+    int receivePeerUpdates(const Message* msg, msecs current_time);
 
     std::vector<fb::Offset<NodeInfo>> updatePeerRankings(
             fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients, msecs current_time);

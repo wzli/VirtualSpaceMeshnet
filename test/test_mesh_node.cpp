@@ -2,6 +2,8 @@
 #include <vsm/mesh_node.hpp>
 #include <vsm/zmq_transport.hpp>
 #include <vsm/graphviz.hpp>
+#include <vsm/time_sync.hpp>
+
 #include <deque>
 #include <iostream>
 
@@ -168,7 +170,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                               << ", msg: " << error.what() << std::endl;
                 });
         mesh_nodes.emplace_back(config);
-#if 1
+#if 0
         mesh_nodes.back().getPeerManager().latchPeer(configs.front().peer_manager.address.c_str(), msecs(0));
 #else
         if (previous_address) {
@@ -197,11 +199,28 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                         break;
                 }
             });
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 50; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }
+        // puts("----------------------tick");
+        for (auto& mesh_node : mesh_nodes) {
+#if 0
+            std::cout << mesh_node.getPeerManager().getNodeInfo().name
+                      << " time: " << mesh_node.getTimeSync().getTime().count()
+                      << " local time: " << mesh_node.getTimeSync().getLocalTime().count()
+                      << std::endl;
+#endif
+            // std::cout << mesh_node.getTimeSync().getTime().count() << ",";
+            // std::cout << (mesh_node.getTimeSync().getTime()-
+            // mesh_node.getTimeSync().getLocalTime()).count() << ",";
+            std::cout << mesh_node.getTimeSync().getTime().count() << ",";
+        }
+        std::cout << std::endl;
+        char buf[10];
+        sprintf(buf, "%02d", i);
         graphviz.saveGraph(
-                "test_graph_" + std::to_string(i) + ".gv", configs.back().peer_manager.address);
+                "test_graph_" + std::string(buf) + ".gv", configs.back().peer_manager.address);
     }
+    TimeSync<msecs> ts([]() { return msecs(0); });
 }

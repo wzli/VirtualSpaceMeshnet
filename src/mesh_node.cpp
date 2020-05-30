@@ -52,6 +52,7 @@ void MeshNode::sendPeerUpdates() {
             _connected_peers.begin(), _connected_peers.end(), std::back_inserter(connector));
     _connected_peers.swap(_recipients_buffer);
     // add source info to peer vector
+    _peer_manager.getNodeInfo().timestamp = _time_sync.getTime().count();
     auto source = NodeInfo::Pack(_fbb, &_peer_manager.getNodeInfo());
     ranked_peers.emplace_back(source);
     // write message
@@ -66,7 +67,7 @@ void MeshNode::sendPeerUpdates() {
 }
 
 void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
-    const uint8_t* buf = static_cast<const uint8_t*>(buffer);
+    auto buf = static_cast<const uint8_t*>(buffer);
     auto msg = GetRoot<Message>(buf);
     Verifier verifier(buf, len);
 #ifdef FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
@@ -78,13 +79,12 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         ++_stats.message_verify_failures;
         return;
     }
-    if (msg->source() && msg->source()->timestamp() != 0) {
+    if (msg->source() && msg->source()->timestamp()) {
         auto recipients = _peer_manager.getRecipientPeers();
         float weight = 1.0f / (1 + std::distance(recipients.begin, recipients.end));
         _time_sync.syncTime(msecs(msg->source()->timestamp()), weight);
     }
-    if (msg->peers()) {
-        _peer_manager.receivePeerUpdates(msg, _time_sync.getTime());
+    if (_peer_manager.receivePeerUpdates(msg, _time_sync.getTime()) > 0) {
         Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
         IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
         ++_stats.peer_updates_received;

@@ -47,7 +47,7 @@ PeerManager::ErrorType PeerManager::latchPeer(const char* address, msecs latch_u
     return SUCCESS;
 }
 
-PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
+PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info, uint32_t max_timestamp) {
     // null check
     if (!node_info) {
         IF_PTR(_logger, log, Logger::WARN, Error("Peer is null.", PEER_IS_NULL), node_info);
@@ -77,25 +77,37 @@ PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
         IF_PTR(_logger, log, Logger::INFO, Error("New peer discovered.", NEW_PEER_DISCOVERED),
                 node_info);
         _peer_rankings.emplace_back(&peer);
-    } else {
-        if (node_info->timestamp() < peer.node_info.timestamp) {
-            IF_PTR(_logger, log, Logger::WARN,
-                    Error("Peer timestamp is stale.", PEER_TIMESTAMP_STALE), node_info);
-            return PEER_TIMESTAMP_STALE;
-        }
+    } else if (node_info->timestamp() < peer.node_info.timestamp) {
+        IF_PTR(_logger, log, Logger::WARN, Error("Peer timestamp is stale.", PEER_TIMESTAMP_STALE),
+                node_info);
+        return PEER_TIMESTAMP_STALE;
     }
     node_info->UnPackTo(&(peer.node_info));
+    peer.node_info.timestamp = std::min(peer.node_info.timestamp, max_timestamp);
     IF_PTR(_logger, log, Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &peer.node_info,
             sizeof(NodeInfoT));
     return SUCCESS;
 }
 
-void PeerManager::receivePeerUpdates(const Message* msg, msecs current_time) {
-    for (auto node_info : *msg->peers()) {
-        if (updatePeer(node_info) == PEER_IS_SELF && msg->source()->address()) {
-            latchPeer(msg->source()->address()->c_str(), current_time + _config.latch_duration);
+int PeerManager::receivePeerUpdates(const Message* msg, msecs current_time) {
+    if (!msg || !msg->peers()) {
+        return 0;
+    }
+    int peers_updated = 0;
+    if (msg->source()) {
+        for (auto node_info : *msg->peers()) {
+            auto update_error = updatePeer(node_info, msg->source()->timestamp());
+            if (update_error == PEER_IS_SELF && msg->source()->address()) {
+                latchPeer(msg->source()->address()->c_str(), current_time + _config.latch_duration);
+            }
+            peers_updated += update_error == SUCCESS;
+        }
+    } else {
+        for (auto node_info : *msg->peers()) {
+            peers_updated += updatePeer(node_info, current_time.count()) == SUCCESS;
         }
     }
+    return peers_updated;
 }
 
 std::vector<fb::Offset<NodeInfo>> PeerManager::updatePeerRankings(

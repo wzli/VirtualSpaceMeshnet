@@ -9,10 +9,11 @@ table NodeInfo {
   name:string;
   address:string (key);
   coordinates:Vec2;
-  timestamp:uint32;
+  sequence:uint32;
 }
 
 table Message {
+  timestamp:uint32;
   range:float;
   expiry:uint32;
   priority:uint8;

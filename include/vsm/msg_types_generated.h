@@ -97,9 +97,9 @@ struct NodeInfoT : public flatbuffers::NativeTable {
   std::string name;
   std::string address;
   std::unique_ptr<vsm::Vec2> coordinates;
-  uint32_t timestamp;
+  uint32_t sequence;
   NodeInfoT()
-      : timestamp(0) {
+      : sequence(0) {
   }
 };
 
@@ -113,7 +113,7 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_NAME = 4,
     VT_ADDRESS = 6,
     VT_COORDINATES = 8,
-    VT_TIMESTAMP = 10
+    VT_SEQUENCE = 10
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -139,11 +139,11 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   vsm::Vec2 *mutable_coordinates() {
     return GetStruct<vsm::Vec2 *>(VT_COORDINATES);
   }
-  uint32_t timestamp() const {
-    return GetField<uint32_t>(VT_TIMESTAMP, 0);
+  uint32_t sequence() const {
+    return GetField<uint32_t>(VT_SEQUENCE, 0);
   }
-  bool mutate_timestamp(uint32_t _timestamp) {
-    return SetField<uint32_t>(VT_TIMESTAMP, _timestamp, 0);
+  bool mutate_sequence(uint32_t _sequence) {
+    return SetField<uint32_t>(VT_SEQUENCE, _sequence, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -152,7 +152,7 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffsetRequired(verifier, VT_ADDRESS) &&
            verifier.VerifyString(address()) &&
            VerifyField<vsm::Vec2>(verifier, VT_COORDINATES) &&
-           VerifyField<uint32_t>(verifier, VT_TIMESTAMP) &&
+           VerifyField<uint32_t>(verifier, VT_SEQUENCE) &&
            verifier.EndTable();
   }
   NodeInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -173,8 +173,8 @@ struct NodeInfoBuilder {
   void add_coordinates(const vsm::Vec2 *coordinates) {
     fbb_.AddStruct(NodeInfo::VT_COORDINATES, coordinates);
   }
-  void add_timestamp(uint32_t timestamp) {
-    fbb_.AddElement<uint32_t>(NodeInfo::VT_TIMESTAMP, timestamp, 0);
+  void add_sequence(uint32_t sequence) {
+    fbb_.AddElement<uint32_t>(NodeInfo::VT_SEQUENCE, sequence, 0);
   }
   explicit NodeInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -193,9 +193,9 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::String> address = 0,
     const vsm::Vec2 *coordinates = 0,
-    uint32_t timestamp = 0) {
+    uint32_t sequence = 0) {
   NodeInfoBuilder builder_(_fbb);
-  builder_.add_timestamp(timestamp);
+  builder_.add_sequence(sequence);
   builder_.add_coordinates(coordinates);
   builder_.add_address(address);
   builder_.add_name(name);
@@ -207,7 +207,7 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfoDirect(
     const char *name = nullptr,
     const char *address = nullptr,
     const vsm::Vec2 *coordinates = 0,
-    uint32_t timestamp = 0) {
+    uint32_t sequence = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto address__ = address ? _fbb.CreateString(address) : 0;
   return vsm::CreateNodeInfo(
@@ -215,7 +215,7 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfoDirect(
       name__,
       address__,
       coordinates,
-      timestamp);
+      sequence);
 }
 
 flatbuffers::Offset<NodeInfo> CreateNodeInfo(flatbuffers::FlatBufferBuilder &_fbb, const NodeInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -225,6 +225,7 @@ struct MessageT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.MessageT";
   }
+  uint32_t timestamp;
   float range;
   uint32_t expiry;
   uint8_t priority;
@@ -232,7 +233,8 @@ struct MessageT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<vsm::NodeInfoT>> peers;
   std::vector<std::unique_ptr<vsm::StateT>> states;
   MessageT()
-      : range(0.0f),
+      : timestamp(0),
+        range(0.0f),
         expiry(0),
         priority(0) {
   }
@@ -245,13 +247,20 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return "vsm.Message";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_RANGE = 4,
-    VT_EXPIRY = 6,
-    VT_PRIORITY = 8,
-    VT_SOURCE = 10,
-    VT_PEERS = 12,
-    VT_STATES = 14
+    VT_TIMESTAMP = 4,
+    VT_RANGE = 6,
+    VT_EXPIRY = 8,
+    VT_PRIORITY = 10,
+    VT_SOURCE = 12,
+    VT_PEERS = 14,
+    VT_STATES = 16
   };
+  uint32_t timestamp() const {
+    return GetField<uint32_t>(VT_TIMESTAMP, 0);
+  }
+  bool mutate_timestamp(uint32_t _timestamp) {
+    return SetField<uint32_t>(VT_TIMESTAMP, _timestamp, 0);
+  }
   float range() const {
     return GetField<float>(VT_RANGE, 0.0f);
   }
@@ -290,6 +299,7 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_TIMESTAMP) &&
            VerifyField<float>(verifier, VT_RANGE) &&
            VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
            VerifyField<uint8_t>(verifier, VT_PRIORITY) &&
@@ -312,6 +322,9 @@ struct MessageBuilder {
   typedef Message Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_timestamp(uint32_t timestamp) {
+    fbb_.AddElement<uint32_t>(Message::VT_TIMESTAMP, timestamp, 0);
+  }
   void add_range(float range) {
     fbb_.AddElement<float>(Message::VT_RANGE, range, 0.0f);
   }
@@ -343,6 +356,7 @@ struct MessageBuilder {
 
 inline flatbuffers::Offset<Message> CreateMessage(
     flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t timestamp = 0,
     float range = 0.0f,
     uint32_t expiry = 0,
     uint8_t priority = 0,
@@ -355,12 +369,14 @@ inline flatbuffers::Offset<Message> CreateMessage(
   builder_.add_source(source);
   builder_.add_expiry(expiry);
   builder_.add_range(range);
+  builder_.add_timestamp(timestamp);
   builder_.add_priority(priority);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Message> CreateMessageDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t timestamp = 0,
     float range = 0.0f,
     uint32_t expiry = 0,
     uint8_t priority = 0,
@@ -371,6 +387,7 @@ inline flatbuffers::Offset<Message> CreateMessageDirect(
   auto states__ = states ? _fbb.CreateVectorOfSortedTables<vsm::State>(states) : 0;
   return vsm::CreateMessage(
       _fbb,
+      timestamp,
       range,
       expiry,
       priority,
@@ -542,7 +559,7 @@ inline void NodeInfo::UnPackTo(NodeInfoT *_o, const flatbuffers::resolver_functi
   { auto _e = name(); if (_e) _o->name = _e->str(); }
   { auto _e = address(); if (_e) _o->address = _e->str(); }
   { auto _e = coordinates(); if (_e) _o->coordinates = std::unique_ptr<vsm::Vec2>(new vsm::Vec2(*_e)); }
-  { auto _e = timestamp(); _o->timestamp = _e; }
+  { auto _e = sequence(); _o->sequence = _e; }
 }
 
 inline flatbuffers::Offset<NodeInfo> NodeInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const NodeInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -556,13 +573,13 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(flatbuffers::FlatBufferBuild
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _address = _fbb.CreateString(_o->address);
   auto _coordinates = _o->coordinates ? _o->coordinates.get() : 0;
-  auto _timestamp = _o->timestamp;
+  auto _sequence = _o->sequence;
   return vsm::CreateNodeInfo(
       _fbb,
       _name,
       _address,
       _coordinates,
-      _timestamp);
+      _sequence);
 }
 
 inline MessageT *Message::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -574,6 +591,7 @@ inline MessageT *Message::UnPack(const flatbuffers::resolver_function_t *_resolv
 inline void Message::UnPackTo(MessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = timestamp(); _o->timestamp = _e; }
   { auto _e = range(); _o->range = _e; }
   { auto _e = expiry(); _o->expiry = _e; }
   { auto _e = priority(); _o->priority = _e; }
@@ -590,6 +608,7 @@ inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _timestamp = _o->timestamp;
   auto _range = _o->range;
   auto _expiry = _o->expiry;
   auto _priority = _o->priority;
@@ -598,6 +617,7 @@ inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder
   auto _states = _o->states.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::State>> (_o->states.size(), [](size_t i, _VectorArgs *__va) { return CreateState(*__va->__fbb, __va->__o->states[i].get(), __va->__rehasher); }, &_va ) : 0;
   return vsm::CreateMessage(
       _fbb,
+      _timestamp,
       _range,
       _expiry,
       _priority,

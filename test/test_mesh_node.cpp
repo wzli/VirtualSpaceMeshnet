@@ -169,7 +169,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                 }
             });
 
-    for (int i = 0; i < 50; ++i) {
+    for (int i = 0; i < 60; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }
@@ -181,7 +181,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
         puts("");
 #endif
 // for generating graph
-#if 1
+#if 0
         char buf[10];
         sprintf(buf, "%02d", i);
         graphviz.saveGraph(

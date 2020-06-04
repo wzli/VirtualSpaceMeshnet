@@ -93,8 +93,13 @@ int PeerManager::receivePeerUpdates(const Message* msg) {
     int peers_updated = 0;
     for (auto node_info : *msg->peers()) {
         auto update_error = updatePeer(node_info);
-        if (update_error == PEER_IS_SELF && msg->source() && msg->source()->address()) {
-            _recipients.emplace_back(msg->source()->address()->c_str());
+        if (update_error == PEER_IS_SELF) {
+            // catch up to previous known sequence number
+            _node_info.sequence = std::max(_node_info.sequence, node_info->sequence());
+            // respond to peers than ranked this node
+            if (msg->source() && msg->source()->address()) {
+                _recipients.emplace_back(msg->source()->address()->c_str());
+            }
         }
         peers_updated += update_error == SUCCESS;
     }

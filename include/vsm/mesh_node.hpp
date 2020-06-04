@@ -41,13 +41,13 @@ public:
         uint32_t message_verify_failures;
     };
 
-    MeshNode(Config config);
-
     // no copy or move since there are callbacks anchored
     MeshNode(const MeshNode&) = delete;
     MeshNode& operator=(const MeshNode&) = delete;
     MeshNode(MeshNode&&) = delete;
     MeshNode& operator=(MeshNode&&) = delete;
+
+    MeshNode(Config config);
 
     void sendPeerUpdates();
 
@@ -57,6 +57,7 @@ public:
     Logger* getLogger() { return _logger.get(); }
 
     const Stats& getStats() const { return _stats; }
+    const std::vector<std::string>& getConnectedPeers() const { return _connected_peers; }
 
 private:
     void receiveMessageHandler(const void* buffer, size_t len);
@@ -67,8 +68,8 @@ private:
     std::shared_ptr<Transport> _transport;
     std::shared_ptr<Logger> _logger;
     flatbuffers::FlatBufferBuilder _fbb;
-    std::vector<std::string> _recipients_buffer;
     std::vector<std::string> _connected_peers;
+    std::vector<std::string> _recipients_buffer;
 };
 
 }  // namespace vsm

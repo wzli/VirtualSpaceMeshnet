@@ -22,18 +22,13 @@ inline float distanceSqr(const Vec2* a, const Vec2* b) {
 
 struct Peer {
     NodeInfoT node_info;
-    msecs latch_until = msecs(0);
+    float rank_factor = 1;
     float rank_cost = 0;
 };
 
 class PeerManager {
 public:
     using PeerLookup = std::unordered_map<std::string, Peer>;
-
-    struct PeerRange {
-        std::vector<Peer*>::const_iterator begin;
-        std::vector<Peer*>::const_iterator end;
-    };
 
     enum ErrorType {
         SUCCESS = 0,
@@ -45,7 +40,7 @@ public:
         PEER_IS_NULL,
         PEER_ADDRESS_MISSING,
         PEER_COORDINATES_MISSING,
-        PEER_TIMESTAMP_STALE,
+        PEER_SEQUENCE_STALE,
         // Info
         INITIALIZED,
         NEW_PEER_DISCOVERED,
@@ -62,33 +57,24 @@ public:
         std::string address;
         Vec2 coordinates;
 
-        msecs latch_duration = msecs(1000);
         size_t connection_degree = 10;
         size_t lookup_size = 128;
-        float rank_decay = 0.00001f;
+        float rank_decay = 0.0f;
     };
 
     PeerManager(Config config, std::shared_ptr<Logger> logger = nullptr);
 
-    ErrorType latchPeer(const char* address, msecs latch_until);
+    ErrorType latchPeer(const char* address, float rank_factor = 0);
 
-    ErrorType updatePeer(const NodeInfo* node_info,
-            uint32_t max_timestamp = std::numeric_limits<uint32_t>::max());
+    ErrorType updatePeer(const NodeInfo* node_info);
 
-    int receivePeerUpdates(const Message* msg, msecs current_time);
+    int receivePeerUpdates(const Message* msg);
 
     std::vector<fb::Offset<NodeInfo>> updatePeerRankings(
-            fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients, msecs current_time);
+            fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients);
 
     const PeerLookup& getPeers() const { return _peers; }
-
-    PeerRange getRecipientPeers() const {
-        return {_peer_rankings.begin(), _peer_rankings.begin() + _ranked_end};
-    }
-    PeerRange getLatchedPeers() const {
-        return {_peer_rankings.begin(), _peer_rankings.begin() + _latched_end};
-    }
-    void getRankedPeers(std::vector<const Peer*>& ranked_peers) const;
+    const std::vector<Peer*> getPeerRankings() const { return _peer_rankings; }
 
     NodeInfoT& getNodeInfo() { return _node_info; }
     Logger* getLogger() { return _logger.get(); }
@@ -98,9 +84,8 @@ private:
     NodeInfoT _node_info;
     PeerLookup _peers;
     std::vector<Peer*> _peer_rankings;
+    std::vector<std::string> _recipients;
     std::shared_ptr<Logger> _logger;
-    size_t _latched_end;
-    size_t _ranked_end;
 };
 
 }  // namespace vsm

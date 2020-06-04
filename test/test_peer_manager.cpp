@@ -29,7 +29,7 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_manager]") {
     REQUIRE(node_info->address()->str() == "peer_addr");
     REQUIRE(node_info->coordinates()->x() == peer_coords.x());
     REQUIRE(node_info->coordinates()->y() == peer_coords.y());
-    REQUIRE(node_info->timestamp() == 100);
+    REQUIRE(node_info->sequence() == 100);
 
     PeerManager peer_manager({
             "name",     // name
@@ -41,12 +41,12 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_manager]") {
     REQUIRE(peer_manager.getPeers().at("peer_addr").node_info.name == "peer_name");
 }
 
-TEST_CASE("Peer Panking", "[peer_manager]") {
+TEST_CASE("Peer Ranking", "[peer_manager]") {
     FlatBufferBuilder fbb;
     auto logger = std::make_shared<Logger>();
 #if 0
-    logger->addLogHandler(Logger::TRACE, [](Logger::Level level, Error error, const void*, size_t) {
-        std::cout << "lv: " << level << ", type: " << error.type << ", code: " << error.code
+    logger->addLogHandler(Logger::TRACE, [](msecs time, Logger::Level level, Error error, const void*, size_t) {
+        std::cout << "t " << time.count() << "lv: " << level << ", type: " << error.type << ", code: " << error.code
                   << ", msg: " << error.what() << std::endl;
     });
 #endif
@@ -58,13 +58,12 @@ TEST_CASE("Peer Panking", "[peer_manager]") {
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
-            msecs(5),      // latch duration
             7,             // connection_degree
             20,            // lookup size
             0.000,         // rank decay
     };
 
-    SECTION("1") { config.connection_degree = 3; }
+    SECTION("1") { config.connection_degree = 4; }
 
     SECTION("2") { config.connection_degree = 5; }
 
@@ -82,25 +81,25 @@ TEST_CASE("Peer Panking", "[peer_manager]") {
     }
 
     PeerManager peer_manager(config, logger);
-    // add 10 peers
+    // add peers
     for (size_t i = 0; i < n_peers; ++i) {
         NodeInfoT peer;
         peer.name = "peer" + std::to_string(i);
         peer.address = "address" + std::to_string(i);
         peer.coordinates = std::make_unique<Vec2>(i, i);
-        peer.timestamp = i;
+        peer.sequence = i;
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
         peer_manager.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()));
     }
     // latch some peers
     for (int i = latch_start; i < latch_end; ++i) {
-        peer_manager.latchPeer(("address" + std::to_string(i)).c_str(), msecs(2));
+        peer_manager.latchPeer(("address" + std::to_string(i)).c_str());
     }
     REQUIRE(peer_manager.getPeers().size() == n_peers);
     // generate peer rankings
     fbb.Clear();
     std::vector<std::string> recipients;
-    auto ranked_peers = peer_manager.updatePeerRankings(fbb, recipients, msecs(1));
+    auto ranked_peers = peer_manager.updatePeerRankings(fbb, recipients);
     fbb.Finish(fbb.CreateVector(ranked_peers));
     auto rankings = GetRoot<Vector<Offset<NodeInfo>>>(fbb.GetBufferPointer());
     // require that lookup size is not exceeded
@@ -112,10 +111,4 @@ TEST_CASE("Peer Panking", "[peer_manager]") {
     }
     // require that ranked size matches connection degree
     REQUIRE(ranked_peers.size() == config.connection_degree);
-    float last_distance_squared = 0;
-    for (const auto& ranked : *rankings) {
-        float distance_squared = distanceSqr(&config.coordinates, ranked->coordinates());
-        REQUIRE(distance_squared >= last_distance_squared);
-        last_distance_squared = distance_squared;
-    }
 }

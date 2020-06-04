@@ -34,8 +34,7 @@ MeshNode::MeshNode(Config config)
 void MeshNode::sendPeerUpdates() {
     _fbb.Clear();
     // get peer rankings
-    auto ranked_peers =
-            _peer_manager.updatePeerRankings(_fbb, _recipients_buffer, _time_sync.getTime());
+    auto ranked_peers = _peer_manager.updatePeerRankings(_fbb, _recipients_buffer);
     // create iterators for updating connections
     struct BackAssigner {
         using value_type = std::string;
@@ -45,18 +44,17 @@ void MeshNode::sendPeerUpdates() {
     BackAssigner disconnector{[this](const std::string& addr) { _transport->disconnect(addr); }};
     BackAssigner connector{[this](const std::string& addr) { _transport->connect(addr); }};
     // update transport connections
-    std::sort(_recipients_buffer.begin(), _recipients_buffer.end());
     std::set_difference(_connected_peers.begin(), _connected_peers.end(),
             _recipients_buffer.begin(), _recipients_buffer.end(), std::back_inserter(disconnector));
     std::set_difference(_recipients_buffer.begin(), _recipients_buffer.end(),
             _connected_peers.begin(), _connected_peers.end(), std::back_inserter(connector));
     _connected_peers.swap(_recipients_buffer);
     // add source info to peer vector
-    _peer_manager.getNodeInfo().timestamp = _time_sync.getTime().count();
     auto source = NodeInfo::Pack(_fbb, &_peer_manager.getNodeInfo());
     ranked_peers.emplace_back(source);
     // write message
     MessageBuilder msg_builder(_fbb);
+    msg_builder.add_timestamp(_time_sync.getTime().count());
     msg_builder.add_source(source);
     msg_builder.add_peers(_fbb.CreateVector(ranked_peers));
     auto msg = msg_builder.Finish();
@@ -79,12 +77,11 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         ++_stats.message_verify_failures;
         return;
     }
-    if (msg->source() && msg->source()->timestamp()) {
-        auto recipients = _peer_manager.getRecipientPeers();
-        float weight = 1.0f / (1 + std::distance(recipients.begin, recipients.end));
-        _time_sync.syncTime(msecs(msg->source()->timestamp()), weight);
+    if (msg->timestamp()) {
+        float weight = 1.0f / (1 + _connected_peers.size());
+        _time_sync.syncTime(msecs(msg->timestamp()), weight);
     }
-    if (_peer_manager.receivePeerUpdates(msg, _time_sync.getTime()) > 0) {
+    if (_peer_manager.receivePeerUpdates(msg) > 0) {
         Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
         IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
         ++_stats.peer_updates_received;

@@ -43,7 +43,6 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                             "node1",                  // name
                             "udp://127.0.0.1:11611",  // address
                             {0, 0},                   // coordinates
-                            msecs(3),                 // latch duration
                             1,                        // connection_degree
                             20,                       // lookup size
                             0,                        // rank decay
@@ -57,8 +56,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                             "node2",                  // name
                             "udp://127.0.0.1:11612",  // address
                             {1, 1},                   // coordinates
-                            msecs(3),                 // latch duration
-                            0,                        // connection_degree
+                            1,                        // connection_degree
                             20,                       // lookup size
                             0,                        // rank decay
                     },
@@ -77,7 +75,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                 });
         mesh_nodes.emplace_back(config);
         if (previous_address) {
-            mesh_nodes.back().getPeerManager().latchPeer(previous_address, msecs(4));
+            mesh_nodes.back().getPeerManager().latchPeer(previous_address, 1);
         }
         previous_address = config.peer_manager.address.c_str();
     }
@@ -86,49 +84,13 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
             mesh_node.getTransport().poll(msecs(1));
         }
     }
-    std::vector<const Peer*> ranked_peers;
-    PeerManager::PeerRange peer_range;
 
-    // node 1 doesn't latch node 2
-    peer_range = mesh_nodes[0].getPeerManager().getLatchedPeers();
-    REQUIRE(peer_range.begin == peer_range.end);
-    // node 1 sends to node 2
-    peer_range = mesh_nodes[0].getPeerManager().getRecipientPeers();
-    REQUIRE(peer_range.begin + 1 == peer_range.end);
-    REQUIRE((*peer_range.begin)->node_info.address == configs[1].peer_manager.address);
-    // node 1 ranks node 2
-    mesh_nodes[0].getPeerManager().getRankedPeers(ranked_peers);
-    REQUIRE(ranked_peers.size() == 1);
-    REQUIRE(ranked_peers.front()->node_info.address == configs[1].peer_manager.address);
-
-    // node 2 latches node 1
-    peer_range = mesh_nodes[1].getPeerManager().getLatchedPeers();
-    REQUIRE((*peer_range.begin)->node_info.address == configs[0].peer_manager.address);
-    // node 2 sends to node 1
-    peer_range = mesh_nodes[1].getPeerManager().getRecipientPeers();
-    REQUIRE(peer_range.begin + 1 == peer_range.end);
-    REQUIRE((*peer_range.begin)->node_info.address == configs[0].peer_manager.address);
-    // node 2 doesn't ranks node 1
-    mesh_nodes[1].getPeerManager().getRankedPeers(ranked_peers);
-    REQUIRE(ranked_peers.empty());
-
-#if 0
-    for (auto& mesh_node : mesh_nodes) {
-        std::cout << mesh_node.getPeerManager().getNodeInfo().name << ":\n";
-        for (auto peers = mesh_node.getPeerManager().getLatchedPeers(); peers.begin != peers.end;
-                ++peers.begin) {
-            std::cout << (*peers.begin)->node_info.address << " latched\n";
-        }
-        for (auto peers = mesh_node.getPeerManager().getRecipientPeers(); peers.begin != peers.end;
-                ++peers.begin) {
-            std::cout << (*peers.begin)->node_info.address << " recipient\n";
-        }
-        mesh_node.getPeerManager().getRankedPeers(ranked_peers);
-        for (auto& peer : ranked_peers) {
-            std::cout << peer->node_info.address << " ranked\n";
-        }
-    }
-#endif
+    REQUIRE(mesh_nodes[0].getConnectedPeers().front() == configs[1].peer_manager.address);
+    REQUIRE(mesh_nodes[1].getConnectedPeers().front() == configs[0].peer_manager.address);
+    REQUIRE(mesh_nodes[1].getPeerManager().getPeerRankings().front()->node_info.address ==
+            configs[0].peer_manager.address);
+    REQUIRE(mesh_nodes[0].getPeerManager().getPeerRankings().front()->node_info.address ==
+            configs[1].peer_manager.address);
 }
 
 TEST_CASE("MeshNode Graph", "[mesh_node]") {
@@ -142,7 +104,6 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                         "node" + id_str,                 // name
                         "udp://127.0.0.1:115" + id_str,  // address
                         coords,                          // coordinates
-                        msecs(10),                       // latch duration
                         4,                               // connection_degree
                         200,                             // lookup size
                         0,                               // rank decay
@@ -152,7 +113,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
         };
     };
     std::vector<MeshNode::Config> configs;
-    int N = 8;
+    int N = 7;
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
             configs.emplace_back(make_config(N * i + j, Vec2(j, i)));
@@ -160,29 +121,37 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
     }
     configs.back().peer_manager.connection_degree = configs.size();
 
+    const char* previous_address;
+    SECTION("Centralized Boostrap") { previous_address = nullptr; }
+    SECTION("Daisy-Chain Boostrap") { previous_address = configs[0].peer_manager.address.c_str(); }
+
     std::deque<MeshNode> mesh_nodes;
-    const char* previous_address = nullptr;
     for (auto& config : configs) {
-        config.logger->addLogHandler(Logger::FATAL,
-                [&config](msecs time, Logger::Level level, Error error, const void*, size_t) {
+#if 0
+        config.logger->addLogHandler(
+                Logger::TRACE, [&config](msecs time, Logger::Level level,
+                                       Error error, const void*, size_t) {
+                    if (error.type == PeerManager::PEER_COORDINATES_MISSING) {
+                        return;
+                    }
                     std::cout << time.count() << " " << config.peer_manager.name << " lv: " << level
                               << ", type: " << error.type << ", code: " << error.code
                               << ", msg: " << error.what() << std::endl;
                 });
-        mesh_nodes.emplace_back(config);
-#if 0
-        mesh_nodes.back().getPeerManager().latchPeer(configs.front().peer_manager.address.c_str(), msecs(0));
-#else
-        if (previous_address) {
-            mesh_nodes.back().getPeerManager().latchPeer(previous_address, msecs(4));
-        }
-        previous_address = config.peer_manager.address.c_str();
 #endif
+        mesh_nodes.emplace_back(config);
+
+        if (previous_address) {
+            mesh_nodes.back().getPeerManager().latchPeer(previous_address, 1);
+            previous_address = config.peer_manager.address.c_str();
+        } else {
+            mesh_nodes.back().getPeerManager().latchPeer(
+                    configs.front().peer_manager.address.c_str(), 1);
+        }
     }
 
     for (auto& config : configs) {
-        mesh_nodes.back().getPeerManager().latchPeer(
-                config.peer_manager.address.c_str(), msecs(99999));
+        mesh_nodes.back().getPeerManager().latchPeer(config.peer_manager.address.c_str());
     }
 
     Graphviz graphviz;
@@ -199,28 +168,54 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                         break;
                 }
             });
+
     for (int i = 0; i < 50; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }
-        // puts("----------------------tick");
-        for (auto& mesh_node : mesh_nodes) {
+// for printing time sync csv
 #if 0
-            std::cout << mesh_node.getPeerManager().getNodeInfo().name
-                      << " time: " << mesh_node.getTimeSync().getTime().count()
-                      << " local time: " << mesh_node.getTimeSync().getLocalTime().count()
-                      << std::endl;
-#endif
-            // std::cout << mesh_node.getTimeSync().getTime().count() << ",";
-            // std::cout << (mesh_node.getTimeSync().getTime()-
-            // mesh_node.getTimeSync().getLocalTime()).count() << ",";
+        for (auto& mesh_node : mesh_nodes) {
             std::cout << mesh_node.getTimeSync().getTime().count() << ",";
         }
-        std::cout << std::endl;
+        puts("");
+#endif
+// for generating graph
+#if 1
         char buf[10];
         sprintf(buf, "%02d", i);
         graphviz.saveGraph(
                 "test_graph_" + std::string(buf) + ".gv", configs.back().peer_manager.address);
+#endif
     }
-    TimeSync<msecs> ts([]() { return msecs(0); });
+
+    for (int i = 2; i < N - 2; ++i) {
+        for (int j = 2; j < N - 2; ++j) {
+            auto& mesh_node = mesh_nodes[N * i + j];
+            auto& config = configs[N * i + j];
+            auto peer_rankings = mesh_node.getPeerManager().getPeerRankings();
+            REQUIRE(peer_rankings.size() >= config.peer_manager.connection_degree);
+            for (size_t k = 0; k < config.peer_manager.connection_degree; ++k) {
+                REQUIRE(distanceSqr(peer_rankings[k]->node_info.coordinates.get(),
+                                mesh_node.getPeerManager().getNodeInfo().coordinates.get()) <= 1);
+                REQUIRE(mesh_node.getConnectedPeers().size() ==
+                        config.peer_manager.connection_degree + 1);
+            }
+        }
+    }
+
+// for printing node connections
+#if 0
+    for (int i = 0; i < mesh_nodes.size(); ++i) {
+        printf("%02d: ", i);
+        for (const auto& peer : mesh_nodes[i].getConnectedPeers()) {
+            printf("%s ", peer.c_str() + 19);
+        }
+        printf("\n    ");
+        for (const auto& peer : mesh_nodes[i].getPeerManager().getPeerRankings()) {
+            printf("%s ", peer->node_info.name.c_str() + 4);
+        }
+        puts("");
+    }
+#endif
 }

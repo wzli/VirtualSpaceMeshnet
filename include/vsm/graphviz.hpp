@@ -19,7 +19,7 @@ public:
             return false;
         }
         auto& node = _nodes[msg->source()->address()->c_str()];
-        if (msg->source()->timestamp() < node.info.timestamp) {
+        if (msg->source()->sequence() <= node.info.sequence) {
             return false;
         }
         msg->source()->UnPackTo(&(node.info));
@@ -28,7 +28,7 @@ public:
             if (peer->address() && peer->coordinates()) {
                 node.peers.emplace_back(peer->address()->c_str());
                 auto& peer_node = _nodes[node.peers.back()];
-                if (peer->timestamp() >= peer_node.info.timestamp) {
+                if (peer->sequence() > peer_node.info.sequence) {
                     peer->UnPackTo(&(peer_node.info));
                 }
             }

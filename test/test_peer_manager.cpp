@@ -101,7 +101,6 @@ TEST_CASE("Peer Ranking", "[peer_manager]") {
     std::vector<std::string> recipients;
     auto ranked_peers = peer_manager.updatePeerRankings(fbb, recipients);
     fbb.Finish(fbb.CreateVector(ranked_peers));
-    auto rankings = GetRoot<Vector<Offset<NodeInfo>>>(fbb.GetBufferPointer());
     // require that lookup size is not exceeded
     REQUIRE(peer_manager.getPeers().size() == std::min<size_t>(n_peers, config.lookup_size));
     // required latched peers to be in recipients list

@@ -35,12 +35,6 @@ public:
         };
     };
 
-    struct Stats {
-        uint32_t peer_updates_received;
-        uint32_t state_updates_received;
-        uint32_t message_verify_failures;
-    };
-
     // no copy or move since there are callbacks anchored
     MeshNode(const MeshNode&) = delete;
     MeshNode& operator=(const MeshNode&) = delete;
@@ -56,13 +50,11 @@ public:
     Transport& getTransport() { return *_transport; }
     Logger* getLogger() { return _logger.get(); }
 
-    const Stats& getStats() const { return _stats; }
     const std::vector<std::string>& getConnectedPeers() const { return _connected_peers; }
 
 private:
     void receiveMessageHandler(const void* buffer, size_t len);
 
-    Stats _stats;
     PeerManager _peer_manager;
     TimeSync<msecs> _time_sync;
     std::shared_ptr<Transport> _transport;

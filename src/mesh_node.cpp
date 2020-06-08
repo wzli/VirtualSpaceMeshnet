@@ -6,8 +6,7 @@ namespace vsm {
 using namespace flatbuffers;
 
 MeshNode::MeshNode(Config config)
-        : _stats()
-        , _peer_manager(std::move(config.peer_manager), config.logger)
+        : _peer_manager(std::move(config.peer_manager), config.logger)
         , _time_sync(std::move(config.local_clock))
         , _transport(std::move(config.transport))
         , _logger(std::move(config.logger)) {
@@ -74,7 +73,6 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
     if (!msg->Verify(verifier)) {
         Error error("Failed to verify message.", MESSAGE_VERIFY_FAIL);
         IF_PTR(_logger, log, Logger::WARN, error, buffer, len);
-        ++_stats.message_verify_failures;
         return;
     }
     if (msg->timestamp()) {
@@ -84,14 +82,12 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
     if (_peer_manager.receivePeerUpdates(msg) > 0) {
         Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
         IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
-        ++_stats.peer_updates_received;
     }
     if (msg->states()) {
         //    for (auto state : *msg->states()) {
         //    }
         Error error("State updates received.", STATE_UPDATES_RECEIVED);
         IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
-        ++_stats.state_updates_received;
     }
 }
 

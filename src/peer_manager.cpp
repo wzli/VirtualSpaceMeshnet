@@ -44,7 +44,7 @@ PeerManager::ErrorType PeerManager::latchPeer(const char* address, float rank_fa
     return SUCCESS;
 }
 
-PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
+PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info, bool is_source) {
     // null check
     if (!node_info) {
         IF_PTR(_logger, log, Logger::WARN, Error("Peer is null.", PEER_IS_NULL), node_info);
@@ -74,8 +74,15 @@ PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info) {
         IF_PTR(_logger, log, Logger::INFO, Error("New peer discovered.", NEW_PEER_DISCOVERED),
                 node_info);
         _peer_rankings.emplace_back(&peer);
+    } else if (is_source) {
+        if (node_info->sequence() <= peer.source_sequence) {
+            IF_PTR(_logger, log, Logger::DEBUG,
+                    Error("Source sequence is stale.", SOURCE_SEQUENCE_STALE), node_info);
+            return SOURCE_SEQUENCE_STALE;
+        }
+        peer.source_sequence = node_info->sequence();
     } else if (node_info->sequence() <= peer.node_info.sequence) {
-        IF_PTR(_logger, log, Logger::WARN, Error("Peer sequence is stale.", PEER_SEQUENCE_STALE),
+        IF_PTR(_logger, log, Logger::DEBUG, Error("Peer sequence is stale.", PEER_SEQUENCE_STALE),
                 node_info);
         return PEER_SEQUENCE_STALE;
     }

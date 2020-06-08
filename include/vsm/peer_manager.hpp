@@ -22,6 +22,7 @@ inline float distanceSqr(const Vec2* a, const Vec2* b) {
 
 struct Peer {
     NodeInfoT node_info;
+    uint32_t source_sequence = 0;
     float rank_factor = 1;
     float rank_cost = 0;
 };
@@ -40,11 +41,13 @@ public:
         PEER_IS_NULL,
         PEER_ADDRESS_MISSING,
         PEER_COORDINATES_MISSING,
-        PEER_SEQUENCE_STALE,
         // Info
         INITIALIZED,
         NEW_PEER_DISCOVERED,
         PEER_LATCHED,
+        // Debug
+        PEER_SEQUENCE_STALE,
+        SOURCE_SEQUENCE_STALE,
         // Trace
         PEER_UPDATED,
         PEER_IS_SELF,
@@ -66,7 +69,7 @@ public:
 
     ErrorType latchPeer(const char* address, float rank_factor = 0);
 
-    ErrorType updatePeer(const NodeInfo* node_info);
+    ErrorType updatePeer(const NodeInfo* node_info, bool is_source = false);
 
     int receivePeerUpdates(const Message* msg);
 

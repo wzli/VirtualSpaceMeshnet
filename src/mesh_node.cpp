@@ -48,16 +48,12 @@ void MeshNode::sendPeerUpdates() {
     std::set_difference(_recipients_buffer.begin(), _recipients_buffer.end(),
             _connected_peers.begin(), _connected_peers.end(), std::back_inserter(connector));
     _connected_peers.swap(_recipients_buffer);
-    // add source info to peer vector
-    auto source = NodeInfo::Pack(_fbb, &_peer_manager.getNodeInfo());
-    ranked_peers.emplace_back(source);
     // write message
     MessageBuilder msg_builder(_fbb);
     msg_builder.add_timestamp(_time_sync.getTime().count());
-    msg_builder.add_source(source);
+    msg_builder.add_source(NodeInfo::Pack(_fbb, &_peer_manager.getNodeInfo()));
     msg_builder.add_peers(_fbb.CreateVector(ranked_peers));
-    auto msg = msg_builder.Finish();
-    _fbb.Finish(msg);
+    _fbb.Finish(msg_builder.Finish());
     // send message
     _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
     IF_PTR(_logger, log, Logger::INFO, Error("Peer updates sent.", PEER_UPDATES_SENT));
@@ -75,11 +71,12 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         IF_PTR(_logger, log, Logger::WARN, error, buffer, len);
         return;
     }
-    if (msg->timestamp()) {
+    bool source_updated = _peer_manager.updatePeer(msg->source(), true) == PeerManager::SUCCESS;
+    if (source_updated && msg->timestamp()) {
         float weight = 1.0f / (1 + _connected_peers.size());
         _time_sync.syncTime(msecs(msg->timestamp()), weight);
     }
-    if (_peer_manager.receivePeerUpdates(msg) > 0) {
+    if ((!msg->source() || source_updated) && _peer_manager.receivePeerUpdates(msg) > 0) {
         Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
         IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
     }

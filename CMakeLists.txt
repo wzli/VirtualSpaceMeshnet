@@ -10,14 +10,14 @@ add_subdirectory(submodules/libzmq)
 
 set(BUILD_TESTING OFF CACHE BOOL "")
 set(CPPZMQ_BUILD_TESTS OFF CACHE BOOL "")
-ADD_DEFINITIONS (-DZMQ_BUILD_DRAFT_API=1)
 add_subdirectory(submodules/cppzmq)
+target_compile_definitions(cppzmq INTERFACE ZMQ_BUILD_DRAFT_API=1)
 
 # flatbuffers setup
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
-#ADD_DEFINITIONS(-DFLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE)
 add_subdirectory(submodules/flatbuffers
   ${CMAKE_CURRENT_BINARY_DIR}/flatbuffers-build EXCLUDE_FROM_ALL)
+#target_compile_definitions(flatbuffers INTERFACE FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE)
 
 # Catch2 setup
 set(CATCH_BUILD_TESTING OFF CACHE BOOL "")

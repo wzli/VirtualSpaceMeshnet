@@ -32,7 +32,7 @@ public:
     }
 
     int addTimer(std::chrono::milliseconds interval, TimerCallback timer_callback) override {
-        return _timers.add(interval.count(), timer_callback);
+        return _timers.add(interval.count(), std::move(timer_callback));
     }
 
     int poll(std::chrono::milliseconds timeout);

@@ -10,8 +10,9 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     FlatBufferBuilder fbb;
     auto peer_name = fbb.CreateString("peer_name");
     auto peer_addr = fbb.CreateString("peer_addr");
-    Vec2 peer_coords(3, 4);
-    auto node_info_offset = CreateNodeInfo(fbb, peer_name, peer_addr, &peer_coords, 100);
+    std::vector<float> peer_coords(3, 4);
+    auto node_info_offset =
+            CreateNodeInfo(fbb, peer_name, peer_addr, fbb.CreateVector(peer_coords), 100);
     fbb.Finish(node_info_offset);
 
     // deserialize
@@ -27,8 +28,7 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     // verity data
     REQUIRE(node_info->name()->str() == "peer_name");
     REQUIRE(node_info->address()->str() == "peer_addr");
-    REQUIRE(node_info->coordinates()->x() == peer_coords.x());
-    REQUIRE(node_info->coordinates()->y() == peer_coords.y());
+    REQUIRE(distanceSqr(*node_info->coordinates(), peer_coords) == 0);
     REQUIRE(node_info->sequence() == 100);
 
     PeerTracker peer_tracker({
@@ -86,7 +86,7 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
         NodeInfoT peer;
         peer.name = "peer" + std::to_string(i);
         peer.address = "address" + std::to_string(i);
-        peer.coordinates = std::make_unique<Vec2>(i, i);
+        peer.coordinates = {(float) i, (float) i};
         peer.sequence = i;
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
         peer_tracker.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()));

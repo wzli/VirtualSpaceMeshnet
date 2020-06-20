@@ -94,7 +94,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
 }
 
 TEST_CASE("MeshNode Graph", "[mesh_node]") {
-    auto make_config = [](int id, Vec2 coords) {
+    auto make_config = [](int id, std::vector<float> coords) {
         char buf[10];
         sprintf(buf, "%02d", id);
         std::string id_str = buf;
@@ -103,7 +103,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                 {
                         "node" + id_str,                 // name
                         "udp://127.0.0.1:115" + id_str,  // address
-                        coords,                          // coordinates
+                        std::move(coords),               // coordinates
                         4,                               // connection_degree
                         200,                             // lookup size
                         0,                               // rank decay
@@ -116,7 +116,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
     int N = 7;
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            configs.emplace_back(make_config(N * i + j, Vec2(j, i)));
+            configs.emplace_back(make_config(N * i + j, {(float) j, (float) i}));
         }
     }
     configs.back().peer_tracker.connection_degree = configs.size();
@@ -164,7 +164,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                     case PeerTracker::PEER_UPDATED:
                         NodeInfoT* node_info =
                                 reinterpret_cast<NodeInfoT*>(const_cast<void*>(data));
-                        node_info->coordinates.reset();
+                        node_info->coordinates.clear();
                         break;
                 }
             });
@@ -181,7 +181,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
         puts("");
 #endif
 // for generating graph
-#if 0
+#if 1
         char buf[10];
         sprintf(buf, "%02d", i);
         graphviz.saveGraph(
@@ -196,8 +196,8 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
             auto peer_rankings = mesh_node.getPeerTracker().getPeerRankings();
             REQUIRE(peer_rankings.size() >= config.peer_tracker.connection_degree);
             for (size_t k = 0; k < config.peer_tracker.connection_degree; ++k) {
-                REQUIRE(distanceSqr(peer_rankings[k]->node_info.coordinates.get(),
-                                mesh_node.getPeerTracker().getNodeInfo().coordinates.get()) <= 1);
+                REQUIRE(distanceSqr(peer_rankings[k]->node_info.coordinates,
+                                mesh_node.getPeerTracker().getNodeInfo().coordinates) <= 1);
                 REQUIRE(mesh_node.getConnectedPeers().size() ==
                         config.peer_tracker.connection_degree + 1);
             }

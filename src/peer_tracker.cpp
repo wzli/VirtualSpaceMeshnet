@@ -18,7 +18,7 @@ PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
     }
     _node_info.name = std::move(_config.name);
     _node_info.address = std::move(_config.address);
-    _node_info.coordinates = std::make_unique<Vec2>(std::move(_config.coordinates));
+    _node_info.coordinates = std::move(_config.coordinates);
 
     IF_PTR(_logger, log, Logger::INFO, Error("Peer tracker initialized.", INITIALIZED));
 }
@@ -119,7 +119,7 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerRankings(
     for (auto& peer : _peers) {
         peer.second.rank_cost =
                 peer.second.rank_factor *
-                distanceSqr(peer.second.node_info.coordinates.get(), _node_info.coordinates.get());
+                distanceSqr(peer.second.node_info.coordinates, _node_info.coordinates);
         peer.second.rank_factor *= 1.0f + _config.rank_decay;
     }
     // sort rankings

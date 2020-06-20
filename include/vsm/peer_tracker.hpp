@@ -11,12 +11,21 @@ namespace vsm {
 
 namespace fb = flatbuffers;
 
-inline float distanceSqr(const Vec2* a, const Vec2* b) {
-    if (!a || !b) {
+template <class VecA, class VecB>
+inline float distanceSqr(const VecA& a, const VecB& b) {
+    if (!a.size() || !b.size()) {
         return std::numeric_limits<float>::max();
     }
-    float dx = b->x() - a->x();
-    float dy = b->y() - a->y();
+#if 0
+    float d2 = 0;
+    for (int i = 0; i < std::min<int>(a.size(), b.size()); ++i) {
+        float d = b[i] - a[i];
+        d2 += d * d;
+    }
+    return d2;
+#endif
+    float dx = b[0] - a[0];
+    float dy = b[1] - a[1];
     return (dx * dx) + (dy * dy);
 }
 
@@ -58,7 +67,7 @@ public:
     struct Config {
         std::string name;
         std::string address;
-        Vec2 coordinates;
+        std::vector<float> coordinates;
 
         size_t connection_degree = 10;
         size_t lookup_size = 128;

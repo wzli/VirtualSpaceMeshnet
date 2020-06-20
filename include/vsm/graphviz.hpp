@@ -53,7 +53,7 @@ public:
             if (!node.second.info.name.empty()) {
                 file << "label=\"" << node.second.info.name << "\" ";
             }
-            file << "pos=\"" << coords->x() << "," << coords->y() << "!\"]\r\n";
+            file << "pos=\"" << coords[0] << "," << coords[1] << "!\"]\r\n";
             for (const auto& peer : node.second.peers) {
                 if (peer != ignore_address && peer != node.first) {
                     file << "  \"" << node.first << "\" -> \"" << peer << "\"\r\n";

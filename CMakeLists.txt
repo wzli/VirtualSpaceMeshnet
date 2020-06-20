@@ -19,10 +19,6 @@ add_subdirectory(submodules/flatbuffers
   ${CMAKE_CURRENT_BINARY_DIR}/flatbuffers-build EXCLUDE_FROM_ALL)
 #target_compile_definitions(flatbuffers INTERFACE FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE)
 
-# Catch2 setup
-set(CATCH_BUILD_TESTING OFF CACHE BOOL "")
-add_subdirectory(submodules/Catch2)
-
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -38,14 +34,25 @@ target_link_libraries(vsm PUBLIC cppzmq flatbuffers)
 target_include_directories(vsm PUBLIC include)
 
 # add tests
-add_library(catch2_main test/test_main.cpp)
-target_link_libraries(catch2_main PUBLIC Catch2)
+option(VSM_BUILD_TESTS "Enable the build of tests and samples." OFF)
+set(VSM_BUILD_TESTS ${BUILD_TESTS} CACHE BOOL "Build the tests for VSM")
 
-add_executable(tests
-  test/test_zmq_transport.cpp
-  test/test_peer_manager.cpp
-  test/test_mesh_node.cpp
-  test/test_logger.cpp
-  test/test_dummy.cpp
-)
-target_link_libraries(tests PUBLIC catch2_main vsm)
+if(VSM_BUILD_TESTS)
+  # Catch2 setup
+  set(CATCH_BUILD_TESTING OFF CACHE BOOL "")
+  add_subdirectory(submodules/Catch2)
+
+  # add unit tests main
+  add_library(catch2_main test/test_main.cpp)
+  target_link_libraries(catch2_main PUBLIC Catch2)
+
+  # add unit tests
+  add_executable(tests
+    test/test_zmq_transport.cpp
+    test/test_peer_manager.cpp
+    test/test_mesh_node.cpp
+    test/test_logger.cpp
+    test/test_dummy.cpp
+  )
+  target_link_libraries(tests PUBLIC catch2_main vsm)
+endif()

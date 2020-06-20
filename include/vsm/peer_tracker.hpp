@@ -27,7 +27,7 @@ struct Peer {
     float rank_cost = 0;
 };
 
-class PeerManager {
+class PeerTracker {
 public:
     using PeerLookup = std::unordered_map<std::string, Peer>;
 
@@ -65,7 +65,7 @@ public:
         float rank_decay = 0.0f;
     };
 
-    PeerManager(Config config, std::shared_ptr<Logger> logger = nullptr);
+    PeerTracker(Config config, std::shared_ptr<Logger> logger = nullptr);
 
     ErrorType latchPeer(const char* address, float rank_factor = 0);
 

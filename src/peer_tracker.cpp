@@ -1,9 +1,9 @@
-#include <vsm/peer_manager.hpp>
+#include <vsm/peer_tracker.hpp>
 #include <algorithm>
 
 namespace vsm {
 
-PeerManager::PeerManager(Config config, std::shared_ptr<Logger> logger)
+PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
         : _config(std::move(config))
         , _logger(std::move(logger)) {
     if (_config.address.empty()) {
@@ -20,10 +20,10 @@ PeerManager::PeerManager(Config config, std::shared_ptr<Logger> logger)
     _node_info.address = std::move(_config.address);
     _node_info.coordinates = std::make_unique<Vec2>(std::move(_config.coordinates));
 
-    IF_PTR(_logger, log, Logger::INFO, Error("Peer manager initialized.", INITIALIZED));
+    IF_PTR(_logger, log, Logger::INFO, Error("Peer tracker initialized.", INITIALIZED));
 }
 
-PeerManager::ErrorType PeerManager::latchPeer(const char* address, float rank_factor) {
+PeerTracker::ErrorType PeerTracker::latchPeer(const char* address, float rank_factor) {
     if (!address) {
         Error error("Peer address missing.", PEER_ADDRESS_MISSING);
         IF_PTR(_logger, log, Logger::ERROR, error, address);
@@ -44,7 +44,7 @@ PeerManager::ErrorType PeerManager::latchPeer(const char* address, float rank_fa
     return SUCCESS;
 }
 
-PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info, bool is_source) {
+PeerTracker::ErrorType PeerTracker::updatePeer(const NodeInfo* node_info, bool is_source) {
     // null check
     if (!node_info) {
         IF_PTR(_logger, log, Logger::WARN, Error("Peer is null.", PEER_IS_NULL), node_info);
@@ -93,7 +93,7 @@ PeerManager::ErrorType PeerManager::updatePeer(const NodeInfo* node_info, bool i
     return SUCCESS;
 }
 
-int PeerManager::receivePeerUpdates(const Message* msg) {
+int PeerTracker::receivePeerUpdates(const Message* msg) {
     if (!msg || !msg->peers()) {
         return 0;
     }
@@ -113,7 +113,7 @@ int PeerManager::receivePeerUpdates(const Message* msg) {
     return peers_updated;
 }
 
-std::vector<fb::Offset<NodeInfo>> PeerManager::updatePeerRankings(
+std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerRankings(
         fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients) {
     // compute rank costs
     for (auto& peer : _peers) {

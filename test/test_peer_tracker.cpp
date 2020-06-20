@@ -1,11 +1,11 @@
 #include <catch2/catch.hpp>
-#include <vsm/peer_manager.hpp>
+#include <vsm/peer_tracker.hpp>
 #include <iostream>
 
 using namespace vsm;
 using namespace flatbuffers;
 
-TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_manager]") {
+TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     // serialize NodeInfo Msg
     FlatBufferBuilder fbb;
     auto peer_name = fbb.CreateString("peer_name");
@@ -31,17 +31,17 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_manager]") {
     REQUIRE(node_info->coordinates()->y() == peer_coords.y());
     REQUIRE(node_info->sequence() == 100);
 
-    PeerManager peer_manager({
+    PeerTracker peer_tracker({
             "name",     // name
             "address",  // address
             {0, 0},     // coordinates
     });
-    REQUIRE(peer_manager.updatePeer(node_info) == PeerManager::SUCCESS);
-    REQUIRE(peer_manager.getPeers().size() == 1);
-    REQUIRE(peer_manager.getPeers().at("peer_addr").node_info.name == "peer_name");
+    REQUIRE(peer_tracker.updatePeer(node_info) == PeerTracker::SUCCESS);
+    REQUIRE(peer_tracker.getPeers().size() == 1);
+    REQUIRE(peer_tracker.getPeers().at("peer_addr").node_info.name == "peer_name");
 }
 
-TEST_CASE("Peer Ranking", "[peer_manager]") {
+TEST_CASE("Peer Ranking", "[peer_tracker]") {
     FlatBufferBuilder fbb;
     auto logger = std::make_shared<Logger>();
 #if 0
@@ -50,11 +50,11 @@ TEST_CASE("Peer Ranking", "[peer_manager]") {
                   << ", msg: " << error.what() << std::endl;
     });
 #endif
-    // configer and create peer manager
+    // configer and create peer tracker
     size_t n_peers = 10;
     int latch_start = 3;
     int latch_end = 6;
-    PeerManager::Config config{
+    PeerTracker::Config config{
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
@@ -80,7 +80,7 @@ TEST_CASE("Peer Ranking", "[peer_manager]") {
         config.lookup_size = 500;
     }
 
-    PeerManager peer_manager(config, logger);
+    PeerTracker peer_tracker(config, logger);
     // add peers
     for (size_t i = 0; i < n_peers; ++i) {
         NodeInfoT peer;
@@ -89,20 +89,20 @@ TEST_CASE("Peer Ranking", "[peer_manager]") {
         peer.coordinates = std::make_unique<Vec2>(i, i);
         peer.sequence = i;
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
-        peer_manager.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()));
+        peer_tracker.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()));
     }
     // latch some peers
     for (int i = latch_start; i < latch_end; ++i) {
-        peer_manager.latchPeer(("address" + std::to_string(i)).c_str());
+        peer_tracker.latchPeer(("address" + std::to_string(i)).c_str());
     }
-    REQUIRE(peer_manager.getPeers().size() == n_peers);
+    REQUIRE(peer_tracker.getPeers().size() == n_peers);
     // generate peer rankings
     fbb.Clear();
     std::vector<std::string> recipients;
-    auto ranked_peers = peer_manager.updatePeerRankings(fbb, recipients);
+    auto ranked_peers = peer_tracker.updatePeerRankings(fbb, recipients);
     fbb.Finish(fbb.CreateVector(ranked_peers));
     // require that lookup size is not exceeded
-    REQUIRE(peer_manager.getPeers().size() == std::min<size_t>(n_peers, config.lookup_size));
+    REQUIRE(peer_tracker.getPeers().size() == std::min<size_t>(n_peers, config.lookup_size));
     // required latched peers to be in recipients list
     for (int i = latch_start; i < latch_end; ++i) {
         REQUIRE(recipients.end() !=

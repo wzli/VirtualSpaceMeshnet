@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vsm/logger.hpp>
-#include <vsm/peer_manager.hpp>
+#include <vsm/peer_tracker.hpp>
 #include <vsm/time_sync.hpp>
 #include <vsm/transport.hpp>
 
@@ -26,7 +26,7 @@ public:
 
     struct Config {
         msecs peer_update_interval = msecs(1000);
-        PeerManager::Config peer_manager;
+        PeerTracker::Config peer_tracker;
         std::shared_ptr<Transport> transport;
         std::shared_ptr<Logger> logger;
         std::function<msecs(void)> local_clock = []() {
@@ -45,7 +45,7 @@ public:
 
     void sendPeerUpdates();
 
-    PeerManager& getPeerManager() { return _peer_manager; }
+    PeerTracker& getPeerTracker() { return _peer_tracker; }
     TimeSync<msecs>& getTimeSync() { return _time_sync; }
     Transport& getTransport() { return *_transport; }
     Logger* getLogger() { return _logger.get(); }
@@ -55,7 +55,7 @@ public:
 private:
     void receiveMessageHandler(const void* buffer, size_t len);
 
-    PeerManager _peer_manager;
+    PeerTracker _peer_tracker;
     TimeSync<msecs> _time_sync;
     std::shared_ptr<Transport> _transport;
     std::shared_ptr<Logger> _logger;

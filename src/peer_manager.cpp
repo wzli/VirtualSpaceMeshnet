@@ -40,7 +40,7 @@ PeerManager::ErrorType PeerManager::latchPeer(const char* address, float rank_fa
         _peer_rankings.emplace_back(&peer);
     }
     peer.rank_factor = std::min(rank_factor, peer.rank_factor);
-    _logger->log(Logger::INFO, Error("Peer latched.", PEER_LATCHED), address);
+    IF_PTR(_logger, log, Logger::INFO, Error("Peer latched.", PEER_LATCHED), address);
     return SUCCESS;
 }
 

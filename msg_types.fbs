@@ -1,14 +1,9 @@
 namespace vsm;
 
-struct Vec2 {
-  x:float32;
-  y:float32;
-}
-
 table NodeInfo {
   name:string;
   address:string (key);
-  coordinates:Vec2;
+  coordinates:[float];
   sequence:uint32;
 }
 

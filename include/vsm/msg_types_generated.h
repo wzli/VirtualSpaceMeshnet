@@ -8,8 +8,6 @@
 
 namespace vsm {
 
-struct Vec2;
-
 struct NodeInfo;
 struct NodeInfoBuilder;
 struct NodeInfoT;
@@ -58,37 +56,6 @@ inline const char *EnumNameSyncMode(SyncMode e) {
   return EnumNamesSyncMode()[index];
 }
 
-FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vec2 FLATBUFFERS_FINAL_CLASS {
- private:
-  float x_;
-  float y_;
-
- public:
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "vsm.Vec2";
-  }
-  Vec2() {
-    memset(static_cast<void *>(this), 0, sizeof(Vec2));
-  }
-  Vec2(float _x, float _y)
-      : x_(flatbuffers::EndianScalar(_x)),
-        y_(flatbuffers::EndianScalar(_y)) {
-  }
-  float x() const {
-    return flatbuffers::EndianScalar(x_);
-  }
-  void mutate_x(float _x) {
-    flatbuffers::WriteScalar(&x_, _x);
-  }
-  float y() const {
-    return flatbuffers::EndianScalar(y_);
-  }
-  void mutate_y(float _y) {
-    flatbuffers::WriteScalar(&y_, _y);
-  }
-};
-FLATBUFFERS_STRUCT_END(Vec2, 8);
-
 struct NodeInfoT : public flatbuffers::NativeTable {
   typedef NodeInfo TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
@@ -96,7 +63,7 @@ struct NodeInfoT : public flatbuffers::NativeTable {
   }
   std::string name;
   std::string address;
-  std::unique_ptr<vsm::Vec2> coordinates;
+  std::vector<float> coordinates;
   uint32_t sequence;
   NodeInfoT()
       : sequence(0) {
@@ -133,11 +100,11 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int KeyCompareWithValue(const char *val) const {
     return strcmp(address()->c_str(), val);
   }
-  const vsm::Vec2 *coordinates() const {
-    return GetStruct<const vsm::Vec2 *>(VT_COORDINATES);
+  const flatbuffers::Vector<float> *coordinates() const {
+    return GetPointer<const flatbuffers::Vector<float> *>(VT_COORDINATES);
   }
-  vsm::Vec2 *mutable_coordinates() {
-    return GetStruct<vsm::Vec2 *>(VT_COORDINATES);
+  flatbuffers::Vector<float> *mutable_coordinates() {
+    return GetPointer<flatbuffers::Vector<float> *>(VT_COORDINATES);
   }
   uint32_t sequence() const {
     return GetField<uint32_t>(VT_SEQUENCE, 0);
@@ -151,7 +118,8 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyOffsetRequired(verifier, VT_ADDRESS) &&
            verifier.VerifyString(address()) &&
-           VerifyField<vsm::Vec2>(verifier, VT_COORDINATES) &&
+           VerifyOffset(verifier, VT_COORDINATES) &&
+           verifier.VerifyVector(coordinates()) &&
            VerifyField<uint32_t>(verifier, VT_SEQUENCE) &&
            verifier.EndTable();
   }
@@ -170,8 +138,8 @@ struct NodeInfoBuilder {
   void add_address(flatbuffers::Offset<flatbuffers::String> address) {
     fbb_.AddOffset(NodeInfo::VT_ADDRESS, address);
   }
-  void add_coordinates(const vsm::Vec2 *coordinates) {
-    fbb_.AddStruct(NodeInfo::VT_COORDINATES, coordinates);
+  void add_coordinates(flatbuffers::Offset<flatbuffers::Vector<float>> coordinates) {
+    fbb_.AddOffset(NodeInfo::VT_COORDINATES, coordinates);
   }
   void add_sequence(uint32_t sequence) {
     fbb_.AddElement<uint32_t>(NodeInfo::VT_SEQUENCE, sequence, 0);
@@ -192,7 +160,7 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::String> address = 0,
-    const vsm::Vec2 *coordinates = 0,
+    flatbuffers::Offset<flatbuffers::Vector<float>> coordinates = 0,
     uint32_t sequence = 0) {
   NodeInfoBuilder builder_(_fbb);
   builder_.add_sequence(sequence);
@@ -206,15 +174,16 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfoDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     const char *address = nullptr,
-    const vsm::Vec2 *coordinates = 0,
+    const std::vector<float> *coordinates = nullptr,
     uint32_t sequence = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto address__ = address ? _fbb.CreateString(address) : 0;
+  auto coordinates__ = coordinates ? _fbb.CreateVector<float>(*coordinates) : 0;
   return vsm::CreateNodeInfo(
       _fbb,
       name__,
       address__,
-      coordinates,
+      coordinates__,
       sequence);
 }
 
@@ -558,7 +527,7 @@ inline void NodeInfo::UnPackTo(NodeInfoT *_o, const flatbuffers::resolver_functi
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
   { auto _e = address(); if (_e) _o->address = _e->str(); }
-  { auto _e = coordinates(); if (_e) _o->coordinates = std::unique_ptr<vsm::Vec2>(new vsm::Vec2(*_e)); }
+  { auto _e = coordinates(); if (_e) { _o->coordinates.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->coordinates[_i] = _e->Get(_i); } } }
   { auto _e = sequence(); _o->sequence = _e; }
 }
 
@@ -572,7 +541,7 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(flatbuffers::FlatBufferBuild
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const NodeInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _address = _fbb.CreateString(_o->address);
-  auto _coordinates = _o->coordinates ? _o->coordinates.get() : 0;
+  auto _coordinates = _o->coordinates.size() ? _fbb.CreateVector(_o->coordinates) : 0;
   auto _sequence = _o->sequence;
   return vsm::CreateNodeInfo(
       _fbb,

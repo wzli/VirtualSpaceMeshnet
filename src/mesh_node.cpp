@@ -84,7 +84,8 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
             IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
         }
     }
-    if (_ego_sphere.receiveEntityUpdates(msg, _peer_tracker, _time_sync.getTime()) > 0) {
+    if (_ego_sphere.receiveEntityUpdates(
+                msg, _peer_tracker, _connected_peers, _time_sync.getTime()) > 0) {
         Error error("Entity updates received.", ENTITY_UPDATES_RECEIVED);
         IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
     }

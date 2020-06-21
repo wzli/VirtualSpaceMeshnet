@@ -31,7 +31,7 @@ struct Peer {
     float rank_cost = 0;
 
     template <class Vec>
-    float radialCost(const Vec& from) {
+    float radialCost(const Vec& from) const {
         return (distanceSqr(from, node_info.coordinates) * rank_factor) -
                (node_info.power_radius * node_info.power_radius);
     }

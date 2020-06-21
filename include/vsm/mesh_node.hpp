@@ -20,6 +20,7 @@ public:
         INITIALIZED,
         PEER_UPDATES_SENT,
         // Trace
+        SOURCE_UPDATE_RECEIVED,
         PEER_UPDATES_RECEIVED,
         STATE_UPDATES_RECEIVED,
     };

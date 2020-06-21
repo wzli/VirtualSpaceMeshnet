@@ -26,6 +26,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wshadow")
 
 # add vsm library
 add_library(vsm
+  src/ego_sphere.cpp
   src/mesh_node.cpp
   src/peer_tracker.cpp
   src/zmq_transport.cpp

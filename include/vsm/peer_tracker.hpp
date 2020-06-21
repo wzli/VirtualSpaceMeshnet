@@ -71,7 +71,7 @@ public:
         std::vector<float> coordinates;
 
         size_t connection_degree = 10;
-        size_t lookup_size = 128;
+        size_t lookup_size = 128;  // 0 is inf
         float rank_decay = 0.0f;
     };
 
@@ -97,8 +97,8 @@ public:
 
 private:
     Config _config;
-    NodeInfoT _node_info;
     PeerLookup _peers;
+    NodeInfoT& _node_info;
     std::vector<Peer*> _peer_rankings;
     std::vector<std::string> _recipients;
     std::shared_ptr<Logger> _logger;

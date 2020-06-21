@@ -12,7 +12,7 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     auto peer_addr = fbb.CreateString("peer_addr");
     std::vector<float> peer_coords{3, 4};
     auto node_info_offset =
-            CreateNodeInfo(fbb, peer_name, peer_addr, fbb.CreateVector(peer_coords), 100);
+            CreateNodeInfo(fbb, peer_name, peer_addr, fbb.CreateVector(peer_coords), 5, 100);
     fbb.Finish(node_info_offset);
 
     // deserialize
@@ -29,6 +29,7 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     REQUIRE(node_info->name()->str() == "peer_name");
     REQUIRE(node_info->address()->str() == "peer_addr");
     REQUIRE(distanceSqr(*node_info->coordinates(), peer_coords) == 0);
+    REQUIRE(node_info->power_radius() == 5);
     REQUIRE(node_info->sequence() == 100);
 
     PeerTracker peer_tracker({
@@ -37,7 +38,7 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
             {0, 0},     // coordinates
     });
     REQUIRE(peer_tracker.updatePeer(node_info) == PeerTracker::SUCCESS);
-    REQUIRE(peer_tracker.getPeers().size() == 1);
+    REQUIRE(peer_tracker.getPeers().size() == 2);
     REQUIRE(peer_tracker.getPeers().at("peer_addr").node_info.name == "peer_name");
 }
 
@@ -95,14 +96,14 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
     for (int i = latch_start; i < latch_end; ++i) {
         peer_tracker.latchPeer(("address" + std::to_string(i)).c_str());
     }
-    REQUIRE(peer_tracker.getPeers().size() == n_peers);
+    REQUIRE(peer_tracker.getPeers().size() == n_peers + 1);
     // generate peer rankings
     fbb.Clear();
     std::vector<std::string> recipients;
     auto ranked_peers = peer_tracker.updatePeerRankings(fbb, recipients);
     fbb.Finish(fbb.CreateVector(ranked_peers));
     // require that lookup size is not exceeded
-    REQUIRE(peer_tracker.getPeers().size() == std::min<size_t>(n_peers, config.lookup_size));
+    REQUIRE(peer_tracker.getPeers().size() == std::min<size_t>(n_peers + 1, config.lookup_size));
     // required latched peers to be in recipients list
     for (int i = latch_start; i < latch_end; ++i) {
         REQUIRE(recipients.end() !=

@@ -1,13 +1,5 @@
 namespace vsm;
 
-table NodeInfo {
-  name:string;
-  address:string (key);
-  coordinates:[float];
-  power_radius:float;
-  sequence:uint32;
-}
-
 table Message {
   timestamp:uint32;
   priority:uint8;
@@ -16,20 +8,20 @@ table Message {
   entities:[Entity];
 }
 
-enum SyncMode:uint8 {
-  AUTHORITY,
-  LATEST,
-  NEAREST,
-  // AVERAGE,
-  CUSTOM,
+table NodeInfo {
+  name:string;
+  address:string (key);
+  coordinates:[float];
+  power_radius:float;
+  sequence:uint32;
 }
 
 table Entity {
   name:string (key);
+  proximity_filter:uint8;
   coordinates:[float];
   range:float;
   expiry:uint32;
-  sync_mode:SyncMode;
   type:uint32;
   data:[uint8];
 }

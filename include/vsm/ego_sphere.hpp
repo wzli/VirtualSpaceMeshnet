@@ -3,7 +3,6 @@
 #include <vsm/msg_types_generated.h>
 
 #include <functional>
-#include <queue>
 #include <set>
 #include <unordered_map>
 
@@ -23,23 +22,18 @@ public:
         std::set<msecs> timestamps;
     };
 
-    struct EntityExpiry {
-        std::string entity_id;
-        msecs expiry;
-        bool operator<(const EntityExpiry& rhs) const { return this->expiry > rhs.expiry; }
-    };
-
     using EntityLookup = std::unordered_map<std::string, EntityRecord>;
 
     EgoSphere(Config config)
             : _entity_update_handler(std::move(config.entity_update_handler)){};
 
-    void expireEntities(msecs until);
+    int receiveEntityUpdates(const Message* msg);
+
+    void expireEntities(msecs expire_until);
 
 private:
     EntityUpdateHandler _entity_update_handler;
     EntityLookup _entities;
-    std::priority_queue<EntityExpiry> _expiry_queue;
 };
 
 }  // namespace vsm

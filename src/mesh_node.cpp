@@ -6,7 +6,8 @@ namespace vsm {
 using namespace flatbuffers;
 
 MeshNode::MeshNode(Config config)
-        : _peer_tracker(std::move(config.peer_tracker), config.logger)
+        : _ego_sphere(EgoSphere::Config())
+        , _peer_tracker(std::move(config.peer_tracker), config.logger)
         , _time_sync(std::move(config.local_clock))
         , _transport(std::move(config.transport))
         , _logger(std::move(config.logger)) {
@@ -71,27 +72,19 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         IF_PTR(_logger, log, Logger::WARN, error, buffer, len);
         return;
     }
-    switch (_peer_tracker.updatePeer(msg->source(), true)) {
-        case PeerTracker::SUCCESS:
-            if (msg->timestamp()) {
-                float weight = 1.0f / (1 + _connected_peers.size());
-                _time_sync.syncTime(msecs(msg->timestamp()), weight);
-            }
-            IF_PTR(_logger, log, Logger::TRACE,
-                    Error("Source updates received.", SOURCE_UPDATE_RECEIVED), buffer, len);
-            // fall through
-        case PeerTracker::PEER_IS_NULL:
-            if (_peer_tracker.receivePeerUpdates(msg) > 0) {
-                Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
-                IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
-            }
-            break;
-        default:
-            break;
+    if (_peer_tracker.updatePeer(msg->source(), true) == PeerTracker::SUCCESS) {
+        if (msg->timestamp()) {
+            float weight = 1.0f / (1 + _connected_peers.size());
+            _time_sync.syncTime(msecs(msg->timestamp()), weight);
+        }
+        IF_PTR(_logger, log, Logger::TRACE,
+                Error("Source updates received.", SOURCE_UPDATE_RECEIVED), buffer, len);
+        if (_peer_tracker.receivePeerUpdates(msg) > 0) {
+            Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
+            IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
+        }
     }
-    if (msg->entities()) {
-        //    for (auto state : *msg->states()) {
-        //    }
+    if (msg->entities() && _ego_sphere.receiveEntityUpdates(msg) > 0) {
         Error error("Entity updates received.", ENTITY_UPDATES_RECEIVED);
         IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
     }

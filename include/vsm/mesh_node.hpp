@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vsm/logger.hpp>
+#include <vsm/ego_sphere.hpp>
 #include <vsm/peer_tracker.hpp>
 #include <vsm/time_sync.hpp>
 #include <vsm/transport.hpp>
@@ -56,6 +57,7 @@ public:
 private:
     void receiveMessageHandler(const void* buffer, size_t len);
 
+    EgoSphere _ego_sphere;
     PeerTracker _peer_tracker;
     TimeSync<msecs> _time_sync;
     std::shared_ptr<Transport> _transport;

@@ -71,14 +71,23 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         IF_PTR(_logger, log, Logger::WARN, error, buffer, len);
         return;
     }
-    bool source_updated = _peer_tracker.updatePeer(msg->source(), true) == PeerTracker::SUCCESS;
-    if (source_updated && msg->timestamp()) {
-        float weight = 1.0f / (1 + _connected_peers.size());
-        _time_sync.syncTime(msecs(msg->timestamp()), weight);
-    }
-    if ((!msg->source() || source_updated) && _peer_tracker.receivePeerUpdates(msg) > 0) {
-        Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
-        IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
+    switch (_peer_tracker.updatePeer(msg->source(), true)) {
+        case PeerTracker::SUCCESS:
+            if (msg->timestamp()) {
+                float weight = 1.0f / (1 + _connected_peers.size());
+                _time_sync.syncTime(msecs(msg->timestamp()), weight);
+            }
+            IF_PTR(_logger, log, Logger::TRACE,
+                    Error("Source updates received.", SOURCE_UPDATE_RECEIVED), buffer, len);
+            // fall through
+        case PeerTracker::PEER_IS_NULL:
+            if (_peer_tracker.receivePeerUpdates(msg) > 0) {
+                Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
+                IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
+            }
+            break;
+        default:
+            break;
     }
     if (msg->states()) {
         //    for (auto state : *msg->states()) {

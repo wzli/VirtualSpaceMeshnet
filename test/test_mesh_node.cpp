@@ -158,7 +158,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
     configs.back().logger->addLogHandler(Logger::TRACE,
             [&graphviz](msecs, Logger::Level, Error error, const void* data, size_t) {
                 switch (error.type) {
-                    case MeshNode::PEER_UPDATES_RECEIVED:
+                    case MeshNode::SOURCE_UPDATE_RECEIVED:
                         graphviz.receivePeerUpdates(fb::GetRoot<Message>(data));
                         break;
                     case PeerTracker::PEER_UPDATED:

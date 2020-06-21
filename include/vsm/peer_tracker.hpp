@@ -29,6 +29,12 @@ struct Peer {
     uint32_t source_sequence = 0;
     float rank_factor = 1;
     float rank_cost = 0;
+
+    template <class Vec>
+    float radialCost(const Vec& from) {
+        return (distanceSqr(from, node_info.coordinates) * rank_factor) -
+               (node_info.power_radius * node_info.power_radius);
+    }
 };
 
 class PeerTracker {
@@ -65,7 +71,7 @@ public:
         std::vector<float> coordinates;
 
         size_t connection_degree = 10;
-        size_t lookup_size = 128;
+        size_t lookup_size = 128;  // 0 is inf
         float rank_decay = 0.0f;
     };
 
@@ -91,8 +97,8 @@ public:
 
 private:
     Config _config;
-    NodeInfoT _node_info;
     PeerLookup _peers;
+    NodeInfoT& _node_info;
     std::vector<Peer*> _peer_rankings;
     std::vector<std::string> _recipients;
     std::shared_ptr<Logger> _logger;

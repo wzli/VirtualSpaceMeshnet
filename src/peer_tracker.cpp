@@ -5,6 +5,7 @@ namespace vsm {
 
 PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
         : _config(std::move(config))
+        , _node_info(_peers[_config.address].node_info)
         , _logger(std::move(logger)) {
     if (_config.address.empty()) {
         Error error("Address config empty.", ADDRESS_CONFIG_EMPTY);
@@ -116,11 +117,9 @@ int PeerTracker::receivePeerUpdates(const Message* msg) {
 std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerRankings(
         fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients) {
     // compute rank costs
-    for (auto& peer : _peers) {
-        peer.second.rank_cost =
-                peer.second.rank_factor *
-                distanceSqr(peer.second.node_info.coordinates, _node_info.coordinates);
-        peer.second.rank_factor *= 1.0f + _config.rank_decay;
+    for (auto& peer_ranking : _peer_rankings) {
+        peer_ranking->rank_cost = peer_ranking->radialCost(_node_info.coordinates);
+        peer_ranking->rank_factor *= 1.0f + _config.rank_decay;
     }
     // sort rankings
     std::sort(_peer_rankings.begin(), _peer_rankings.end(),
@@ -140,11 +139,12 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerRankings(
 
     IF_PTR(_logger, log, Logger::TRACE, Error("Peer rankings generated.", PEER_RANKINGS_GENERATED));
     // remove lowest ranked peers
-    if (_peers.size() > _config.lookup_size) {
-        for (size_t i = _config.lookup_size; i < _peer_rankings.size(); ++i) {
-            _peers.erase(_peer_rankings[i]->node_info.address);
+    if (_config.lookup_size > 0 && _config.lookup_size < _peers.size()) {
+        for (auto peer_ranking = _peer_rankings.begin() + _config.lookup_size - 1;
+                peer_ranking != _peer_rankings.end(); ++peer_ranking) {
+            _peers.erase((*peer_ranking)->node_info.address);
         }
-        _peer_rankings.resize(_config.lookup_size);
+        _peer_rankings.resize(_peers.size() - 1);
         IF_PTR(_logger, log, Logger::TRACE, Error("Peer lookup truncated.", PEER_LOOKUP_TRUNCATED));
     }
     // tick node sequence

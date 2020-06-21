@@ -117,9 +117,7 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerRankings(
         fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients) {
     // compute rank costs
     for (auto& peer : _peers) {
-        peer.second.rank_cost =
-                peer.second.rank_factor *
-                distanceSqr(peer.second.node_info.coordinates, _node_info.coordinates);
+        peer.second.rank_cost = peer.second.radialCost(_node_info.coordinates);
         peer.second.rank_factor *= 1.0f + _config.rank_decay;
     }
     // sort rankings

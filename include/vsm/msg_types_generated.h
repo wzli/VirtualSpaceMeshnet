@@ -64,9 +64,11 @@ struct NodeInfoT : public flatbuffers::NativeTable {
   std::string name;
   std::string address;
   std::vector<float> coordinates;
+  float power_radius;
   uint32_t sequence;
   NodeInfoT()
-      : sequence(0) {
+      : power_radius(0.0f),
+        sequence(0) {
   }
 };
 
@@ -80,7 +82,8 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_NAME = 4,
     VT_ADDRESS = 6,
     VT_COORDINATES = 8,
-    VT_SEQUENCE = 10
+    VT_POWER_RADIUS = 10,
+    VT_SEQUENCE = 12
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -106,6 +109,12 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   flatbuffers::Vector<float> *mutable_coordinates() {
     return GetPointer<flatbuffers::Vector<float> *>(VT_COORDINATES);
   }
+  float power_radius() const {
+    return GetField<float>(VT_POWER_RADIUS, 0.0f);
+  }
+  bool mutate_power_radius(float _power_radius) {
+    return SetField<float>(VT_POWER_RADIUS, _power_radius, 0.0f);
+  }
   uint32_t sequence() const {
     return GetField<uint32_t>(VT_SEQUENCE, 0);
   }
@@ -120,6 +129,7 @@ struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(address()) &&
            VerifyOffset(verifier, VT_COORDINATES) &&
            verifier.VerifyVector(coordinates()) &&
+           VerifyField<float>(verifier, VT_POWER_RADIUS) &&
            VerifyField<uint32_t>(verifier, VT_SEQUENCE) &&
            verifier.EndTable();
   }
@@ -141,6 +151,9 @@ struct NodeInfoBuilder {
   void add_coordinates(flatbuffers::Offset<flatbuffers::Vector<float>> coordinates) {
     fbb_.AddOffset(NodeInfo::VT_COORDINATES, coordinates);
   }
+  void add_power_radius(float power_radius) {
+    fbb_.AddElement<float>(NodeInfo::VT_POWER_RADIUS, power_radius, 0.0f);
+  }
   void add_sequence(uint32_t sequence) {
     fbb_.AddElement<uint32_t>(NodeInfo::VT_SEQUENCE, sequence, 0);
   }
@@ -161,9 +174,11 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::String> address = 0,
     flatbuffers::Offset<flatbuffers::Vector<float>> coordinates = 0,
+    float power_radius = 0.0f,
     uint32_t sequence = 0) {
   NodeInfoBuilder builder_(_fbb);
   builder_.add_sequence(sequence);
+  builder_.add_power_radius(power_radius);
   builder_.add_coordinates(coordinates);
   builder_.add_address(address);
   builder_.add_name(name);
@@ -175,6 +190,7 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfoDirect(
     const char *name = nullptr,
     const char *address = nullptr,
     const std::vector<float> *coordinates = nullptr,
+    float power_radius = 0.0f,
     uint32_t sequence = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto address__ = address ? _fbb.CreateString(address) : 0;
@@ -184,6 +200,7 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfoDirect(
       name__,
       address__,
       coordinates__,
+      power_radius,
       sequence);
 }
 
@@ -528,6 +545,7 @@ inline void NodeInfo::UnPackTo(NodeInfoT *_o, const flatbuffers::resolver_functi
   { auto _e = name(); if (_e) _o->name = _e->str(); }
   { auto _e = address(); if (_e) _o->address = _e->str(); }
   { auto _e = coordinates(); if (_e) { _o->coordinates.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->coordinates[_i] = _e->Get(_i); } } }
+  { auto _e = power_radius(); _o->power_radius = _e; }
   { auto _e = sequence(); _o->sequence = _e; }
 }
 
@@ -542,12 +560,14 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(flatbuffers::FlatBufferBuild
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _address = _fbb.CreateString(_o->address);
   auto _coordinates = _o->coordinates.size() ? _fbb.CreateVector(_o->coordinates) : 0;
+  auto _power_radius = _o->power_radius;
   auto _sequence = _o->sequence;
   return vsm::CreateNodeInfo(
       _fbb,
       _name,
       _address,
       _coordinates,
+      _power_radius,
       _sequence);
 }
 

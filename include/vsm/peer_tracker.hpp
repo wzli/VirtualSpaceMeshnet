@@ -29,6 +29,12 @@ struct Peer {
     uint32_t source_sequence = 0;
     float rank_factor = 1;
     float rank_cost = 0;
+
+    template <class Vec>
+    float radialCost(const Vec& from) {
+        return (distanceSqr(from, node_info.coordinates) * rank_factor) -
+               (node_info.power_radius * node_info.power_radius);
+    }
 };
 
 class PeerTracker {

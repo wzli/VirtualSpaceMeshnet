@@ -4,6 +4,7 @@ table NodeInfo {
   name:string;
   address:string (key);
   coordinates:[float];
+  power_radius:float;
   sequence:uint32;
 }
 

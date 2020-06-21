@@ -212,14 +212,12 @@ struct MessageT : public flatbuffers::NativeTable {
     return "vsm.MessageT";
   }
   uint32_t timestamp;
-  uint32_t expiry;
   uint8_t priority;
   std::unique_ptr<vsm::NodeInfoT> source;
   std::vector<std::unique_ptr<vsm::NodeInfoT>> peers;
   std::vector<std::unique_ptr<vsm::EntityT>> entities;
   MessageT()
       : timestamp(0),
-        expiry(0),
         priority(0) {
   }
 };
@@ -232,23 +230,16 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TIMESTAMP = 4,
-    VT_EXPIRY = 6,
-    VT_PRIORITY = 8,
-    VT_SOURCE = 10,
-    VT_PEERS = 12,
-    VT_ENTITIES = 14
+    VT_PRIORITY = 6,
+    VT_SOURCE = 8,
+    VT_PEERS = 10,
+    VT_ENTITIES = 12
   };
   uint32_t timestamp() const {
     return GetField<uint32_t>(VT_TIMESTAMP, 0);
   }
   bool mutate_timestamp(uint32_t _timestamp) {
     return SetField<uint32_t>(VT_TIMESTAMP, _timestamp, 0);
-  }
-  uint32_t expiry() const {
-    return GetField<uint32_t>(VT_EXPIRY, 0);
-  }
-  bool mutate_expiry(uint32_t _expiry) {
-    return SetField<uint32_t>(VT_EXPIRY, _expiry, 0);
   }
   uint8_t priority() const {
     return GetField<uint8_t>(VT_PRIORITY, 0);
@@ -277,7 +268,6 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_TIMESTAMP) &&
-           VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
            VerifyField<uint8_t>(verifier, VT_PRIORITY) &&
            VerifyOffset(verifier, VT_SOURCE) &&
            verifier.VerifyTable(source()) &&
@@ -300,9 +290,6 @@ struct MessageBuilder {
   flatbuffers::uoffset_t start_;
   void add_timestamp(uint32_t timestamp) {
     fbb_.AddElement<uint32_t>(Message::VT_TIMESTAMP, timestamp, 0);
-  }
-  void add_expiry(uint32_t expiry) {
-    fbb_.AddElement<uint32_t>(Message::VT_EXPIRY, expiry, 0);
   }
   void add_priority(uint8_t priority) {
     fbb_.AddElement<uint8_t>(Message::VT_PRIORITY, priority, 0);
@@ -330,7 +317,6 @@ struct MessageBuilder {
 inline flatbuffers::Offset<Message> CreateMessage(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t timestamp = 0,
-    uint32_t expiry = 0,
     uint8_t priority = 0,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>>> peers = 0,
@@ -339,7 +325,6 @@ inline flatbuffers::Offset<Message> CreateMessage(
   builder_.add_entities(entities);
   builder_.add_peers(peers);
   builder_.add_source(source);
-  builder_.add_expiry(expiry);
   builder_.add_timestamp(timestamp);
   builder_.add_priority(priority);
   return builder_.Finish();
@@ -348,7 +333,6 @@ inline flatbuffers::Offset<Message> CreateMessage(
 inline flatbuffers::Offset<Message> CreateMessageDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t timestamp = 0,
-    uint32_t expiry = 0,
     uint8_t priority = 0,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
     std::vector<flatbuffers::Offset<vsm::NodeInfo>> *peers = nullptr,
@@ -358,7 +342,6 @@ inline flatbuffers::Offset<Message> CreateMessageDirect(
   return vsm::CreateMessage(
       _fbb,
       timestamp,
-      expiry,
       priority,
       source,
       peers__,
@@ -599,7 +582,6 @@ inline void Message::UnPackTo(MessageT *_o, const flatbuffers::resolver_function
   (void)_o;
   (void)_resolver;
   { auto _e = timestamp(); _o->timestamp = _e; }
-  { auto _e = expiry(); _o->expiry = _e; }
   { auto _e = priority(); _o->priority = _e; }
   { auto _e = source(); if (_e) _o->source = std::unique_ptr<vsm::NodeInfoT>(_e->UnPack(_resolver)); }
   { auto _e = peers(); if (_e) { _o->peers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->peers[_i] = std::unique_ptr<vsm::NodeInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
@@ -615,7 +597,6 @@ inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _timestamp = _o->timestamp;
-  auto _expiry = _o->expiry;
   auto _priority = _o->priority;
   auto _source = _o->source ? CreateNodeInfo(_fbb, _o->source.get(), _rehasher) : 0;
   auto _peers = _o->peers.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::NodeInfo>> (_o->peers.size(), [](size_t i, _VectorArgs *__va) { return CreateNodeInfo(*__va->__fbb, __va->__o->peers[i].get(), __va->__rehasher); }, &_va ) : 0;
@@ -623,7 +604,6 @@ inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder
   return vsm::CreateMessage(
       _fbb,
       _timestamp,
-      _expiry,
       _priority,
       _source,
       _peers,

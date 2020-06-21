@@ -10,7 +10,6 @@ table NodeInfo {
 
 table Message {
   timestamp:uint32;
-  expiry:uint32;
   priority:uint8;
   source:NodeInfo;
   peers:[NodeInfo];

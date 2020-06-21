@@ -9,7 +9,6 @@ table NodeInfo {
 
 table Message {
   timestamp:uint32;
-  range:float;
   expiry:uint32;
   priority:uint8;
   source:NodeInfo;
@@ -26,9 +25,11 @@ enum SyncMode:uint8 {
 }
 
 table Entity {
-  sync_mode:SyncMode;
-  expiry:uint32;
   name:string (key);
+  coordinates:[float];
+  range:float;
+  expiry:uint32;
+  sync_mode:SyncMode;
   type:uint32;
   data:[uint8];
 }

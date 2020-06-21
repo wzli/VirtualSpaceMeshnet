@@ -1,9 +1,7 @@
 #pragma once
-#include <vsm/logger.hpp>
-#include <vsm/msg_types_generated.h>
+#include <vsm/peer_tracker.hpp>
 
 #include <functional>
-#include <set>
 #include <unordered_map>
 
 namespace vsm {
@@ -19,7 +17,7 @@ public:
 
     struct EntityRecord {
         Entity entity;
-        std::set<msecs> timestamps;
+        std::set<uint32_t> timestamps;
     };
 
     using EntityLookup = std::unordered_map<std::string, EntityRecord>;
@@ -27,13 +25,14 @@ public:
     EgoSphere(Config config)
             : _entity_update_handler(std::move(config.entity_update_handler)){};
 
-    int receiveEntityUpdates(const Message* msg);
+    int receiveEntityUpdates(
+            const Message* msg, const PeerTracker& peer_tracker, msecs current_time);
 
-    void expireEntities(msecs expire_until);
+    void expireEntities(msecs current_time);
 
 private:
-    EntityUpdateHandler _entity_update_handler;
     EntityLookup _entities;
+    EntityUpdateHandler _entity_update_handler;
 };
 
 }  // namespace vsm

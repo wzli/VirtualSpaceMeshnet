@@ -195,7 +195,6 @@ struct MessageT : public flatbuffers::NativeTable {
     return "vsm.MessageT";
   }
   uint32_t timestamp;
-  float range;
   uint32_t expiry;
   uint8_t priority;
   std::unique_ptr<vsm::NodeInfoT> source;
@@ -203,7 +202,6 @@ struct MessageT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<vsm::EntityT>> entities;
   MessageT()
       : timestamp(0),
-        range(0.0f),
         expiry(0),
         priority(0) {
   }
@@ -217,24 +215,17 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TIMESTAMP = 4,
-    VT_RANGE = 6,
-    VT_EXPIRY = 8,
-    VT_PRIORITY = 10,
-    VT_SOURCE = 12,
-    VT_PEERS = 14,
-    VT_ENTITIES = 16
+    VT_EXPIRY = 6,
+    VT_PRIORITY = 8,
+    VT_SOURCE = 10,
+    VT_PEERS = 12,
+    VT_ENTITIES = 14
   };
   uint32_t timestamp() const {
     return GetField<uint32_t>(VT_TIMESTAMP, 0);
   }
   bool mutate_timestamp(uint32_t _timestamp) {
     return SetField<uint32_t>(VT_TIMESTAMP, _timestamp, 0);
-  }
-  float range() const {
-    return GetField<float>(VT_RANGE, 0.0f);
-  }
-  bool mutate_range(float _range) {
-    return SetField<float>(VT_RANGE, _range, 0.0f);
   }
   uint32_t expiry() const {
     return GetField<uint32_t>(VT_EXPIRY, 0);
@@ -269,7 +260,6 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_TIMESTAMP) &&
-           VerifyField<float>(verifier, VT_RANGE) &&
            VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
            VerifyField<uint8_t>(verifier, VT_PRIORITY) &&
            VerifyOffset(verifier, VT_SOURCE) &&
@@ -293,9 +283,6 @@ struct MessageBuilder {
   flatbuffers::uoffset_t start_;
   void add_timestamp(uint32_t timestamp) {
     fbb_.AddElement<uint32_t>(Message::VT_TIMESTAMP, timestamp, 0);
-  }
-  void add_range(float range) {
-    fbb_.AddElement<float>(Message::VT_RANGE, range, 0.0f);
   }
   void add_expiry(uint32_t expiry) {
     fbb_.AddElement<uint32_t>(Message::VT_EXPIRY, expiry, 0);
@@ -326,7 +313,6 @@ struct MessageBuilder {
 inline flatbuffers::Offset<Message> CreateMessage(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t timestamp = 0,
-    float range = 0.0f,
     uint32_t expiry = 0,
     uint8_t priority = 0,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
@@ -337,7 +323,6 @@ inline flatbuffers::Offset<Message> CreateMessage(
   builder_.add_peers(peers);
   builder_.add_source(source);
   builder_.add_expiry(expiry);
-  builder_.add_range(range);
   builder_.add_timestamp(timestamp);
   builder_.add_priority(priority);
   return builder_.Finish();
@@ -346,7 +331,6 @@ inline flatbuffers::Offset<Message> CreateMessage(
 inline flatbuffers::Offset<Message> CreateMessageDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t timestamp = 0,
-    float range = 0.0f,
     uint32_t expiry = 0,
     uint8_t priority = 0,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
@@ -357,7 +341,6 @@ inline flatbuffers::Offset<Message> CreateMessageDirect(
   return vsm::CreateMessage(
       _fbb,
       timestamp,
-      range,
       expiry,
       priority,
       source,
@@ -372,14 +355,17 @@ struct EntityT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.EntityT";
   }
-  vsm::SyncMode sync_mode;
-  uint32_t expiry;
   std::string name;
+  std::vector<float> coordinates;
+  float range;
+  uint32_t expiry;
+  vsm::SyncMode sync_mode;
   uint32_t type;
   std::vector<uint8_t> data;
   EntityT()
-      : sync_mode(vsm::SyncMode::AUTHORITY),
+      : range(0.0f),
         expiry(0),
+        sync_mode(vsm::SyncMode::AUTHORITY),
         type(0) {
   }
 };
@@ -391,24 +377,14 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return "vsm.Entity";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_SYNC_MODE = 4,
-    VT_EXPIRY = 6,
-    VT_NAME = 8,
-    VT_TYPE = 10,
-    VT_DATA = 12
+    VT_NAME = 4,
+    VT_COORDINATES = 6,
+    VT_RANGE = 8,
+    VT_EXPIRY = 10,
+    VT_SYNC_MODE = 12,
+    VT_TYPE = 14,
+    VT_DATA = 16
   };
-  vsm::SyncMode sync_mode() const {
-    return static_cast<vsm::SyncMode>(GetField<uint8_t>(VT_SYNC_MODE, 0));
-  }
-  bool mutate_sync_mode(vsm::SyncMode _sync_mode) {
-    return SetField<uint8_t>(VT_SYNC_MODE, static_cast<uint8_t>(_sync_mode), 0);
-  }
-  uint32_t expiry() const {
-    return GetField<uint32_t>(VT_EXPIRY, 0);
-  }
-  bool mutate_expiry(uint32_t _expiry) {
-    return SetField<uint32_t>(VT_EXPIRY, _expiry, 0);
-  }
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
@@ -420,6 +396,30 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int KeyCompareWithValue(const char *val) const {
     return strcmp(name()->c_str(), val);
+  }
+  const flatbuffers::Vector<float> *coordinates() const {
+    return GetPointer<const flatbuffers::Vector<float> *>(VT_COORDINATES);
+  }
+  flatbuffers::Vector<float> *mutable_coordinates() {
+    return GetPointer<flatbuffers::Vector<float> *>(VT_COORDINATES);
+  }
+  float range() const {
+    return GetField<float>(VT_RANGE, 0.0f);
+  }
+  bool mutate_range(float _range) {
+    return SetField<float>(VT_RANGE, _range, 0.0f);
+  }
+  uint32_t expiry() const {
+    return GetField<uint32_t>(VT_EXPIRY, 0);
+  }
+  bool mutate_expiry(uint32_t _expiry) {
+    return SetField<uint32_t>(VT_EXPIRY, _expiry, 0);
+  }
+  vsm::SyncMode sync_mode() const {
+    return static_cast<vsm::SyncMode>(GetField<uint8_t>(VT_SYNC_MODE, 0));
+  }
+  bool mutate_sync_mode(vsm::SyncMode _sync_mode) {
+    return SetField<uint8_t>(VT_SYNC_MODE, static_cast<uint8_t>(_sync_mode), 0);
   }
   uint32_t type() const {
     return GetField<uint32_t>(VT_TYPE, 0);
@@ -435,10 +435,13 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint8_t>(verifier, VT_SYNC_MODE) &&
-           VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
            VerifyOffsetRequired(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_COORDINATES) &&
+           verifier.VerifyVector(coordinates()) &&
+           VerifyField<float>(verifier, VT_RANGE) &&
+           VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
+           VerifyField<uint8_t>(verifier, VT_SYNC_MODE) &&
            VerifyField<uint32_t>(verifier, VT_TYPE) &&
            VerifyOffset(verifier, VT_DATA) &&
            verifier.VerifyVector(data()) &&
@@ -453,14 +456,20 @@ struct EntityBuilder {
   typedef Entity Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_sync_mode(vsm::SyncMode sync_mode) {
-    fbb_.AddElement<uint8_t>(Entity::VT_SYNC_MODE, static_cast<uint8_t>(sync_mode), 0);
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Entity::VT_NAME, name);
+  }
+  void add_coordinates(flatbuffers::Offset<flatbuffers::Vector<float>> coordinates) {
+    fbb_.AddOffset(Entity::VT_COORDINATES, coordinates);
+  }
+  void add_range(float range) {
+    fbb_.AddElement<float>(Entity::VT_RANGE, range, 0.0f);
   }
   void add_expiry(uint32_t expiry) {
     fbb_.AddElement<uint32_t>(Entity::VT_EXPIRY, expiry, 0);
   }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Entity::VT_NAME, name);
+  void add_sync_mode(vsm::SyncMode sync_mode) {
+    fbb_.AddElement<uint8_t>(Entity::VT_SYNC_MODE, static_cast<uint8_t>(sync_mode), 0);
   }
   void add_type(uint32_t type) {
     fbb_.AddElement<uint32_t>(Entity::VT_TYPE, type, 0);
@@ -482,34 +491,43 @@ struct EntityBuilder {
 
 inline flatbuffers::Offset<Entity> CreateEntity(
     flatbuffers::FlatBufferBuilder &_fbb,
-    vsm::SyncMode sync_mode = vsm::SyncMode::AUTHORITY,
-    uint32_t expiry = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<flatbuffers::Vector<float>> coordinates = 0,
+    float range = 0.0f,
+    uint32_t expiry = 0,
+    vsm::SyncMode sync_mode = vsm::SyncMode::AUTHORITY,
     uint32_t type = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
   EntityBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_type(type);
-  builder_.add_name(name);
   builder_.add_expiry(expiry);
+  builder_.add_range(range);
+  builder_.add_coordinates(coordinates);
+  builder_.add_name(name);
   builder_.add_sync_mode(sync_mode);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Entity> CreateEntityDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    vsm::SyncMode sync_mode = vsm::SyncMode::AUTHORITY,
-    uint32_t expiry = 0,
     const char *name = nullptr,
+    const std::vector<float> *coordinates = nullptr,
+    float range = 0.0f,
+    uint32_t expiry = 0,
+    vsm::SyncMode sync_mode = vsm::SyncMode::AUTHORITY,
     uint32_t type = 0,
     const std::vector<uint8_t> *data = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto coordinates__ = coordinates ? _fbb.CreateVector<float>(*coordinates) : 0;
   auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
   return vsm::CreateEntity(
       _fbb,
-      sync_mode,
-      expiry,
       name__,
+      coordinates__,
+      range,
+      expiry,
+      sync_mode,
       type,
       data__);
 }
@@ -561,7 +579,6 @@ inline void Message::UnPackTo(MessageT *_o, const flatbuffers::resolver_function
   (void)_o;
   (void)_resolver;
   { auto _e = timestamp(); _o->timestamp = _e; }
-  { auto _e = range(); _o->range = _e; }
   { auto _e = expiry(); _o->expiry = _e; }
   { auto _e = priority(); _o->priority = _e; }
   { auto _e = source(); if (_e) _o->source = std::unique_ptr<vsm::NodeInfoT>(_e->UnPack(_resolver)); }
@@ -578,7 +595,6 @@ inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _timestamp = _o->timestamp;
-  auto _range = _o->range;
   auto _expiry = _o->expiry;
   auto _priority = _o->priority;
   auto _source = _o->source ? CreateNodeInfo(_fbb, _o->source.get(), _rehasher) : 0;
@@ -587,7 +603,6 @@ inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder
   return vsm::CreateMessage(
       _fbb,
       _timestamp,
-      _range,
       _expiry,
       _priority,
       _source,
@@ -604,9 +619,11 @@ inline EntityT *Entity::UnPack(const flatbuffers::resolver_function_t *_resolver
 inline void Entity::UnPackTo(EntityT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = sync_mode(); _o->sync_mode = _e; }
-  { auto _e = expiry(); _o->expiry = _e; }
   { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = coordinates(); if (_e) { _o->coordinates.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->coordinates[_i] = _e->Get(_i); } } }
+  { auto _e = range(); _o->range = _e; }
+  { auto _e = expiry(); _o->expiry = _e; }
+  { auto _e = sync_mode(); _o->sync_mode = _e; }
   { auto _e = type(); _o->type = _e; }
   { auto _e = data(); if (_e) { _o->data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data[_i] = _e->Get(_i); } } }
 }
@@ -619,16 +636,20 @@ inline flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const EntityT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _sync_mode = _o->sync_mode;
-  auto _expiry = _o->expiry;
   auto _name = _fbb.CreateString(_o->name);
+  auto _coordinates = _o->coordinates.size() ? _fbb.CreateVector(_o->coordinates) : 0;
+  auto _range = _o->range;
+  auto _expiry = _o->expiry;
+  auto _sync_mode = _o->sync_mode;
   auto _type = _o->type;
   auto _data = _o->data.size() ? _fbb.CreateVector(_o->data) : 0;
   return vsm::CreateEntity(
       _fbb,
-      _sync_mode,
-      _expiry,
       _name,
+      _coordinates,
+      _range,
+      _expiry,
+      _sync_mode,
       _type,
       _data);
 }

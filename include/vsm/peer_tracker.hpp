@@ -84,7 +84,10 @@ public:
     const std::vector<Peer*> getPeerRankings() const { return _peer_rankings; }
 
     NodeInfoT& getNodeInfo() { return _node_info; }
+    const NodeInfoT& getNodeInfo() const { return _node_info; }
+
     Logger* getLogger() { return _logger.get(); }
+    const Logger* getLogger() const { return _logger.get(); }
 
 private:
     Config _config;

@@ -17,7 +17,7 @@ float distanceSqr(const VecA& a, const VecB& b) {
         return std::numeric_limits<float>::max();
     }
     float d2 = 0;
-    for (int i = 0; i < a.size(); ++i) {
+    for (size_t i = 0; i < a.size(); ++i) {
         float d = b[i] - a[i];
         d2 += d * d;
     }

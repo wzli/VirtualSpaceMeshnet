@@ -89,10 +89,10 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         default:
             break;
     }
-    if (msg->states()) {
+    if (msg->entities()) {
         //    for (auto state : *msg->states()) {
         //    }
-        Error error("State updates received.", STATE_UPDATES_RECEIVED);
+        Error error("Entity updates received.", ENTITY_UPDATES_RECEIVED);
         IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
     }
 }

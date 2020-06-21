@@ -14,7 +14,7 @@ table Message {
   priority:uint8;
   source:NodeInfo;
   peers:[NodeInfo];
-  states:[State];
+  entities:[Entity];
 }
 
 enum SyncMode:uint8 {
@@ -25,7 +25,7 @@ enum SyncMode:uint8 {
   CUSTOM,
 }
 
-table State {
+table Entity {
   sync_mode:SyncMode;
   expiry:uint32;
   name:string (key);

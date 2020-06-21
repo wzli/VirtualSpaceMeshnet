@@ -22,7 +22,7 @@ public:
         // Trace
         SOURCE_UPDATE_RECEIVED,
         PEER_UPDATES_RECEIVED,
-        STATE_UPDATES_RECEIVED,
+        ENTITY_UPDATES_RECEIVED,
     };
 
     struct Config {

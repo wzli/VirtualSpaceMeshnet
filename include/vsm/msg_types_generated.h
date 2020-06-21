@@ -16,9 +16,9 @@ struct Message;
 struct MessageBuilder;
 struct MessageT;
 
-struct State;
-struct StateBuilder;
-struct StateT;
+struct Entity;
+struct EntityBuilder;
+struct EntityT;
 
 enum class SyncMode : uint8_t {
   AUTHORITY = 0,
@@ -200,7 +200,7 @@ struct MessageT : public flatbuffers::NativeTable {
   uint8_t priority;
   std::unique_ptr<vsm::NodeInfoT> source;
   std::vector<std::unique_ptr<vsm::NodeInfoT>> peers;
-  std::vector<std::unique_ptr<vsm::StateT>> states;
+  std::vector<std::unique_ptr<vsm::EntityT>> entities;
   MessageT()
       : timestamp(0),
         range(0.0f),
@@ -222,7 +222,7 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_PRIORITY = 10,
     VT_SOURCE = 12,
     VT_PEERS = 14,
-    VT_STATES = 16
+    VT_ENTITIES = 16
   };
   uint32_t timestamp() const {
     return GetField<uint32_t>(VT_TIMESTAMP, 0);
@@ -260,11 +260,11 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *mutable_peers() {
     return GetPointer<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *>(VT_PEERS);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<vsm::State>> *states() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<vsm::State>> *>(VT_STATES);
+  const flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *entities() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *>(VT_ENTITIES);
   }
-  flatbuffers::Vector<flatbuffers::Offset<vsm::State>> *mutable_states() {
-    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<vsm::State>> *>(VT_STATES);
+  flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *mutable_entities() {
+    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *>(VT_ENTITIES);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -277,9 +277,9 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_PEERS) &&
            verifier.VerifyVector(peers()) &&
            verifier.VerifyVectorOfTables(peers()) &&
-           VerifyOffset(verifier, VT_STATES) &&
-           verifier.VerifyVector(states()) &&
-           verifier.VerifyVectorOfTables(states()) &&
+           VerifyOffset(verifier, VT_ENTITIES) &&
+           verifier.VerifyVector(entities()) &&
+           verifier.VerifyVectorOfTables(entities()) &&
            verifier.EndTable();
   }
   MessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -309,8 +309,8 @@ struct MessageBuilder {
   void add_peers(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>>> peers) {
     fbb_.AddOffset(Message::VT_PEERS, peers);
   }
-  void add_states(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::State>>> states) {
-    fbb_.AddOffset(Message::VT_STATES, states);
+  void add_entities(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>>> entities) {
+    fbb_.AddOffset(Message::VT_ENTITIES, entities);
   }
   explicit MessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -331,9 +331,9 @@ inline flatbuffers::Offset<Message> CreateMessage(
     uint8_t priority = 0,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>>> peers = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::State>>> states = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>>> entities = 0) {
   MessageBuilder builder_(_fbb);
-  builder_.add_states(states);
+  builder_.add_entities(entities);
   builder_.add_peers(peers);
   builder_.add_source(source);
   builder_.add_expiry(expiry);
@@ -351,9 +351,9 @@ inline flatbuffers::Offset<Message> CreateMessageDirect(
     uint8_t priority = 0,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
     std::vector<flatbuffers::Offset<vsm::NodeInfo>> *peers = nullptr,
-    std::vector<flatbuffers::Offset<vsm::State>> *states = nullptr) {
+    std::vector<flatbuffers::Offset<vsm::Entity>> *entities = nullptr) {
   auto peers__ = peers ? _fbb.CreateVectorOfSortedTables<vsm::NodeInfo>(peers) : 0;
-  auto states__ = states ? _fbb.CreateVectorOfSortedTables<vsm::State>(states) : 0;
+  auto entities__ = entities ? _fbb.CreateVectorOfSortedTables<vsm::Entity>(entities) : 0;
   return vsm::CreateMessage(
       _fbb,
       timestamp,
@@ -362,33 +362,33 @@ inline flatbuffers::Offset<Message> CreateMessageDirect(
       priority,
       source,
       peers__,
-      states__);
+      entities__);
 }
 
 flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder &_fbb, const MessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct StateT : public flatbuffers::NativeTable {
-  typedef State TableType;
+struct EntityT : public flatbuffers::NativeTable {
+  typedef Entity TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "vsm.StateT";
+    return "vsm.EntityT";
   }
   vsm::SyncMode sync_mode;
   uint32_t expiry;
   std::string name;
   uint32_t type;
   std::vector<uint8_t> data;
-  StateT()
+  EntityT()
       : sync_mode(vsm::SyncMode::AUTHORITY),
         expiry(0),
         type(0) {
   }
 };
 
-struct State FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef StateT NativeTableType;
-  typedef StateBuilder Builder;
+struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef EntityT NativeTableType;
+  typedef EntityBuilder Builder;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "vsm.State";
+    return "vsm.Entity";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SYNC_MODE = 4,
@@ -415,7 +415,7 @@ struct State FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   flatbuffers::String *mutable_name() {
     return GetPointer<flatbuffers::String *>(VT_NAME);
   }
-  bool KeyCompareLessThan(const State *o) const {
+  bool KeyCompareLessThan(const Entity *o) const {
     return *name() < *o->name();
   }
   int KeyCompareWithValue(const char *val) const {
@@ -444,50 +444,50 @@ struct State FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(data()) &&
            verifier.EndTable();
   }
-  StateT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(StateT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<State> Pack(flatbuffers::FlatBufferBuilder &_fbb, const StateT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  EntityT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(EntityT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<Entity> Pack(flatbuffers::FlatBufferBuilder &_fbb, const EntityT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct StateBuilder {
-  typedef State Table;
+struct EntityBuilder {
+  typedef Entity Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_sync_mode(vsm::SyncMode sync_mode) {
-    fbb_.AddElement<uint8_t>(State::VT_SYNC_MODE, static_cast<uint8_t>(sync_mode), 0);
+    fbb_.AddElement<uint8_t>(Entity::VT_SYNC_MODE, static_cast<uint8_t>(sync_mode), 0);
   }
   void add_expiry(uint32_t expiry) {
-    fbb_.AddElement<uint32_t>(State::VT_EXPIRY, expiry, 0);
+    fbb_.AddElement<uint32_t>(Entity::VT_EXPIRY, expiry, 0);
   }
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(State::VT_NAME, name);
+    fbb_.AddOffset(Entity::VT_NAME, name);
   }
   void add_type(uint32_t type) {
-    fbb_.AddElement<uint32_t>(State::VT_TYPE, type, 0);
+    fbb_.AddElement<uint32_t>(Entity::VT_TYPE, type, 0);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
-    fbb_.AddOffset(State::VT_DATA, data);
+    fbb_.AddOffset(Entity::VT_DATA, data);
   }
-  explicit StateBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit EntityBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<State> Finish() {
+  flatbuffers::Offset<Entity> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<State>(end);
-    fbb_.Required(o, State::VT_NAME);
+    auto o = flatbuffers::Offset<Entity>(end);
+    fbb_.Required(o, Entity::VT_NAME);
     return o;
   }
 };
 
-inline flatbuffers::Offset<State> CreateState(
+inline flatbuffers::Offset<Entity> CreateEntity(
     flatbuffers::FlatBufferBuilder &_fbb,
     vsm::SyncMode sync_mode = vsm::SyncMode::AUTHORITY,
     uint32_t expiry = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     uint32_t type = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
-  StateBuilder builder_(_fbb);
+  EntityBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_type(type);
   builder_.add_name(name);
@@ -496,7 +496,7 @@ inline flatbuffers::Offset<State> CreateState(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<State> CreateStateDirect(
+inline flatbuffers::Offset<Entity> CreateEntityDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     vsm::SyncMode sync_mode = vsm::SyncMode::AUTHORITY,
     uint32_t expiry = 0,
@@ -505,7 +505,7 @@ inline flatbuffers::Offset<State> CreateStateDirect(
     const std::vector<uint8_t> *data = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
-  return vsm::CreateState(
+  return vsm::CreateEntity(
       _fbb,
       sync_mode,
       expiry,
@@ -514,7 +514,7 @@ inline flatbuffers::Offset<State> CreateStateDirect(
       data__);
 }
 
-flatbuffers::Offset<State> CreateState(flatbuffers::FlatBufferBuilder &_fbb, const StateT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &_fbb, const EntityT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 inline NodeInfoT *NodeInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<vsm::NodeInfoT> _o = std::unique_ptr<vsm::NodeInfoT>(new NodeInfoT());
@@ -566,7 +566,7 @@ inline void Message::UnPackTo(MessageT *_o, const flatbuffers::resolver_function
   { auto _e = priority(); _o->priority = _e; }
   { auto _e = source(); if (_e) _o->source = std::unique_ptr<vsm::NodeInfoT>(_e->UnPack(_resolver)); }
   { auto _e = peers(); if (_e) { _o->peers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->peers[_i] = std::unique_ptr<vsm::NodeInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
-  { auto _e = states(); if (_e) { _o->states.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->states[_i] = std::unique_ptr<vsm::StateT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = entities(); if (_e) { _o->entities.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->entities[_i] = std::unique_ptr<vsm::EntityT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<Message> Message::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -583,7 +583,7 @@ inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder
   auto _priority = _o->priority;
   auto _source = _o->source ? CreateNodeInfo(_fbb, _o->source.get(), _rehasher) : 0;
   auto _peers = _o->peers.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::NodeInfo>> (_o->peers.size(), [](size_t i, _VectorArgs *__va) { return CreateNodeInfo(*__va->__fbb, __va->__o->peers[i].get(), __va->__rehasher); }, &_va ) : 0;
-  auto _states = _o->states.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::State>> (_o->states.size(), [](size_t i, _VectorArgs *__va) { return CreateState(*__va->__fbb, __va->__o->states[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _entities = _o->entities.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::Entity>> (_o->entities.size(), [](size_t i, _VectorArgs *__va) { return CreateEntity(*__va->__fbb, __va->__o->entities[i].get(), __va->__rehasher); }, &_va ) : 0;
   return vsm::CreateMessage(
       _fbb,
       _timestamp,
@@ -592,16 +592,16 @@ inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder
       _priority,
       _source,
       _peers,
-      _states);
+      _entities);
 }
 
-inline StateT *State::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<vsm::StateT> _o = std::unique_ptr<vsm::StateT>(new StateT());
+inline EntityT *Entity::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<vsm::EntityT> _o = std::unique_ptr<vsm::EntityT>(new EntityT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void State::UnPackTo(StateT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void Entity::UnPackTo(EntityT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = sync_mode(); _o->sync_mode = _e; }
@@ -611,20 +611,20 @@ inline void State::UnPackTo(StateT *_o, const flatbuffers::resolver_function_t *
   { auto _e = data(); if (_e) { _o->data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data[_i] = _e->Get(_i); } } }
 }
 
-inline flatbuffers::Offset<State> State::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StateT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateState(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<Entity> Entity::Pack(flatbuffers::FlatBufferBuilder &_fbb, const EntityT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateEntity(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<State> CreateState(flatbuffers::FlatBufferBuilder &_fbb, const StateT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &_fbb, const EntityT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StateT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const EntityT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _sync_mode = _o->sync_mode;
   auto _expiry = _o->expiry;
   auto _name = _fbb.CreateString(_o->name);
   auto _type = _o->type;
   auto _data = _o->data.size() ? _fbb.CreateVector(_o->data) : 0;
-  return vsm::CreateState(
+  return vsm::CreateEntity(
       _fbb,
       _sync_mode,
       _expiry,

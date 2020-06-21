@@ -181,7 +181,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
         puts("");
 #endif
 // for generating graph
-#if 1
+#if 0
         char buf[10];
         sprintf(buf, "%02d", i);
         graphviz.saveGraph(

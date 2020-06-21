@@ -12,21 +12,16 @@ namespace vsm {
 namespace fb = flatbuffers;
 
 template <class VecA, class VecB>
-inline float distanceSqr(const VecA& a, const VecB& b) {
-    if (!a.size() || !b.size()) {
+float distanceSqr(const VecA& a, const VecB& b) {
+    if (a.size() != b.size()) {
         return std::numeric_limits<float>::max();
     }
-#if 0
     float d2 = 0;
-    for (int i = 0; i < std::min<int>(a.size(), b.size()); ++i) {
+    for (int i = 0; i < a.size(); ++i) {
         float d = b[i] - a[i];
         d2 += d * d;
     }
     return d2;
-#endif
-    float dx = b[0] - a[0];
-    float dy = b[1] - a[1];
-    return (dx * dx) + (dy * dy);
 }
 
 struct Peer {

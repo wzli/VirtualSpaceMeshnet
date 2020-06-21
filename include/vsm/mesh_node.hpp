@@ -47,9 +47,16 @@ public:
     void sendPeerUpdates();
 
     PeerTracker& getPeerTracker() { return _peer_tracker; }
+    const PeerTracker& getPeerTracker() const { return _peer_tracker; }
+
     TimeSync<msecs>& getTimeSync() { return _time_sync; }
+    const TimeSync<msecs>& getTimeSync() const { return _time_sync; }
+
     Transport& getTransport() { return *_transport; }
+    const Transport& getTransport() const { return *_transport; }
+
     Logger* getLogger() { return _logger.get(); }
+    const Logger* getLogger() const { return _logger.get(); }
 
     const std::vector<std::string>& getConnectedPeers() const { return _connected_peers; }
 

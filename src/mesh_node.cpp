@@ -72,22 +72,32 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         IF_PTR(_logger, log, Logger::WARN, error, buffer, len);
         return;
     }
-    if (_peer_tracker.updatePeer(msg->source(), true) == PeerTracker::SUCCESS) {
-        if (msg->timestamp()) {
-            float weight = 1.0f / (1 + _connected_peers.size());
-            _time_sync.syncTime(msecs(msg->timestamp()), weight);
-        }
-        IF_PTR(_logger, log, Logger::TRACE,
-                Error("Source updates received.", SOURCE_UPDATE_RECEIVED), buffer, len);
-        if (_peer_tracker.receivePeerUpdates(msg) > 0) {
-            Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
-            IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
-        }
-    }
-    if (_ego_sphere.receiveEntityUpdates(
-                msg, _peer_tracker, _connected_peers, _time_sync.getTime()) > 0) {
-        Error error("Entity updates received.", ENTITY_UPDATES_RECEIVED);
-        IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
+    switch (_peer_tracker.updatePeer(msg->source(), true)) {
+        case PeerTracker::SUCCESS:
+            if (msg->hops() == 0 && msg->timestamp() > 0) {
+                float weight = 1.0f / (1 + _connected_peers.size());
+                _time_sync.syncTime(msecs(msg->timestamp()), weight);
+            }
+            IF_PTR(_logger, log, Logger::TRACE,
+                    Error("Source updates received.", SOURCE_UPDATE_RECEIVED), buffer, len);
+            // fall through
+        case PeerTracker::PEER_IS_NULL:
+        case PeerTracker::PEER_ADDRESS_MISSING:
+        case PeerTracker::PEER_COORDINATES_MISSING:
+            if (_peer_tracker.receivePeerUpdates(msg) > 0) {
+                Error error("Peer updates received.", PEER_UPDATES_RECEIVED);
+                IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
+            }
+            // fall through
+        case PeerTracker::SOURCE_SEQUENCE_STALE:
+            if (_ego_sphere.receiveEntityUpdates(
+                        msg, _peer_tracker, _connected_peers, _time_sync.getTime()) > 0) {
+                Error error("Entity updates received.", ENTITY_UPDATES_RECEIVED);
+                IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
+            }
+            // fall through
+        default:
+            break;
     }
 }
 

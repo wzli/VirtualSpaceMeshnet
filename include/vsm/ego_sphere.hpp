@@ -19,11 +19,15 @@ public:
     enum ErrorType {
         SUCCESS = 0,
         START_OFFSET = 300,
+        // Error
         // Warn
-        ENTITY_MISSING_NAME,
+        ENTITY_NAME_MISSING,
+        // Info
         // Debug
         ENTITY_EXPIRED,
+        ENTITY_RANGE_EXCEEDED,
         // Trace
+        ENTITY_ALREADY_RECEIVED,
     };
 
     struct Config {

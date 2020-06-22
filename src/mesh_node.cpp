@@ -11,22 +11,22 @@ MeshNode::MeshNode(Config config)
         , _transport(std::move(config.transport))
         , _logger(std::move(config.logger)) {
     if (!_transport) {
-        Error error("No transport specified.", NO_TRANSPORT_SPECIFIED);
+        Error error(STRERR(NO_TRANSPORT_SPECIFIED));
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
     if (int err_code = _transport->addReceiver(
                 [this](const void* buffer, size_t len) { receiveMessageHandler(buffer, len); })) {
-        Error error("Failed to receive message handler.", ADD_MESSAGE_HANDLER_FAIL, err_code);
+        Error error(STRERR(ADD_MESSAGE_HANDLER_FAIL), err_code);
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
     if (0 > _transport->addTimer(config.peer_update_interval, [this](int) { sendPeerUpdates(); })) {
-        Error error("Failed to add peer update timer.", ADD_TIMER_FAIL);
+        Error error(STRERR(ADD_TIMER_FAIL));
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
-    Error error = Error("Mesh node initialized.", INITIALIZED);
+    Error error = Error("Mesh node " STRERR(INITIALIZED));
     IF_PTR(_logger, log, Logger::INFO, error);
 }
 
@@ -56,7 +56,7 @@ void MeshNode::sendPeerUpdates() {
     _fbb.Finish(msg_builder.Finish());
     // send message
     _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
-    IF_PTR(_logger, log, Logger::INFO, Error("Peer updates sent.", PEER_UPDATES_SENT));
+    IF_PTR(_logger, log, Logger::INFO, Error(STRERR(PEER_UPDATES_SENT)));
 }
 
 void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
@@ -67,7 +67,7 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
     len = verifier.GetComputedSize();
 #endif
     if (!msg->Verify(verifier)) {
-        Error error("Failed to verify message.", MESSAGE_VERIFY_FAIL);
+        Error error(STRERR(MESSAGE_VERIFY_FAIL));
         IF_PTR(_logger, log, Logger::WARN, error, buffer, len);
         return;
     }

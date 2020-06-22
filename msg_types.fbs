@@ -2,7 +2,7 @@ namespace vsm;
 
 table Message {
   timestamp:uint32;
-  priority:uint8;
+  hops:uint32;
   source:NodeInfo;
   peers:[NodeInfo];
   entities:[Entity];

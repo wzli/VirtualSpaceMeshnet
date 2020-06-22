@@ -4,6 +4,8 @@
 #include <functional>
 #include <map>
 
+#define STRERR(e) #e, e
+
 #define IF_PTR(ptr, func, ...) \
     if (ptr)                   \
     ptr->func(__VA_ARGS__)

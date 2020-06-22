@@ -8,12 +8,12 @@ PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
         , _node_info(_peers[_config.address].node_info)
         , _logger(std::move(logger)) {
     if (_config.address.empty()) {
-        Error error("Address config empty.", ADDRESS_CONFIG_EMPTY);
+        Error error(STRERR(ADDRESS_CONFIG_EMPTY));
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
     if (_config.rank_decay < 0) {
-        Error error("Negative rank decay.", NEGATIVE_RANK_DECAY);
+        Error error(STRERR(NEGATIVE_RANK_DECAY));
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
@@ -21,17 +21,17 @@ PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
     _node_info.address = std::move(_config.address);
     _node_info.coordinates = std::move(_config.coordinates);
 
-    IF_PTR(_logger, log, Logger::INFO, Error("Peer tracker initialized.", INITIALIZED));
+    IF_PTR(_logger, log, Logger::INFO, Error("Peer tracker " STRERR(INITIALIZED)));
 }
 
 PeerTracker::ErrorType PeerTracker::latchPeer(const char* address, float rank_factor) {
     if (!address) {
-        Error error("Peer address missing.", PEER_ADDRESS_MISSING);
+        Error error(STRERR(PEER_ADDRESS_MISSING));
         IF_PTR(_logger, log, Logger::ERROR, error, address);
         return PEER_ADDRESS_MISSING;
     }
     if (_node_info.address == address) {
-        Error error("Cannot latch self address.", PEER_IS_SELF);
+        Error error("Cannot latch " STRERR(PEER_IS_SELF));
         IF_PTR(_logger, log, Logger::ERROR, error, address);
         return PEER_IS_SELF;
     }
@@ -41,20 +41,19 @@ PeerTracker::ErrorType PeerTracker::latchPeer(const char* address, float rank_fa
         _peer_rankings.emplace_back(&peer);
     }
     peer.rank_factor = std::min(rank_factor, peer.rank_factor);
-    IF_PTR(_logger, log, Logger::INFO, Error("Peer latched.", PEER_LATCHED), address);
+    IF_PTR(_logger, log, Logger::INFO, Error(STRERR(PEER_LATCHED)), address);
     return SUCCESS;
 }
 
 PeerTracker::ErrorType PeerTracker::updatePeer(const NodeInfo* node_info, bool is_source) {
     // null check
     if (!node_info) {
-        IF_PTR(_logger, log, Logger::WARN, Error("Peer is null.", PEER_IS_NULL), node_info);
+        IF_PTR(_logger, log, Logger::WARN, Error(STRERR(PEER_IS_NULL)), node_info);
         return PEER_IS_NULL;
     }
     // reject missing address
     if (!node_info->address()) {
-        IF_PTR(_logger, log, Logger::WARN, Error("Peer address missing.", PEER_ADDRESS_MISSING),
-                node_info);
+        IF_PTR(_logger, log, Logger::WARN, Error(STRERR(PEER_ADDRESS_MISSING)), node_info);
         return PEER_ADDRESS_MISSING;
     }
     // reject updates corresponds to this node
@@ -64,32 +63,28 @@ PeerTracker::ErrorType PeerTracker::updatePeer(const NodeInfo* node_info, bool i
     }
     // reject missing coordinates
     if (!node_info->coordinates()) {
-        IF_PTR(_logger, log, Logger::WARN,
-                Error("Peer coordinates missing.", PEER_COORDINATES_MISSING), node_info);
+        IF_PTR(_logger, log, Logger::WARN, Error(STRERR(PEER_COORDINATES_MISSING)), node_info);
         return PEER_COORDINATES_MISSING;
     }
     // check if peer exists in lookup
     auto emplace_result = _peers.emplace(peer_address, Peer{});
     auto& peer = emplace_result.first->second;
     if (emplace_result.second) {
-        IF_PTR(_logger, log, Logger::INFO, Error("New peer discovered.", NEW_PEER_DISCOVERED),
-                node_info);
+        IF_PTR(_logger, log, Logger::INFO, Error(STRERR(NEW_PEER_DISCOVERED)), node_info);
         _peer_rankings.emplace_back(&peer);
     } else if (is_source) {
         if (node_info->sequence() <= peer.source_sequence) {
-            IF_PTR(_logger, log, Logger::DEBUG,
-                    Error("Source sequence is stale.", SOURCE_SEQUENCE_STALE), node_info);
+            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(SOURCE_SEQUENCE_STALE)), node_info);
             return SOURCE_SEQUENCE_STALE;
         }
         peer.source_sequence = node_info->sequence();
     } else if (node_info->sequence() <= peer.node_info.sequence) {
-        IF_PTR(_logger, log, Logger::DEBUG, Error("Peer sequence is stale.", PEER_SEQUENCE_STALE),
-                node_info);
+        IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(PEER_SEQUENCE_STALE)), node_info);
         return PEER_SEQUENCE_STALE;
     }
     node_info->UnPackTo(&(peer.node_info));
     peer.rank_factor = std::min(peer.rank_factor, 1.0f);
-    IF_PTR(_logger, log, Logger::TRACE, Error("Peer updated.", PEER_UPDATED), &peer.node_info,
+    IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(PEER_UPDATED)), &peer.node_info,
             sizeof(NodeInfoT));
     return SUCCESS;
 }
@@ -137,7 +132,7 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerRankings(
     _recipients.swap(recipients);
     _recipients.clear();
 
-    IF_PTR(_logger, log, Logger::TRACE, Error("Peer rankings generated.", PEER_RANKINGS_GENERATED));
+    IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(PEER_RANKINGS_GENERATED)));
     // remove lowest ranked peers
     if (_config.lookup_size > 0 && _config.lookup_size < _peers.size()) {
         for (auto peer_ranking = _peer_rankings.begin() + _config.lookup_size - 1;
@@ -145,7 +140,7 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerRankings(
             _peers.erase((*peer_ranking)->node_info.address);
         }
         _peer_rankings.resize(_peers.size() - 1);
-        IF_PTR(_logger, log, Logger::TRACE, Error("Peer lookup truncated.", PEER_LOOKUP_TRUNCATED));
+        IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(PEER_LOOKUP_TRUNCATED)));
     }
     // tick node sequence
     ++_node_info.sequence;

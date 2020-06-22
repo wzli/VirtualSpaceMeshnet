@@ -12,29 +12,26 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
     for (auto entity : *msg->entities()) {
         // reject if entity is missing name
         if (!entity->name()) {
-            IF_PTR(_logger, log, Logger::WARN, Error("Entity missing name.", ENTITY_NAME_MISSING),
-                    entity);
+            IF_PTR(_logger, log, Logger::WARN, Error(STRERR(ENTITY_NAME_MISSING)), entity);
             continue;
         }
         // reject if entity already expired
         if (entity->expiry() <= current_time.count()) {
-            IF_PTR(_logger, log, Logger::DEBUG, Error("Entity expired.", ENTITY_EXPIRED), entity);
+            IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
             continue;
         }
         // reject if entity range is exceeded
         if (entity->range() && entity->coordinates() &&
                 (distanceSqr(*entity->coordinates(), peer_tracker.getNodeInfo().coordinates) >
                         entity->range() * entity->range())) {
-            IF_PTR(_logger, log, Logger::DEBUG,
-                    Error("Entity range exceeded.", ENTITY_RANGE_EXCEEDED), entity);
+            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
             continue;
         }
         auto entity_record = _entities.find(entity->name()->c_str());
         // reject if timestamp for entity already exist
         if (entity_record != _entities.end() &&
                 entity_record->second.timestamps.count(msg->timestamp())) {
-            IF_PTR(_logger, log, Logger::TRACE,
-                    Error("Entity already received.", ENTITY_ALREADY_RECEIVED), entity);
+            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_ALREADY_RECEIVED)), entity);
             continue;
         }
         // apply proximity filter
@@ -71,7 +68,7 @@ void EgoSphere::expireEntities(msecs current_time) {
             if (_entity_update_handler) {
                 _entity_update_handler(nullptr, &entity->second.entity, nullptr, current_time);
             }
-            IF_PTR(_logger, log, Logger::DEBUG, Error("Entity expired.", ENTITY_EXPIRED),
+            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_EXPIRED)),
                     &entity->second.entity);
             entity = _entities.erase(entity);
         } else {

@@ -20,6 +20,36 @@ struct Entity;
 struct EntityBuilder;
 struct EntityT;
 
+enum class Filter : uint8_t {
+  ALL = 0,
+  NEAREST = 1,
+  MIN = ALL,
+  MAX = NEAREST
+};
+
+inline const Filter (&EnumValuesFilter())[2] {
+  static const Filter values[] = {
+    Filter::ALL,
+    Filter::NEAREST
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesFilter() {
+  static const char * const names[3] = {
+    "ALL",
+    "NEAREST",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameFilter(Filter e) {
+  if (flatbuffers::IsOutRange(e, Filter::ALL, Filter::NEAREST)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesFilter()[index];
+}
+
 struct MessageT : public flatbuffers::NativeTable {
   typedef Message TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
@@ -320,14 +350,14 @@ struct EntityT : public flatbuffers::NativeTable {
     return "vsm.EntityT";
   }
   std::string name;
-  uint8_t proximity_filter;
+  vsm::Filter filter;
   std::vector<float> coordinates;
   float range;
   uint32_t expiry;
   uint32_t type;
   std::vector<uint8_t> data;
   EntityT()
-      : proximity_filter(0),
+      : filter(vsm::Filter::ALL),
         range(0.0f),
         expiry(0),
         type(0) {
@@ -342,7 +372,7 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
-    VT_PROXIMITY_FILTER = 6,
+    VT_FILTER = 6,
     VT_COORDINATES = 8,
     VT_RANGE = 10,
     VT_EXPIRY = 12,
@@ -361,11 +391,11 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int KeyCompareWithValue(const char *val) const {
     return strcmp(name()->c_str(), val);
   }
-  uint8_t proximity_filter() const {
-    return GetField<uint8_t>(VT_PROXIMITY_FILTER, 0);
+  vsm::Filter filter() const {
+    return static_cast<vsm::Filter>(GetField<uint8_t>(VT_FILTER, 0));
   }
-  bool mutate_proximity_filter(uint8_t _proximity_filter) {
-    return SetField<uint8_t>(VT_PROXIMITY_FILTER, _proximity_filter, 0);
+  bool mutate_filter(vsm::Filter _filter) {
+    return SetField<uint8_t>(VT_FILTER, static_cast<uint8_t>(_filter), 0);
   }
   const flatbuffers::Vector<float> *coordinates() const {
     return GetPointer<const flatbuffers::Vector<float> *>(VT_COORDINATES);
@@ -401,7 +431,7 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
-           VerifyField<uint8_t>(verifier, VT_PROXIMITY_FILTER) &&
+           VerifyField<uint8_t>(verifier, VT_FILTER) &&
            VerifyOffset(verifier, VT_COORDINATES) &&
            verifier.VerifyVector(coordinates()) &&
            VerifyField<float>(verifier, VT_RANGE) &&
@@ -423,8 +453,8 @@ struct EntityBuilder {
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(Entity::VT_NAME, name);
   }
-  void add_proximity_filter(uint8_t proximity_filter) {
-    fbb_.AddElement<uint8_t>(Entity::VT_PROXIMITY_FILTER, proximity_filter, 0);
+  void add_filter(vsm::Filter filter) {
+    fbb_.AddElement<uint8_t>(Entity::VT_FILTER, static_cast<uint8_t>(filter), 0);
   }
   void add_coordinates(flatbuffers::Offset<flatbuffers::Vector<float>> coordinates) {
     fbb_.AddOffset(Entity::VT_COORDINATES, coordinates);
@@ -456,7 +486,7 @@ struct EntityBuilder {
 inline flatbuffers::Offset<Entity> CreateEntity(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    uint8_t proximity_filter = 0,
+    vsm::Filter filter = vsm::Filter::ALL,
     flatbuffers::Offset<flatbuffers::Vector<float>> coordinates = 0,
     float range = 0.0f,
     uint32_t expiry = 0,
@@ -469,14 +499,14 @@ inline flatbuffers::Offset<Entity> CreateEntity(
   builder_.add_range(range);
   builder_.add_coordinates(coordinates);
   builder_.add_name(name);
-  builder_.add_proximity_filter(proximity_filter);
+  builder_.add_filter(filter);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Entity> CreateEntityDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    uint8_t proximity_filter = 0,
+    vsm::Filter filter = vsm::Filter::ALL,
     const std::vector<float> *coordinates = nullptr,
     float range = 0.0f,
     uint32_t expiry = 0,
@@ -488,7 +518,7 @@ inline flatbuffers::Offset<Entity> CreateEntityDirect(
   return vsm::CreateEntity(
       _fbb,
       name__,
-      proximity_filter,
+      filter,
       coordinates__,
       range,
       expiry,
@@ -584,7 +614,7 @@ inline void Entity::UnPackTo(EntityT *_o, const flatbuffers::resolver_function_t
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
-  { auto _e = proximity_filter(); _o->proximity_filter = _e; }
+  { auto _e = filter(); _o->filter = _e; }
   { auto _e = coordinates(); if (_e) { _o->coordinates.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->coordinates[_i] = _e->Get(_i); } } }
   { auto _e = range(); _o->range = _e; }
   { auto _e = expiry(); _o->expiry = _e; }
@@ -601,7 +631,7 @@ inline flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const EntityT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _fbb.CreateString(_o->name);
-  auto _proximity_filter = _o->proximity_filter;
+  auto _filter = _o->filter;
   auto _coordinates = _o->coordinates.size() ? _fbb.CreateVector(_o->coordinates) : 0;
   auto _range = _o->range;
   auto _expiry = _o->expiry;
@@ -610,7 +640,7 @@ inline flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &
   return vsm::CreateEntity(
       _fbb,
       _name,
-      _proximity_filter,
+      _filter,
       _coordinates,
       _range,
       _expiry,

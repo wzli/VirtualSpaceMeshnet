@@ -16,9 +16,14 @@ table NodeInfo {
   sequence:uint32;
 }
 
+enum Filter : uint8 {
+  ALL,
+  NEAREST,
+}
+
 table Entity {
   name:string (key);
-  proximity_filter:uint8;
+  filter:Filter;
   coordinates:[float];
   range:float;
   expiry:uint32;

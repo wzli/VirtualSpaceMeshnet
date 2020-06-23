@@ -35,7 +35,7 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             continue;
         }
         // apply proximity filter
-        if (entity->proximity_filter() && msg->source() && !connected_peers.empty()) {
+        if (entity->filter() == Filter::NEAREST && msg->source() && !connected_peers.empty()) {
             float min_radial_cost = std::numeric_limits<float>::max();
             const Peer* min_radial_peer = nullptr;
             const auto calculate_min = [&](const Peer& peer) {

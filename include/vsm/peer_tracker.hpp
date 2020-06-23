@@ -101,7 +101,7 @@ public:
         float min_radial_cost = min_radial_peer->radialCost(coordinates);
         for (const auto& peer_address : peers) {
             auto peer = _peers.find(peer_address);
-            if (peer != _peers.end()) {
+            if (peer == _peers.end()) {
                 continue;
             }
             float radial_cost = peer->second.radialCost(coordinates);

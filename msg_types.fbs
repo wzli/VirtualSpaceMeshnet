@@ -23,8 +23,8 @@ enum Filter : uint8 {
 
 table Entity {
   name:string (key);
-  filter:Filter;
   coordinates:[float];
+  filter:Filter;
   range:float;
   expiry:uint32;
   type:uint32;

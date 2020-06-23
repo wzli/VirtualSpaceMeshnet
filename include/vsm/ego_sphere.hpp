@@ -21,6 +21,8 @@ public:
         START_OFFSET = 300,
         // Error
         // Warn
+        MESSAGE_SOURCE_INVALID,
+        ENTITY_COORDINATES_MISSING,
         ENTITY_NAME_MISSING,
         // Info
         // Debug
@@ -28,6 +30,7 @@ public:
         ENTITY_RANGE_EXCEEDED,
         // Trace
         ENTITY_ALREADY_RECEIVED,
+        ENTITY_NEAREST_FILTERED,
     };
 
     struct Config {
@@ -49,6 +52,7 @@ public:
     int receiveEntityUpdates(const Message* msg, const PeerTracker& peer_tracker,
             const std::vector<std::string>& connected_peers, msecs current_time);
 
+    bool deleteEntity(const Entity* entity, msecs current_time, const NodeInfo* source = nullptr);
     void expireEntities(msecs current_time);
 
     Logger* getLogger() { return _logger.get(); }

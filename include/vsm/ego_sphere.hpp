@@ -31,6 +31,7 @@ public:
     };
 
     struct Config {
+        size_t timestamp_lookup_size = 128;
         EntityUpdateHandler entity_update_handler = nullptr;
     };
 

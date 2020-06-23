@@ -15,6 +15,18 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             IF_PTR(_logger, log, Logger::WARN, Error(STRERR(ENTITY_NAME_MISSING)), entity);
             continue;
         }
+        Filter filter = entity->filter();
+        auto entity_record = _entities.find(entity->name()->c_str());
+        if (entity_record != _entities.end()) {
+            // reject if timestamp for entity was already received
+            if (entity_record->second.timestamps.count(msg->timestamp())) {
+                IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_ALREADY_RECEIVED)), entity);
+                continue;
+            }
+            // use filter of original entity if it exists
+            filter = entity_record->second.entity.filter();
+        }
+
         // reject if entity already expired
         if (entity->expiry() <= current_time.count()) {
             IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
@@ -27,39 +39,20 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
             continue;
         }
-        auto entity_record = _entities.find(entity->name()->c_str());
-        // reject if timestamp for entity already exist
-        if (entity_record != _entities.end() &&
-                entity_record->second.timestamps.count(msg->timestamp())) {
-            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_ALREADY_RECEIVED)), entity);
-            continue;
+        bool filter_result = true;
+        if (filter == Filter::NEAREST) {
+            const Peer& nearest_peer =
+                    peer_tracker.nearestPeer(*entity->coordinates(), connected_peers);
+            if (msg->source()->address()->c_str() == nearest_peer.node_info.address) {
+            }
         }
         // apply proximity filter
-        if (entity->filter() == Filter::NEAREST && msg->source() && !connected_peers.empty()) {
-            float min_radial_cost = std::numeric_limits<float>::max();
-            const Peer* min_radial_peer = nullptr;
-            const auto calculate_min = [&](const Peer& peer) {
-                float radial_cost = peer.radialCost(*entity->coordinates());
-                if (radial_cost < min_radial_cost) {
-                    min_radial_cost = radial_cost;
-                    min_radial_peer = &peer;
-                }
-            };
-            const auto& peers = peer_tracker.getPeers();
-            for (const auto& peer_address : connected_peers) {
-                auto peer = peers.find(peer_address);
-                if (peer != peers.end()) {
-                    calculate_min(peer->second);
-                }
-            }
-            calculate_min(peers.at(peer_tracker.getNodeInfo().address));
-            if (msg->source()->address()->c_str() != min_radial_peer->node_info.address) {
-                continue;
-            }
-        }
+        //    if (entity->filter() == Filter::NEAREST && msg->source() && !connected_peers.empty())
+        //    {
+        //    }
     }
     return entities_updated;
-}
+}  // namespace vsm
 
 void EgoSphere::expireEntities(msecs current_time) {
     for (auto entity = _entities.begin(); entity != _entities.end();) {

@@ -16,7 +16,6 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             continue;
         }
         Filter filter = entity->filter();
-        const Entity* old_entity = nullptr;
         // find previous record of entity
         auto entity_record = _entities.find(entity->name()->c_str());
         if (entity_record != _entities.end()) {
@@ -26,8 +25,7 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
                 continue;
             }
             // use filter of original entity if it exists
-            old_entity = &(entity_record->second.entity);
-            filter = old_entity->filter();
+            filter = entity_record->second.entity.filter;
         }
         // reject if entity is missing coordinates and range or proximity filter is enabled
         if (!entity->coordinates() && (entity->range() || filter == Filter::NEAREST)) {
@@ -53,7 +51,7 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
         }
         // reject and delete if entity already expired
         if (entity->expiry() <= current_time.count()) {
-            deleteEntity(old_entity, current_time, msg->source());
+            deleteEntity(entity->name()->c_str(), current_time, msg->source());
             IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
             continue;
         }
@@ -61,26 +59,44 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
         if (entity->range() && (entity->range() * entity->range() <
                                        distanceSqr(*entity->coordinates(),
                                                peer_tracker.getNodeInfo().coordinates))) {
-            deleteEntity(old_entity, current_time, msg->source());
+            deleteEntity(entity->name()->c_str(), current_time, msg->source());
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
             continue;
         }
-        // checks pass, update entity
+        // checks pass, proceed to update entity
+        if (entity_record == _entities.end()) {
+            EntityT new_entity;
+            entity->UnPackTo(&new_entity);
+            _entities[entity->name()->c_str()] = {std::move(new_entity), {msg->timestamp()}};
+        } else {
+            // insert timestamp and clear half of timestamp lookup when full
+            auto& stamps = entity_record->second.timestamps;
+            stamps.insert(msg->timestamp());
+            if (stamps.size() > _config.timestamp_lookup_size) {
+                stamps.erase(stamps.begin(), std::next(stamps.begin(), stamps.size() / 2));
+            }
+        }
+        ++entities_updated;
     }
     return entities_updated;
 }  // namespace vsm
 
-bool EgoSphere::deleteEntity(const Entity* entity, msecs current_time, const NodeInfo* source) {
-    if (!entity || !entity->name()) {
+bool EgoSphere::deleteEntity(const char* name, msecs current_time, const NodeInfo* source) {
+    if (!name) {
         return false;
     }
-    IF_FUNC(_entity_update_handler, nullptr, entity, source, current_time);
-    return _entities.erase(entity->name()->c_str());
+    auto entity_record = _entities.find(name);
+    if (entity_record == _entities.end()) {
+        return false;
+    }
+    IF_FUNC(_entity_update_handler, nullptr, &entity_record->second.entity, source, current_time);
+    _entities.erase(entity_record);
+    return true;
 }
 
 void EgoSphere::expireEntities(msecs current_time) {
     for (auto entity = _entities.begin(); entity != _entities.end();) {
-        if (entity->second.entity.expiry() <= current_time.count()) {
+        if (entity->second.entity.expiry <= current_time.count()) {
             IF_FUNC(_entity_update_handler, nullptr, &entity->second.entity, nullptr, current_time);
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_EXPIRED)),
                     &entity->second.entity);

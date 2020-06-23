@@ -64,12 +64,20 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             continue;
         }
         // checks pass, proceed to update entity
+        EntityT new_entity;
+        entity->UnPackTo(&new_entity);
         if (entity_record == _entities.end()) {
-            EntityT new_entity;
-            entity->UnPackTo(&new_entity);
+            // create new entity
+            IF_FUNC(_entity_update_handler, &new_entity, nullptr, msg->source(), current_time);
             _entities[entity->name()->c_str()] = {std::move(new_entity), {msg->timestamp()}};
+            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_CREATED)), entity);
         } else {
-            // insert timestamp and clear half of timestamp lookup when full
+            // update existing entity
+            IF_FUNC(_entity_update_handler, &new_entity, &(entity_record->second.entity),
+                    msg->source(), current_time);
+            entity_record->second.entity = std::move(new_entity);
+            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
+            // insert timestamp and clear half of the lookup table when full
             auto& stamps = entity_record->second.timestamps;
             stamps.insert(msg->timestamp());
             if (stamps.size() > _config.timestamp_lookup_size) {

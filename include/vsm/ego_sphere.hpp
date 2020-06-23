@@ -26,9 +26,11 @@ public:
         ENTITY_NAME_MISSING,
         // Info
         // Debug
+        ENTITY_CREATED,
         ENTITY_EXPIRED,
         ENTITY_RANGE_EXCEEDED,
         // Trace
+        ENTITY_UPDATED,
         ENTITY_ALREADY_RECEIVED,
         ENTITY_NEAREST_FILTERED,
     };
@@ -55,6 +57,9 @@ public:
 
     bool deleteEntity(const char* name, msecs current_time, const NodeInfo* source = nullptr);
     void expireEntities(msecs current_time);
+
+    EntityLookup getEntities() { return _entities; }
+    const EntityLookup getEntities() const { return _entities; }
 
     Logger* getLogger() { return _logger.get(); }
     const Logger* getLogger() const { return _logger.get(); }

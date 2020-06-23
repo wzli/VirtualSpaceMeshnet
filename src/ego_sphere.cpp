@@ -15,17 +15,19 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             IF_PTR(_logger, log, Logger::WARN, Error(STRERR(ENTITY_NAME_MISSING)), entity);
             continue;
         }
+        std::string name = entity->name()->str();
         Filter filter = entity->filter();
         // find previous record of entity
-        auto entity_record = _entities.find(entity->name()->c_str());
-        if (entity_record != _entities.end()) {
+        auto old_entity = _entities.find(name);
+        if (old_entity != _entities.end()) {
             // reject if timestamp for entity was already received
-            if (entity_record->second.timestamps.count(msg->timestamp())) {
+
+            if (_timestamps.count({name, msecs(msg->timestamp())})) {
                 IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_ALREADY_RECEIVED)), entity);
                 continue;
             }
             // use filter of original entity if it exists
-            filter = entity_record->second.entity.filter;
+            filter = old_entity->second.filter;
         }
         // reject if entity is missing coordinates and range or proximity filter is enabled
         if (!entity->coordinates() && (entity->range() || filter == Filter::NEAREST)) {
@@ -49,9 +51,15 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
                 }
                 break;
         }
+        // unpack message source
+        std::unique_ptr<NodeInfoT> source;
+        if (msg->source()) {
+            source = std::make_unique<NodeInfoT>();
+            msg->source()->UnPackTo(source.get());
+        }
         // reject and delete if entity already expired
         if (entity->expiry() <= current_time.count()) {
-            deleteEntity(entity->name()->c_str(), current_time, msg->source());
+            deleteEntity(name, current_time, source.get());
             IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
             continue;
         }
@@ -59,60 +67,63 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
         if (entity->range() && (entity->range() * entity->range() <
                                        distanceSqr(*entity->coordinates(),
                                                peer_tracker.getNodeInfo().coordinates))) {
-            deleteEntity(entity->name()->c_str(), current_time, msg->source());
+            deleteEntity(name, current_time, source.get());
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
             continue;
         }
         // checks pass, proceed to update entity
         EntityT new_entity;
         entity->UnPackTo(&new_entity);
-        if (entity_record == _entities.end()) {
+        if (old_entity == _entities.end()) {
             // create new entity
-            IF_FUNC(_entity_update_handler, &new_entity, nullptr, msg->source(), current_time);
-            _entities[entity->name()->c_str()] = {std::move(new_entity), {msg->timestamp()}};
+            IF_FUNC(_entity_update_handler, &new_entity, nullptr, source.get(), current_time);
+            old_entity = _entities.emplace(name, std::move(new_entity)).first;
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_CREATED)), entity);
         } else {
             // update existing entity
-            IF_FUNC(_entity_update_handler, &new_entity, &(entity_record->second.entity),
-                    msg->source(), current_time);
-            entity_record->second.entity = std::move(new_entity);
+            IF_FUNC(_entity_update_handler, &new_entity, &old_entity->second, source.get(),
+                    current_time);
+            old_entity->second = std::move(new_entity);
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
-            // insert timestamp and clear half of the lookup table when full
-            auto& stamps = entity_record->second.timestamps;
-            stamps.insert(msg->timestamp());
-            if (stamps.size() > _config.timestamp_lookup_size) {
-                stamps.erase(stamps.begin(), std::next(stamps.begin(), stamps.size() / 2));
-            }
         }
+        insertEntityTimestamp(std::move(name), msecs(msg->timestamp()));
         ++entities_updated;
     }
     return entities_updated;
 }  // namespace vsm
 
-bool EgoSphere::deleteEntity(const char* name, msecs current_time, const NodeInfo* source) {
-    if (!name) {
+bool EgoSphere::deleteEntity(const std::string& name, msecs current_time, const NodeInfoT* source) {
+    auto entity = _entities.find(name);
+    if (entity == _entities.end()) {
         return false;
     }
-    auto entity_record = _entities.find(name);
-    if (entity_record == _entities.end()) {
-        return false;
-    }
-    IF_FUNC(_entity_update_handler, nullptr, &entity_record->second.entity, source, current_time);
-    _entities.erase(entity_record);
+    IF_FUNC(_entity_update_handler, nullptr, &entity->second, source, current_time);
+    _entities.erase(entity);
     return true;
 }
 
-void EgoSphere::expireEntities(msecs current_time) {
+void EgoSphere::expireEntities(msecs current_time, const NodeInfoT* source) {
     for (auto entity = _entities.begin(); entity != _entities.end();) {
-        if (entity->second.entity.expiry <= current_time.count()) {
-            IF_FUNC(_entity_update_handler, nullptr, &entity->second.entity, nullptr, current_time);
-            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_EXPIRED)),
-                    &entity->second.entity);
+        if (entity->second.expiry <= current_time.count()) {
+            IF_FUNC(_entity_update_handler, nullptr, &entity->second, source, current_time);
+            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_EXPIRED)), &entity->second);
             entity = _entities.erase(entity);
         } else {
             ++entity;
         }
     }
+}
+
+bool EgoSphere::insertEntityTimestamp(std::string name, msecs timestamp) {
+    if (!_timestamps.insert({std::move(name), timestamp}).second) {
+        return false;
+    }
+    // clear half of the lookup table when full
+    if (_timestamps.size() > _config.timestamp_lookup_size) {
+        _timestamps.erase(
+                _timestamps.begin(), std::next(_timestamps.begin(), _timestamps.size() / 2));
+    }
+    return true;
 }
 
 }  // namespace vsm

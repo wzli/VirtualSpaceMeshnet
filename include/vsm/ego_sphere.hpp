@@ -14,7 +14,7 @@ namespace vsm {
 class EgoSphere {
 public:
     using EntityUpdateHandler = std::function<void(EntityT* new_version, const EntityT* old_version,
-            const NodeInfo* source, msecs timestamp)>;
+            const NodeInfoT* source, msecs timestamp)>;
 
     enum ErrorType {
         SUCCESS = 0,
@@ -29,6 +29,7 @@ public:
         ENTITY_CREATED,
         ENTITY_EXPIRED,
         ENTITY_RANGE_EXCEEDED,
+        ENTITY_TIMESTAMPS_TRIMMED,
         // Trace
         ENTITY_UPDATED,
         ENTITY_ALREADY_RECEIVED,
@@ -40,12 +41,16 @@ public:
         EntityUpdateHandler entity_update_handler = nullptr;
     };
 
-    struct EntityRecord {
-        EntityT entity;
-        std::set<uint32_t> timestamps;
+    struct EntityTimestamp {
+        std::string name;
+        msecs timestamp;
+
+        bool operator<(const EntityTimestamp& rhs) const {
+            return timestamp == rhs.timestamp ? name < rhs.name : timestamp < rhs.timestamp;
+        }
     };
 
-    using EntityLookup = std::unordered_map<std::string, EntityRecord>;
+    using EntityLookup = std::unordered_map<std::string, EntityT>;
 
     EgoSphere(Config config, std::shared_ptr<Logger> logger = nullptr)
             : _config(config)
@@ -55,9 +60,11 @@ public:
     int receiveEntityUpdates(const Message* msg, const PeerTracker& peer_tracker,
             const std::vector<std::string>& connected_peers, msecs current_time);
 
-    bool deleteEntity(const char* name, msecs current_time, const NodeInfo* source = nullptr);
-    void expireEntities(msecs current_time);
+    bool deleteEntity(
+            const std::string& name, msecs current_time, const NodeInfoT* source = nullptr);
+    void expireEntities(msecs current_time, const NodeInfoT* source = nullptr);
 
+    // accesors
     EntityLookup getEntities() { return _entities; }
     const EntityLookup getEntities() const { return _entities; }
 
@@ -65,8 +72,11 @@ public:
     const Logger* getLogger() const { return _logger.get(); }
 
 private:
+    bool insertEntityTimestamp(std::string name, msecs timestamp);
+
     Config _config;
     EntityLookup _entities;
+    std::set<EntityTimestamp> _timestamps;
     EntityUpdateHandler _entity_update_handler;
     std::shared_ptr<Logger> _logger;
 };

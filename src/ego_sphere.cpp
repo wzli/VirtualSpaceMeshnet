@@ -8,6 +8,12 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
     if (!msg || !msg->entities()) {
         return 0;
     }
+    // unpack message source
+    std::unique_ptr<NodeInfoT> source;
+    if (msg->source()) {
+        source = std::make_unique<NodeInfoT>();
+        msg->source()->UnPackTo(source.get());
+    }
     int entities_updated = 0;
     for (auto entity : *msg->entities()) {
         // reject if entity is missing name
@@ -16,19 +22,16 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             continue;
         }
         std::string name = entity->name()->str();
-        Filter filter = entity->filter();
+        // reject if entity timestamp was already received
+        if (_timestamps.count({name, msecs(msg->timestamp())})) {
+            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_ALREADY_RECEIVED)), entity);
+            continue;
+        }
         // find previous record of entity
         auto old_entity = _entities.find(name);
-        if (old_entity != _entities.end()) {
-            // reject if timestamp for entity was already received
-
-            if (_timestamps.count({name, msecs(msg->timestamp())})) {
-                IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_ALREADY_RECEIVED)), entity);
-                continue;
-            }
-            // use filter of original entity if it exists
-            filter = old_entity->second.filter;
-        }
+        // use filter of original entity if it exists
+        Filter filter =
+                old_entity == _entities.end() ? entity->filter() : old_entity->second.filter;
         // reject if entity is missing coordinates and range or proximity filter is enabled
         if (!entity->coordinates() && (entity->range() || filter == Filter::NEAREST)) {
             IF_PTR(_logger, log, Logger::WARN, Error(STRERR(ENTITY_COORDINATES_MISSING)), entity);
@@ -39,24 +42,20 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             case Filter::ALL:
                 break;
             case Filter::NEAREST:
-                if (!msg->source() || !msg->source()->address()) {
+                if (!source || source->address.empty()) {
                     IF_PTR(_logger, log, Logger::WARN, Error(STRERR(MESSAGE_SOURCE_INVALID)), msg);
                     continue;
                 }
                 if (peer_tracker.nearestPeer(*entity->coordinates(), connected_peers)
-                                .node_info.address != msg->source()->address()->c_str()) {
+                                .node_info.address != source->address) {
                     IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_NEAREST_FILTERED)),
                             entity);
                     continue;
                 }
                 break;
         }
-        // unpack message source
-        std::unique_ptr<NodeInfoT> source;
-        if (msg->source()) {
-            source = std::make_unique<NodeInfoT>();
-            msg->source()->UnPackTo(source.get());
-        }
+        // insert entity timestamp once filter passes
+        insertEntityTimestamp(name, msecs(msg->timestamp()));
         // reject and delete if entity already expired
         if (entity->expiry() <= current_time.count()) {
             deleteEntity(name, current_time, source.get());
@@ -86,7 +85,6 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             old_entity->second = std::move(new_entity);
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
         }
-        insertEntityTimestamp(std::move(name), msecs(msg->timestamp()));
         ++entities_updated;
     }
     return entities_updated;
@@ -122,6 +120,7 @@ bool EgoSphere::insertEntityTimestamp(std::string name, msecs timestamp) {
     if (_timestamps.size() > _config.timestamp_lookup_size) {
         _timestamps.erase(
                 _timestamps.begin(), std::next(_timestamps.begin(), _timestamps.size() / 2));
+        IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_TIMESTAMPS_TRIMMED)));
     }
     return true;
 }

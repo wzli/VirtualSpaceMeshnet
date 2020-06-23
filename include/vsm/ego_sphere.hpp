@@ -60,8 +60,11 @@ public:
     int receiveEntityUpdates(const Message* msg, const PeerTracker& peer_tracker,
             const std::vector<std::string>& connected_peers, msecs current_time);
 
+    bool insertEntityTimestamp(std::string name, msecs timestamp);
+
     bool deleteEntity(
             const std::string& name, msecs current_time, const NodeInfoT* source = nullptr);
+
     void expireEntities(msecs current_time, const NodeInfoT* source = nullptr);
 
     // accesors
@@ -72,8 +75,6 @@ public:
     const Logger* getLogger() const { return _logger.get(); }
 
 private:
-    bool insertEntityTimestamp(std::string name, msecs timestamp);
-
     Config _config;
     EntityLookup _entities;
     std::set<EntityTimestamp> _timestamps;

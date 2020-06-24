@@ -31,6 +31,11 @@ MeshNode::MeshNode(Config config)
     IF_PTR(_logger, log, Logger::INFO, error);
 }
 
+void MeshNode::updateEntities(const std::vector<EntityT>& entity_updates, bool expiry_check,
+        const EntitiesCallback& callback) {
+    const std::lock_guard<std::mutex> lock(_ego_sphere_mutex);
+}
+
 void MeshNode::sendPeerUpdates() {
     _fbb.Clear();
     // get peer rankings

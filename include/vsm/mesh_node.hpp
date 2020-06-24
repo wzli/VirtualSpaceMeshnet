@@ -6,6 +6,8 @@
 #include <vsm/time_sync.hpp>
 #include <vsm/transport.hpp>
 
+#include <mutex>
+
 namespace vsm {
 
 class MeshNode {
@@ -47,8 +49,12 @@ public:
 
     MeshNode(Config config);
 
-    void sendPeerUpdates();
+    using EntitiesCallback =
+            std::function<void(const EgoSphere::EntityLookup& entities, msecs current_time)>;
+    void updateEntities(const std::vector<EntityT>& entity_updates, bool expiry_check = true,
+            const EntitiesCallback& callback = nullptr);
 
+    // accesors
     PeerTracker& getPeerTracker() { return _peer_tracker; }
     const PeerTracker& getPeerTracker() const { return _peer_tracker; }
 
@@ -64,8 +70,11 @@ public:
     const std::vector<std::string>& getConnectedPeers() const { return _connected_peers; }
 
 private:
+    // internall callbacks
+    void sendPeerUpdates();
     void receiveMessageHandler(const void* buffer, size_t len);
 
+    std::mutex _ego_sphere_mutex;
     EgoSphere _ego_sphere;
     PeerTracker _peer_tracker;
     TimeSync<msecs> _time_sync;

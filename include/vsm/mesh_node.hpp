@@ -20,6 +20,8 @@ public:
         // Info
         INITIALIZED,
         PEER_UPDATES_SENT,
+        // Debug
+        ENTITY_UPDATES_SENT,
         // Trace
         SOURCE_UPDATE_RECEIVED,
         PEER_UPDATES_RECEIVED,

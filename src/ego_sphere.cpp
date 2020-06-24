@@ -3,10 +3,12 @@
 
 namespace vsm {
 
-int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_tracker,
+std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBuilder& fbb,
+        const Message* msg, const PeerTracker& peer_tracker,
         const std::vector<std::string>& connected_peers, msecs current_time) {
+    std::vector<fb::Offset<Entity>> forward_entities;
     if (!msg || !msg->entities()) {
-        return 0;
+        return forward_entities;
     }
     // unpack message source
     std::unique_ptr<NodeInfoT> source;
@@ -14,7 +16,6 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
         source = std::make_unique<NodeInfoT>();
         msg->source()->UnPackTo(source.get());
     }
-    int entities_updated = 0;
     for (auto entity : *msg->entities()) {
         // reject if entity is missing name
         if (!entity->name()) {
@@ -67,7 +68,7 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
                                        distanceSqr(*entity->coordinates(),
                                                peer_tracker.getNodeInfo().coordinates))) {
             deleteEntity(name, current_time, source.get());
-            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
+            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
             continue;
         }
         // checks pass, proceed to update entity
@@ -85,10 +86,11 @@ int EgoSphere::receiveEntityUpdates(const Message* msg, const PeerTracker& peer_
             old_entity->second = std::move(new_entity);
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
         }
-        ++entities_updated;
+        // write updated entity to forward message
+        forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second));
     }
-    return entities_updated;
-}  // namespace vsm
+    return forward_entities;
+}
 
 bool EgoSphere::deleteEntity(const std::string& name, msecs current_time, const NodeInfoT* source) {
     auto entity = _entities.find(name);
@@ -96,6 +98,7 @@ bool EgoSphere::deleteEntity(const std::string& name, msecs current_time, const 
         return false;
     }
     IF_FUNC(_entity_update_handler, nullptr, &entity->second, source, current_time);
+    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_DELETED)), &entity->second);
     _entities.erase(entity);
     return true;
 }

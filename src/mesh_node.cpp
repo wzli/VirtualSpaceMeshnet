@@ -88,12 +88,24 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
                 IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
             }
             // fall through
-        case PeerTracker::SOURCE_SEQUENCE_STALE:
-            if (_ego_sphere.receiveEntityUpdates(
-                        msg, _peer_tracker, _connected_peers, _time_sync.getTime()) > 0) {
-                Error error(STRERR(ENTITY_UPDATES_RECEIVED));
-                IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
+        case PeerTracker::SOURCE_SEQUENCE_STALE: {
+            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATES_RECEIVED)), buffer,
+                    len);
+            auto forward_entities = _ego_sphere.receiveEntityUpdates(
+                    _fbb, msg, _peer_tracker, _connected_peers, _time_sync.getTime());
+            if (!forward_entities.empty()) {
+                // write forward message
+                MessageBuilder msg_builder(_fbb);
+                msg_builder.add_timestamp(msg->timestamp());
+                msg_builder.add_hops(msg->hops() + 1);
+                msg_builder.add_source(NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()));
+                msg_builder.add_entities(_fbb.CreateVector(forward_entities));
+                _fbb.Finish(msg_builder.Finish());
+                // forward message
+                _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
+                IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_SENT)));
             }
+        }
             // fall through
         default:
             break;

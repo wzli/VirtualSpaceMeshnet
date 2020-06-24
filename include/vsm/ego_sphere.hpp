@@ -27,13 +27,14 @@ public:
         // Info
         // Debug
         ENTITY_CREATED,
+        ENTITY_DELETED,
         ENTITY_EXPIRED,
-        ENTITY_RANGE_EXCEEDED,
         ENTITY_TIMESTAMPS_TRIMMED,
         // Trace
         ENTITY_UPDATED,
         ENTITY_ALREADY_RECEIVED,
         ENTITY_NEAREST_FILTERED,
+        ENTITY_RANGE_EXCEEDED,
     };
 
     struct Config {
@@ -57,7 +58,8 @@ public:
             , _entity_update_handler(std::move(_config.entity_update_handler))
             , _logger(std::move(logger)){};
 
-    int receiveEntityUpdates(const Message* msg, const PeerTracker& peer_tracker,
+    std::vector<fb::Offset<Entity>> receiveEntityUpdates(fb::FlatBufferBuilder& fbb,
+            const Message* msg, const PeerTracker& peer_tracker,
             const std::vector<std::string>& connected_peers, msecs current_time);
 
     bool insertEntityTimestamp(std::string name, msecs timestamp);

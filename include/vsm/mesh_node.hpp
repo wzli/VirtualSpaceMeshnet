@@ -39,6 +39,7 @@ public:
             return std::chrono::duration_cast<msecs>(
                     std::chrono::steady_clock::now().time_since_epoch());
         };
+        msecs entity_expiry_interval = msecs(1000);
     };
 
     // no copy or move since there are callbacks anchored
@@ -51,8 +52,8 @@ public:
 
     using EntitiesCallback =
             std::function<void(const EgoSphere::EntityLookup& entities, msecs current_time)>;
-    void updateEntities(const std::vector<EntityT>& entity_updates, bool expiry_check = true,
-            const EntitiesCallback& callback = nullptr);
+    void updateEntities(
+            const std::vector<EntityT>& entity_updates, const EntitiesCallback& callback = nullptr);
 
     // accesors
     PeerTracker& getPeerTracker() { return _peer_tracker; }
@@ -71,10 +72,9 @@ public:
 
 private:
     // internall callbacks
-    void sendPeerUpdates();
     void receiveMessageHandler(const void* buffer, size_t len);
+    void sendPeerUpdates();
 
-    std::mutex _ego_sphere_mutex;
     EgoSphere _ego_sphere;
     PeerTracker _peer_tracker;
     TimeSync<msecs> _time_sync;
@@ -83,6 +83,8 @@ private:
     flatbuffers::FlatBufferBuilder _fbb;
     std::vector<std::string> _connected_peers;
     std::vector<std::string> _recipients_buffer;
+    std::mutex _entities_mutex;
+    std::mutex _transmit_mutex;
 };
 
 }  // namespace vsm

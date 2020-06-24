@@ -16,13 +16,24 @@ MeshNode::MeshNode(Config config)
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
+    // register receive handler
     if (int err_code = _transport->addReceiver(
                 [this](const void* buffer, size_t len) { receiveMessageHandler(buffer, len); })) {
         Error error(STRERR(ADD_MESSAGE_HANDLER_FAIL), err_code);
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
+    // register peer update timer
     if (0 > _transport->addTimer(config.peer_update_interval, [this](int) { sendPeerUpdates(); })) {
+        Error error(STRERR(ADD_TIMER_FAIL));
+        IF_PTR(_logger, log, Logger::ERROR, error);
+        throw error;
+    }
+    // register entity expiry timer
+    if (0 > _transport->addTimer(config.entity_expiry_interval, [this](int) {
+            const std::lock_guard<std::mutex> lock(_entities_mutex);
+            _ego_sphere.expireEntities(_time_sync.getTime(), &_peer_tracker.getNodeInfo());
+        })) {
         Error error(STRERR(ADD_TIMER_FAIL));
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
@@ -31,15 +42,21 @@ MeshNode::MeshNode(Config config)
     IF_PTR(_logger, log, Logger::INFO, error);
 }
 
-void MeshNode::updateEntities(const std::vector<EntityT>& entity_updates, bool expiry_check,
-        const EntitiesCallback& callback) {
-    const std::lock_guard<std::mutex> lock(_ego_sphere_mutex);
+void MeshNode::updateEntities(
+        const std::vector<EntityT>& entity_updates, const EntitiesCallback& callback) {
+    const std::lock_guard<std::mutex> lock(_entities_mutex);
 }
 
 void MeshNode::sendPeerUpdates() {
     _fbb.Clear();
     // get peer rankings
     auto ranked_peers = _peer_tracker.updatePeerRankings(_fbb, _recipients_buffer);
+    // write message
+    MessageBuilder msg_builder(_fbb);
+    msg_builder.add_timestamp(_time_sync.getTime().count());
+    msg_builder.add_source(NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()));
+    msg_builder.add_peers(_fbb.CreateVector(ranked_peers));
+    _fbb.Finish(msg_builder.Finish());
     // create iterators for updating connections
     struct BackAssigner {
         using value_type = std::string;
@@ -48,20 +65,19 @@ void MeshNode::sendPeerUpdates() {
     };
     BackAssigner disconnector{[this](const std::string& addr) { _transport->disconnect(addr); }};
     BackAssigner connector{[this](const std::string& addr) { _transport->connect(addr); }};
-    // update transport connections
-    std::set_difference(_connected_peers.begin(), _connected_peers.end(),
-            _recipients_buffer.begin(), _recipients_buffer.end(), std::back_inserter(disconnector));
-    std::set_difference(_recipients_buffer.begin(), _recipients_buffer.end(),
-            _connected_peers.begin(), _connected_peers.end(), std::back_inserter(connector));
+    {
+        // lock transport
+        const std::lock_guard<std::mutex> lock(_transmit_mutex);
+        // update transport connections
+        std::set_difference(_connected_peers.begin(), _connected_peers.end(),
+                _recipients_buffer.begin(), _recipients_buffer.end(),
+                std::back_inserter(disconnector));
+        std::set_difference(_recipients_buffer.begin(), _recipients_buffer.end(),
+                _connected_peers.begin(), _connected_peers.end(), std::back_inserter(connector));
+        // send message
+        _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
+    }
     _connected_peers.swap(_recipients_buffer);
-    // write message
-    MessageBuilder msg_builder(_fbb);
-    msg_builder.add_timestamp(_time_sync.getTime().count());
-    msg_builder.add_source(NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()));
-    msg_builder.add_peers(_fbb.CreateVector(ranked_peers));
-    _fbb.Finish(msg_builder.Finish());
-    // send message
-    _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(PEER_UPDATES_SENT)));
 }
 
@@ -96,8 +112,13 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         case PeerTracker::SOURCE_SEQUENCE_STALE: {
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATES_RECEIVED)), buffer,
                     len);
-            auto forward_entities = _ego_sphere.receiveEntityUpdates(
-                    _fbb, msg, _peer_tracker, _connected_peers, _time_sync.getTime());
+            std::vector<fb::Offset<Entity>> forward_entities;
+            {
+                // lock ego sphere during entity modification
+                const std::lock_guard<std::mutex> lock(_entities_mutex);
+                forward_entities = _ego_sphere.receiveEntityUpdates(
+                        _fbb, msg, _peer_tracker, _connected_peers, _time_sync.getTime());
+            }
             if (!forward_entities.empty()) {
                 // write forward message
                 MessageBuilder msg_builder(_fbb);
@@ -106,8 +127,11 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
                 msg_builder.add_source(NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()));
                 msg_builder.add_entities(_fbb.CreateVector(forward_entities));
                 _fbb.Finish(msg_builder.Finish());
-                // forward message
-                _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
+                {
+                    // lock transport and forwrad message
+                    const std::lock_guard<std::mutex> lock(_transmit_mutex);
+                    _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
+                }
                 IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_SENT)));
             }
         }

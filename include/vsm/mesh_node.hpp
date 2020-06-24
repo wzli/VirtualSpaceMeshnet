@@ -10,6 +10,15 @@
 
 namespace vsm {
 
+using EntitiesCallback = std::function<void(const EgoSphere::EntityLookup& entities)>;
+
+struct MessageBuffer : public fb::DetachedBuffer {
+    using fb::DetachedBuffer::DetachedBuffer;
+    MessageBuffer(fb::DetachedBuffer&& buffer)
+            : fb::DetachedBuffer(std::move(buffer)){};
+    operator Message*() { return fb::GetMutableRoot<Message>(data()); }
+};
+
 class MeshNode {
 public:
     enum ErrorType {
@@ -54,12 +63,11 @@ public:
     MeshNode(Config config);
 
     // entities interface
-    using EntitiesCallback = std::function<void(const EgoSphere::EntityLookup& entities)>;
     void readEntities(const EntitiesCallback& entities_callback) {
         const std::lock_guard<std::mutex> lock(_entities_mutex);
         entities_callback(_ego_sphere.getEntities());
     }
-    void updateEntities(const std::vector<EntityT>& entity_updates);
+    MessageBuffer updateEntities(const std::vector<EntityT>& entity_updates);
 
     // accesors
     PeerTracker& getPeerTracker() { return _peer_tracker; }
@@ -78,7 +86,7 @@ public:
 
 private:
     // internall callbacks
-    void forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
+    int forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
     void sendPeerUpdates();
     void receiveMessageHandler(const void* buffer, size_t len);
 

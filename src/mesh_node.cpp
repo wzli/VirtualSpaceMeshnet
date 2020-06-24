@@ -44,7 +44,45 @@ MeshNode::MeshNode(Config config)
 
 void MeshNode::updateEntities(
         const std::vector<EntityT>& entity_updates, const EntitiesCallback& callback) {
-    const std::lock_guard<std::mutex> lock(_entities_mutex);
+    // record time
+    auto timestamp = _time_sync.getTime();
+    // write message in
+    fb::FlatBufferBuilder fbb_in;
+    std::vector<fb::Offset<Entity>> entities;
+    for (const auto& entity : entity_updates) {
+        entities.emplace_back(Entity::Pack(fbb_in, &entity));
+    }
+    fbb_in.Finish(CreateMessage(fbb_in,
+            timestamp.count(),                                     // timestamp
+            0,                                                     // hops
+            NodeInfo::Pack(fbb_in, &_peer_tracker.getNodeInfo()),  // source
+            {},                                                    // peers
+            fbb_in.CreateVector(entities)                          // entities
+            ));
+    auto msg_in = GetRoot<Message>(fbb_in.GetBufferPointer());
+    // write message out
+    fb::FlatBufferBuilder fbb_out;
+    {
+        // lock entities
+        const std::lock_guard<std::mutex> lock(_entities_mutex);
+        // update entities
+        entities = _ego_sphere.receiveEntityUpdates(fbb_out, msg_in, _peer_tracker, {}, timestamp);
+        // trigger callback after update
+        IF_FUNC(callback, _ego_sphere.getEntities(), timestamp);
+    }
+    // write message out
+    fbb_out.Finish(CreateMessage(fbb_out,
+            timestamp.count(),                                      // timestamp
+            0,                                                      // hops
+            NodeInfo::Pack(fbb_out, &_peer_tracker.getNodeInfo()),  // source
+            {},                                                     // peers
+            fbb_out.CreateVector(entities)                          // entities
+            ));
+    {
+        // lock transport and send message
+        const std::lock_guard<std::mutex> lock(_transmit_mutex);
+        _transport->transmit(fbb_out.GetBufferPointer(), fbb_out.GetSize());
+    }
 }
 
 void MeshNode::sendPeerUpdates() {

@@ -30,11 +30,9 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         }
         // find previous record of entity
         auto old_entity = _entities.find(name);
-        // don't filter if source is self, otherwise use filter of original entity if it exists
-        Filter filter = source && source->address == peer_tracker.getNodeInfo().address
-                                ? Filter::ALL
-                                : old_entity == _entities.end() ? entity->filter()
-                                                                : old_entity->second.filter;
+        // use filter of original entity if it exists
+        Filter filter =
+                old_entity == _entities.end() ? entity->filter() : old_entity->second.filter;
         // reject if entity is missing coordinates and range or proximity filter is enabled
         if (!entity->coordinates() && (entity->range() || filter == Filter::NEAREST)) {
             IF_PTR(_logger, log, Logger::WARN, Error(STRERR(ENTITY_COORDINATES_MISSING)), entity);

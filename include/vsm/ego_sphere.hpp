@@ -45,7 +45,6 @@ public:
     struct EntityTimestamp {
         std::string name;
         msecs timestamp;
-
         bool operator<(const EntityTimestamp& rhs) const {
             return timestamp == rhs.timestamp ? name < rhs.name : timestamp < rhs.timestamp;
         }

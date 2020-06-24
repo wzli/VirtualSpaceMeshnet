@@ -22,16 +22,20 @@ public:
         // Info
         INITIALIZED,
         PEER_UPDATES_SENT,
-        // Debug
         ENTITY_UPDATES_SENT,
+        // Debug
+        ENTITY_UPDATES_FORWARDED,
         // Trace
         SOURCE_UPDATE_RECEIVED,
         PEER_UPDATES_RECEIVED,
         ENTITY_UPDATES_RECEIVED,
+        TIME_SYNCED,
     };
 
     struct Config {
         msecs peer_update_interval = msecs(1000);
+        msecs entity_expiry_interval = msecs(1000);
+        EgoSphere::Config ego_sphere;
         PeerTracker::Config peer_tracker;
         std::shared_ptr<Transport> transport;
         std::shared_ptr<Logger> logger;
@@ -39,7 +43,6 @@ public:
             return std::chrono::duration_cast<msecs>(
                     std::chrono::steady_clock::now().time_since_epoch());
         };
-        msecs entity_expiry_interval = msecs(1000);
     };
 
     // no copy or move since there are callbacks anchored
@@ -50,10 +53,13 @@ public:
 
     MeshNode(Config config);
 
-    using EntitiesCallback =
-            std::function<void(const EgoSphere::EntityLookup& entities, msecs current_time)>;
-    void updateEntities(
-            const std::vector<EntityT>& entity_updates, const EntitiesCallback& callback = nullptr);
+    // entities interface
+    using EntitiesCallback = std::function<void(const EgoSphere::EntityLookup& entities)>;
+    void readEntities(const EntitiesCallback& entities_callback) {
+        const std::lock_guard<std::mutex> lock(_entities_mutex);
+        entities_callback(_ego_sphere.getEntities());
+    }
+    void updateEntities(const std::vector<EntityT>& entity_updates);
 
     // accesors
     PeerTracker& getPeerTracker() { return _peer_tracker; }
@@ -72,8 +78,9 @@ public:
 
 private:
     // internall callbacks
-    void receiveMessageHandler(const void* buffer, size_t len);
+    void forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
     void sendPeerUpdates();
+    void receiveMessageHandler(const void* buffer, size_t len);
 
     EgoSphere _ego_sphere;
     PeerTracker _peer_tracker;

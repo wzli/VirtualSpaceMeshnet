@@ -6,7 +6,7 @@ namespace vsm {
 using namespace flatbuffers;
 
 MeshNode::MeshNode(Config config)
-        : _ego_sphere(EgoSphere::Config())
+        : _ego_sphere(std::move(config.ego_sphere), config.logger)
         , _peer_tracker(std::move(config.peer_tracker), config.logger)
         , _time_sync(std::move(config.local_clock))
         , _transport(std::move(config.transport))
@@ -38,14 +38,13 @@ MeshNode::MeshNode(Config config)
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
-    Error error = Error("Mesh node " STRERR(INITIALIZED));
-    IF_PTR(_logger, log, Logger::INFO, error);
+    IF_PTR(_logger, log, Logger::INFO, Error(STRERR(MeshNode::INITIALIZED)));
 }
 
-void MeshNode::updateEntities(
-        const std::vector<EntityT>& entity_updates, const EntitiesCallback& callback) {
-    // record time
-    auto timestamp = _time_sync.getTime();
+void MeshNode::updateEntities(const std::vector<EntityT>& entity_updates) {
+    if (entity_updates.empty()) {
+        return;
+    }
     // write message in
     fb::FlatBufferBuilder fbb_in;
     std::vector<fb::Offset<Entity>> entities;
@@ -53,36 +52,42 @@ void MeshNode::updateEntities(
         entities.emplace_back(Entity::Pack(fbb_in, &entity));
     }
     fbb_in.Finish(CreateMessage(fbb_in,
-            timestamp.count(),                                     // timestamp
-            0,                                                     // hops
+            _time_sync.getTime().count(),                          // timestamp
+            -1,                                                    // hops
             NodeInfo::Pack(fbb_in, &_peer_tracker.getNodeInfo()),  // source
             {},                                                    // peers
             fbb_in.CreateVector(entities)                          // entities
             ));
-    auto msg_in = GetRoot<Message>(fbb_in.GetBufferPointer());
-    // write message out
-    fb::FlatBufferBuilder fbb_out;
+    fb::FlatBufferBuilder fbb_out(fbb_in.GetSize());
+    forwardEntityUpdates(fbb_out, GetRoot<Message>(fbb_in.GetBufferPointer()));
+    IF_PTR(_logger, log, Logger::INFO, Error(STRERR(ENTITY_UPDATES_SENT)));
+}
+
+void MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg) {
+    fbb.Clear();
+    std::vector<fb::Offset<Entity>> forward_entities;
     {
-        // lock entities
+        // lock and update ego sphere entities
         const std::lock_guard<std::mutex> lock(_entities_mutex);
-        // update entities
-        entities = _ego_sphere.receiveEntityUpdates(fbb_out, msg_in, _peer_tracker, {}, timestamp);
-        // trigger callback after update
-        IF_FUNC(callback, _ego_sphere.getEntities(), timestamp);
+        forward_entities = _ego_sphere.receiveEntityUpdates(
+                fbb, msg, _peer_tracker, _connected_peers, _time_sync.getTime());
     }
-    // write message out
-    fbb_out.Finish(CreateMessage(fbb_out,
-            timestamp.count(),                                      // timestamp
-            0,                                                      // hops
-            NodeInfo::Pack(fbb_out, &_peer_tracker.getNodeInfo()),  // source
-            {},                                                     // peers
-            fbb_out.CreateVector(entities)                          // entities
-            ));
+    if (forward_entities.empty()) {
+        return;
+    }
+    // write forward message
+    MessageBuilder msg_builder(fbb);
+    msg_builder.add_timestamp(msg->timestamp());
+    msg_builder.add_hops(msg->hops() + 1);
+    msg_builder.add_source(NodeInfo::Pack(fbb, &_peer_tracker.getNodeInfo()));
+    msg_builder.add_entities(fbb.CreateVector(forward_entities));
+    fbb.Finish(msg_builder.Finish());
     {
-        // lock transport and send message
+        // lock transport and forwrad message
         const std::lock_guard<std::mutex> lock(_transmit_mutex);
-        _transport->transmit(fbb_out.GetBufferPointer(), fbb_out.GetSize());
+        _transport->transmit(fbb.GetBufferPointer(), fbb.GetSize());
     }
+    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_FORWARDED)));
 }
 
 void MeshNode::sendPeerUpdates() {
@@ -136,6 +141,7 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
             if (msg->hops() == 0 && msg->timestamp() > 0) {
                 float weight = 1.0f / (1 + _connected_peers.size());
                 _time_sync.syncTime(msecs(msg->timestamp()), weight);
+                IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(TIME_SYNCED)), buffer, len);
             }
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(SOURCE_UPDATE_RECEIVED)), buffer, len);
             // fall through
@@ -147,32 +153,12 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
                 IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
             }
             // fall through
-        case PeerTracker::SOURCE_SEQUENCE_STALE: {
-            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATES_RECEIVED)), buffer,
-                    len);
-            std::vector<fb::Offset<Entity>> forward_entities;
-            {
-                // lock ego sphere during entity modification
-                const std::lock_guard<std::mutex> lock(_entities_mutex);
-                forward_entities = _ego_sphere.receiveEntityUpdates(
-                        _fbb, msg, _peer_tracker, _connected_peers, _time_sync.getTime());
+        case PeerTracker::SOURCE_SEQUENCE_STALE:
+            if (msg->entities()) {
+                Error error(STRERR(ENTITY_UPDATES_RECEIVED));
+                IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
+                forwardEntityUpdates(_fbb, msg);
             }
-            if (!forward_entities.empty()) {
-                // write forward message
-                MessageBuilder msg_builder(_fbb);
-                msg_builder.add_timestamp(msg->timestamp());
-                msg_builder.add_hops(msg->hops() + 1);
-                msg_builder.add_source(NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()));
-                msg_builder.add_entities(_fbb.CreateVector(forward_entities));
-                _fbb.Finish(msg_builder.Finish());
-                {
-                    // lock transport and forwrad message
-                    const std::lock_guard<std::mutex> lock(_transmit_mutex);
-                    _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
-                }
-                IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_SENT)));
-            }
-        }
             // fall through
         default:
             break;

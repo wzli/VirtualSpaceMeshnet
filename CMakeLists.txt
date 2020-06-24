@@ -52,6 +52,7 @@ if(VSM_BUILD_TESTS)
     test/test_dummy.cpp
     test/test_logger.cpp
     test/test_mesh_node.cpp
+    test/test_ego_sphere.cpp
     test/test_peer_tracker.cpp
     test/test_zmq_transport.cpp
   )

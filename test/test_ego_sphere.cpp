@@ -226,9 +226,9 @@ TEST_CASE("4 corners", "[ego_sphere]") {
         error_counts[i].clear();
     }
 
-    // test nearest filter
+    // test nearest filter (closest to self)
     entities.back().name = "b";
-    entities.back().coordinates = {1, 0};
+    entities.back().coordinates = {0, 0};
     entities.back().filter = Filter::NEAREST;
     entities.back().expiry = 1000;
     entities.back().range = 10;
@@ -241,10 +241,55 @@ TEST_CASE("4 corners", "[ego_sphere]") {
         }
     }
 
-    REQUIRE(error_counts[0]["ENTITY_UPDATES_FORWARDED"] == 1);
-    REQUIRE(error_counts[1]["ENTITY_UPDATES_FORWARDED"] == 1);
+    REQUIRE(error_counts[0]["ENTITY_UPDATES_SENT"] == 1);
+    for (size_t i = 0; i < configs.size(); ++i) {
+        REQUIRE(error_counts[i]["ENTITY_CREATED"] == 1);
+        REQUIRE(error_counts[i]["ENTITY_UPDATES_FORWARDED"] == 1);
+        REQUIRE(error_counts[i].count("ENTITY_UPDATES_RECEIVED") == !!i);
+        error_counts[i].clear();
+    }
+
+    // test nearest filter (closest to adjacent)
+    entities.back().name = "c";
+    entities.back().coordinates = {0, 1};
+    entities.back().filter = Filter::NEAREST;
+    entities.back().expiry = 1000;
+    entities.back().range = 10;
+
+    // exchange messages
+    REQUIRE(mesh_nodes[0].updateEntities(entities).get());
+    for (int i = 0; i < 10; ++i) {
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
+    }
+
+    REQUIRE(error_counts[0]["ENTITY_UPDATES_SENT"] == 1);
+    for (size_t i = 0; i < configs.size(); ++i) {
+        REQUIRE(error_counts[i]["ENTITY_CREATED"] == 1);
+        REQUIRE(error_counts[i]["ENTITY_UPDATES_FORWARDED"] == 1);
+        REQUIRE(error_counts[i].count("ENTITY_UPDATES_RECEIVED") == !!i);
+        error_counts[i].clear();
+    }
+
+    // test nearest filter (closest to opposite)
+    entities.back().name = "d";
+    entities.back().coordinates = {1, 1};
+    entities.back().filter = Filter::NEAREST;
+    entities.back().expiry = 1000;
+    entities.back().range = 10;
+
+    // exchange messages
+    REQUIRE(mesh_nodes[0].updateEntities(entities).get());
+    for (int i = 0; i < 10; ++i) {
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
+    }
+
+    REQUIRE(error_counts[1]["ENTITY_NEAREST_FILTERED"] == 1);
     REQUIRE(error_counts[2]["ENTITY_NEAREST_FILTERED"] == 1);
-    REQUIRE(error_counts[3]["ENTITY_NEAREST_FILTERED"] == 1);
+    REQUIRE(error_counts[3].count("ENTITY_UPDATES_RECEIVED") == 0);
 
 #if 0
     // print error codes in order of frequency

@@ -44,18 +44,22 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         switch (filter) {
             case Filter::ALL:
                 break;
-            case Filter::NEAREST:
+            case Filter::NEAREST: {
                 if (!source || source->address.empty()) {
                     IF_PTR(_logger, log, Logger::WARN, Error(STRERR(MESSAGE_SOURCE_INVALID)), msg);
                     continue;
                 }
-                if (peer_tracker.nearestPeer(*entity->coordinates(), connected_peers)
-                                .node_info.address != source->address) {
-                    IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_NEAREST_FILTERED)),
-                            entity);
+                const auto& nearest_address =
+                        peer_tracker.nearestPeer(*entity->coordinates(), connected_peers)
+                                .node_info.address;
+                if ((nearest_address != source->address) &&
+                        (nearest_address != peer_tracker.getNodeInfo().address)) {
+                    Error error(STRERR(ENTITY_NEAREST_FILTERED));
+                    IF_PTR(_logger, log, Logger::TRACE, error, entity);
                     continue;
                 }
                 break;
+            }
         }
         // insert entity timestamp once filter passes
         insertEntityTimestamp(name, msecs(msg->timestamp()));

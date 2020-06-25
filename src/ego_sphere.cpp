@@ -78,7 +78,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
             continue;
         }
         // checks pass, proceed to update entity
-        EntityUpdate new_entity{{}, msecs(msg->timestamp()), current_time};
+        EntityUpdate new_entity{{}, current_time, msecs(msg->timestamp()), msg->hops()};
         entity->UnPackTo(&new_entity.entity);
         if (old_entity == _entities.end()) {
             // create new entity

@@ -36,8 +36,9 @@ public:
 
     struct EntityUpdate {
         EntityT entity;
-        msecs source_timestamp;
         msecs receive_timestamp;
+        msecs source_timestamp;
+        uint32_t hops;
     };
 
     using EntityUpdateHandler = std::function<void(

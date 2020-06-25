@@ -70,7 +70,10 @@ public:
     MessageBuffer updateEntities(const std::vector<EntityT>& entity_updates);
     const Message* forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
 
-    // accesors
+    // accesors (FYI they are not thread safe)
+    EgoSphere& getEgoSphere() { return _ego_sphere; }
+    const EgoSphere& getEgoSphere() const { return _ego_sphere; }
+
     PeerTracker& getPeerTracker() { return _peer_tracker; }
     const PeerTracker& getPeerTracker() const { return _peer_tracker; }
 

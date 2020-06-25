@@ -9,6 +9,7 @@
 using namespace vsm;
 
 TEST_CASE("Single World", "[ego_sphere]") {
+#if 0
     auto entity_update_handler = [](EntityT* new_version, const EntityT* old_version,
                                          const NodeInfoT* source, msecs timestamp) {
         std::cout << "entity_update: ts " << timestamp.count() << " source "
@@ -16,13 +17,14 @@ TEST_CASE("Single World", "[ego_sphere]") {
                   << (old_version ? old_version->name : "null") << " new "
                   << (new_version ? new_version->name : "null") << std::endl;
     };
+#endif
     MeshNode::Config config{
             msecs(1000),  // peer update interval
             msecs(1000),  // entity expiry interval
             {
                     // ego sphere
-                    10,                    // timestamp_lookup_size
-                    entity_update_handler  // entity_update_handler
+                    10,       // timestamp_lookup_size
+                    nullptr,  // entity_update_handler
             },
             {
                     // peer_manager
@@ -41,8 +43,10 @@ TEST_CASE("Single World", "[ego_sphere]") {
     config.logger->addLogHandler(
             Logger::TRACE, [&config, &error_counts](msecs time, Logger::Level level, Error error,
                                    const void*, size_t) {
+                (void) time;
+                (void) level;
                 ++error_counts[error.what()];
-#if 1
+#if 0
                 if (error.type == PeerTracker::PEER_COORDINATES_MISSING) {
                     return;
                 }
@@ -98,9 +102,11 @@ TEST_CASE("Single World", "[ego_sphere]") {
         REQUIRE(entity_lookup.size() == 2);
         REQUIRE(entity_lookup.count("b"));
         REQUIRE(entity_lookup.count("e"));
+#if 0
         for (const auto& entity : entity_lookup) {
             std::cout << entity.first << std::endl;
         }
+#endif
     });
 
     // check returned message for expected entity rejections
@@ -124,13 +130,51 @@ TEST_CASE("Single World", "[ego_sphere]") {
 
     // test timestamp lookup trimming
     REQUIRE(!error_counts.count("ENTITY_TIMESTAMPS_TRIMMED"));
-    for (size_t i = 2; i < 2 + config.ego_sphere.timestamp_lookup_size; ++i) {
+    for (size_t i = 100; i < 100 + config.ego_sphere.timestamp_lookup_size; ++i) {
         msg.get()->mutate_timestamp(i);
         REQUIRE(mesh_node.forwardEntityUpdates(fbb, msg.get()));
     }
     REQUIRE(error_counts.count("ENTITY_TIMESTAMPS_TRIMMED"));
 
+#if 0
     for (const auto& error_count : error_counts) {
         std::cout << error_count.second << " : " << error_count.first << std::endl;
     }
+#endif
+}
+
+TEST_CASE("4 corners", "[ego_sphere]") {
+    auto make_config = [](int id, std::vector<float> coords) {
+        return MeshNode::Config{
+                msecs(1),     // peer update interval
+                msecs(1000),  // entity expiry interval
+                {},
+                {
+                        // peer_manager
+                        "node" + std::to_string(id),                  // name
+                        "udp://127.0.0.1:1151" + std::to_string(id),  // address
+                        std::move(coords),                            // coordinates
+                        2,                                            // connection_degree
+                },
+                std::make_shared<ZmqTransport>("udp://*:1151" + std::to_string(id)),  // transport
+                std::make_shared<Logger>(),                                           // logger
+        };
+    };
+    std::vector<std::unordered_map<std::string, int>> error_counts;
+    auto make_log_handler = [&error_counts](int i) {
+        return [&error_counts, i](
+                       msecs time, Logger::Level level, Error error, const void*, size_t) {
+            ++error_counts[i][error.what()];
+            if (error.type == PeerTracker::PEER_COORDINATES_MISSING) {
+                return;
+            }
+            std::cout << time.count() << " " << i << " lv: " << level << ", type: " << error.type
+                      << ", code: " << error.code << ", msg: " << error.what() << std::endl;
+        };
+    };
+    std::deque<MeshNode> mesh_nodes;
+    mesh_nodes.emplace_back(make_config(0, {0, 0}));
+    mesh_nodes.emplace_back(make_config(1, {0, 1}));
+    mesh_nodes.emplace_back(make_config(2, {1, 0}));
+    mesh_nodes.emplace_back(make_config(3, {1, 1}));
 }

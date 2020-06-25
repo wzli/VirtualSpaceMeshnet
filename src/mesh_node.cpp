@@ -59,14 +59,14 @@ MessageBuffer MeshNode::updateEntities(const std::vector<EntityT>& entity_update
             fbb_in.CreateVector(entities)                          // entities
             ));
     fb::FlatBufferBuilder fbb_out(fbb_in.GetSize());
-    if (forwardEntityUpdates(fbb_out, GetRoot<Message>(fbb_in.GetBufferPointer())) == 0) {
+    if (!forwardEntityUpdates(fbb_out, GetRoot<Message>(fbb_in.GetBufferPointer()))) {
         return {};
     }
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(ENTITY_UPDATES_SENT)));
     return MessageBuffer(fbb_out.Release());
 }
 
-int MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg) {
+const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg) {
     fbb.Clear();
     std::vector<fb::Offset<Entity>> forward_entities;
     {
@@ -76,7 +76,7 @@ int MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* ms
                 fbb, msg, _peer_tracker, _connected_peers, _time_sync.getTime());
     }
     if (forward_entities.empty()) {
-        return 0;
+        return nullptr;
     }
     // write forward message
     MessageBuilder msg_builder(fbb);
@@ -90,8 +90,9 @@ int MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* ms
         const std::lock_guard<std::mutex> lock(_transmit_mutex);
         _transport->transmit(fbb.GetBufferPointer(), fbb.GetSize());
     }
-    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_FORWARDED)));
-    return forward_entities.size();
+    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_FORWARDED)),
+            fbb.GetBufferPointer(), fbb.GetSize());
+    return GetRoot<Message>(fbb.GetBufferPointer());
 }
 
 void MeshNode::sendPeerUpdates() {

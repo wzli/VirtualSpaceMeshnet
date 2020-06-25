@@ -16,7 +16,7 @@ struct MessageBuffer : public fb::DetachedBuffer {
     using fb::DetachedBuffer::DetachedBuffer;
     MessageBuffer(fb::DetachedBuffer&& buffer)
             : fb::DetachedBuffer(std::move(buffer)){};
-    operator Message*() { return fb::GetMutableRoot<Message>(data()); }
+    const Message* get() const { return data() ? fb::GetRoot<Message>(data()) : nullptr; }
 };
 
 class MeshNode {
@@ -68,6 +68,7 @@ public:
         entities_callback(_ego_sphere.getEntities());
     }
     MessageBuffer updateEntities(const std::vector<EntityT>& entity_updates);
+    const Message* forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
 
     // accesors
     PeerTracker& getPeerTracker() { return _peer_tracker; }
@@ -86,7 +87,6 @@ public:
 
 private:
     // internall callbacks
-    int forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
     void sendPeerUpdates();
     void receiveMessageHandler(const void* buffer, size_t len);
 

@@ -79,12 +79,13 @@ const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const 
         return nullptr;
     }
     // write forward message
-    MessageBuilder msg_builder(fbb);
-    msg_builder.add_timestamp(msg->timestamp());
-    msg_builder.add_hops(msg->hops() + 1);
-    msg_builder.add_source(NodeInfo::Pack(fbb, &_peer_tracker.getNodeInfo()));
-    msg_builder.add_entities(fbb.CreateVector(forward_entities));
-    fbb.Finish(msg_builder.Finish());
+    fbb.Finish(CreateMessage(fbb,
+            msg->timestamp(),                                   // timestamp
+            msg->hops() + 1,                                    // hops
+            NodeInfo::Pack(fbb, &_peer_tracker.getNodeInfo()),  // source
+            {},                                                 // peers
+            fbb.CreateVector(forward_entities)                  // entities
+            ));
     {
         // lock transport and forwrad message
         const std::lock_guard<std::mutex> lock(_transmit_mutex);
@@ -100,11 +101,12 @@ void MeshNode::sendPeerUpdates() {
     // get peer rankings
     auto ranked_peers = _peer_tracker.updatePeerRankings(_fbb, _recipients_buffer);
     // write message
-    MessageBuilder msg_builder(_fbb);
-    msg_builder.add_timestamp(_time_sync.getTime().count());
-    msg_builder.add_source(NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()));
-    msg_builder.add_peers(_fbb.CreateVector(ranked_peers));
-    _fbb.Finish(msg_builder.Finish());
+    _fbb.Finish(CreateMessage(_fbb,
+            _time_sync.getTime().count(),                        // timestamp
+            0,                                                   // hops
+            NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()),  // source
+            _fbb.CreateVector(ranked_peers)                      // peers
+            ));
     // create iterators for updating connections
     struct BackAssigner {
         using value_type = std::string;

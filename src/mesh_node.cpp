@@ -86,10 +86,19 @@ const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const 
             {},                                                 // peers
             fbb.CreateVector(forward_entities)                  // entities
             ));
+    // don't send message back to the original source
+    std::string source_address;
+    if (msg->source() && msg->source()->address()) {
+        source_address = msg->source()->address()->str();
+    }
     {
         // lock transport and forwrad message
         const std::lock_guard<std::mutex> lock(_transmit_mutex);
+        int disconnect_error = _transport->disconnect(source_address);
         _transport->transmit(fbb.GetBufferPointer(), fbb.GetSize());
+        if (!disconnect_error) {
+            _transport->connect(source_address);
+        }
     }
     IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_FORWARDED)),
             fbb.GetBufferPointer(), fbb.GetSize());

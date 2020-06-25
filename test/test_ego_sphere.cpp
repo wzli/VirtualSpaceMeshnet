@@ -218,11 +218,11 @@ TEST_CASE("4 corners", "[ego_sphere]") {
         }
     }
 
+    REQUIRE(error_counts[0]["ENTITY_UPDATES_SENT"] == 1);
     for (size_t i = 0; i < configs.size(); ++i) {
         REQUIRE(error_counts[i]["ENTITY_CREATED"] == 1);
         REQUIRE(error_counts[i]["ENTITY_UPDATES_FORWARDED"] == 1);
-        REQUIRE(error_counts[i]["ENTITY_UPDATES_RECEIVED"] == 2);
-        REQUIRE(error_counts[i]["ENTITY_ALREADY_RECEIVED"] == (1 + !i));
+        REQUIRE(error_counts[i].count("ENTITY_UPDATES_RECEIVED") == !!i);
         error_counts[i].clear();
     }
 
@@ -256,7 +256,8 @@ TEST_CASE("4 corners", "[ego_sphere]") {
             iterators.emplace_back(it);
         }
         std::sort(iterators.begin(), iterators.end(), [](const Itr& a, const Itr& b) {
-            return a->second == b->second ? a->first < b->first : a->second > b->second;
+            // return a->second == b->second ? a->first < b->first : a->second > b->second;
+            return a->first < b->first;
         });
         for (const auto& it : iterators) {
             if (it->first.find("ENTITY") != std::string::npos) {

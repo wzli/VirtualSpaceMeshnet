@@ -206,6 +206,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
             for (size_t k = 0; k < config.peer_tracker.connection_degree; ++k) {
                 REQUIRE(distanceSqr(peer_rankings[k]->node_info.coordinates,
                                 mesh_node.getPeerTracker().getNodeInfo().coordinates) <= 1);
+                // plus 1 to include the monitoring node
                 REQUIRE(mesh_node.getConnectedPeers().size() ==
                         config.peer_tracker.connection_degree + 1);
             }

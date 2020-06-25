@@ -160,7 +160,13 @@ TEST_CASE("4 corners", "[ego_sphere]") {
                 std::make_shared<Logger>(),                                           // logger
         };
     };
-    std::vector<std::unordered_map<std::string, int>> error_counts;
+    std::vector<MeshNode::Config> configs{
+            make_config(0, {0, 0}),
+            make_config(1, {0, 1}),
+            make_config(2, {1, 0}),
+            make_config(3, {1, 1}),
+    };
+    std::vector<std::unordered_map<std::string, int>> error_counts(configs.size());
     auto make_log_handler = [&error_counts](int i) {
         return [&error_counts, i](
                        msecs time, Logger::Level level, Error error, const void*, size_t) {
@@ -173,8 +179,20 @@ TEST_CASE("4 corners", "[ego_sphere]") {
         };
     };
     std::deque<MeshNode> mesh_nodes;
-    mesh_nodes.emplace_back(make_config(0, {0, 0}));
-    mesh_nodes.emplace_back(make_config(1, {0, 1}));
-    mesh_nodes.emplace_back(make_config(2, {1, 0}));
-    mesh_nodes.emplace_back(make_config(3, {1, 1}));
+    for (size_t i = 0; i < configs.size(); ++i) {
+        // configs[i].logger->addLogHandler(Logger::TRACE, make_log_handler(i));
+        mesh_nodes.emplace_back(configs[i]);
+        mesh_nodes.back().getPeerTracker().latchPeer("udp://127.0.0.1:11510", 1);
+    }
+    // wait for mesh establishment
+    for (int i = 0; i < 30; ++i) {
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
+    }
+    // check mesh connection
+    for (size_t i = 0; i < configs.size(); ++i) {
+        REQUIRE(mesh_nodes[i].getConnectedPeers().size() ==
+                configs[i].peer_tracker.connection_degree);
+    }
 }

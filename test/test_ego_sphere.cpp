@@ -212,7 +212,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
 
     // exchange messages
     REQUIRE(mesh_nodes[0].updateEntities(entities).get());
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }
@@ -235,7 +235,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
 
     // exchange messages
     REQUIRE(mesh_nodes[0].updateEntities(entities).get());
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }
@@ -258,7 +258,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
 
     // exchange messages
     REQUIRE(mesh_nodes[0].updateEntities(entities).get());
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }
@@ -281,7 +281,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
 
     // exchange messages
     REQUIRE(mesh_nodes[0].updateEntities(entities).get());
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }

@@ -170,17 +170,20 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     auto make_log_handler = [&error_counts](int i) {
         return [&error_counts, i](
                        msecs time, Logger::Level level, Error error, const void*, size_t) {
+            (void) time;
+            (void) level;
             ++error_counts[i][error.what()];
             if (error.type == PeerTracker::PEER_COORDINATES_MISSING) {
                 return;
             }
+#if 0
             std::cout << time.count() << " " << i << " lv: " << level << ", type: " << error.type
                       << ", code: " << error.code << ", msg: " << error.what() << std::endl;
+#endif
         };
     };
     std::deque<MeshNode> mesh_nodes;
     for (size_t i = 0; i < configs.size(); ++i) {
-        // configs[i].logger->addLogHandler(Logger::TRACE, make_log_handler(i));
         mesh_nodes.emplace_back(configs[i]);
         mesh_nodes.back().getPeerTracker().latchPeer("udp://127.0.0.1:11510", 1);
     }
@@ -194,5 +197,72 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     for (size_t i = 0; i < configs.size(); ++i) {
         REQUIRE(mesh_nodes[i].getConnectedPeers().size() ==
                 configs[i].peer_tracker.connection_degree);
+        configs[i].logger->addLogHandler(Logger::TRACE, make_log_handler(i));
     }
+
+    // create entity message
+    std::vector<EntityT> entities;
+    // expect in range
+    entities.emplace_back();
+    entities.back().name = "a";
+    entities.back().coordinates = {-1, -1};
+    entities.back().filter = Filter::ALL;
+    entities.back().expiry = 1000;
+    entities.back().range = 10;
+
+    // exchange messages
+    REQUIRE(mesh_nodes[0].updateEntities(entities).get());
+    for (int i = 0; i < 10; ++i) {
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
+    }
+
+    for (size_t i = 0; i < configs.size(); ++i) {
+        REQUIRE(error_counts[i]["ENTITY_CREATED"] == 1);
+        REQUIRE(error_counts[i]["ENTITY_UPDATES_FORWARDED"] == 1);
+        REQUIRE(error_counts[i]["ENTITY_UPDATES_RECEIVED"] == 2);
+        REQUIRE(error_counts[i]["ENTITY_ALREADY_RECEIVED"] == (1 + !i));
+        error_counts[i].clear();
+    }
+
+    // test nearest filter
+    entities.back().name = "b";
+    entities.back().coordinates = {1, 0};
+    entities.back().filter = Filter::NEAREST;
+    entities.back().expiry = 1000;
+    entities.back().range = 10;
+
+    // exchange messages
+    REQUIRE(mesh_nodes[0].updateEntities(entities).get());
+    for (int i = 0; i < 10; ++i) {
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
+    }
+
+    REQUIRE(error_counts[0]["ENTITY_UPDATES_FORWARDED"] == 1);
+    REQUIRE(error_counts[1]["ENTITY_UPDATES_FORWARDED"] == 1);
+    REQUIRE(error_counts[2]["ENTITY_NEAREST_FILTERED"] == 1);
+    REQUIRE(error_counts[3]["ENTITY_NEAREST_FILTERED"] == 1);
+
+#if 0
+    // print error codes in order of frequency
+    for (size_t i = 0; i < configs.size(); ++i) {
+        printf("\r\nErrors for %zu\r\n", i);
+        using Itr = std::unordered_map<std::string, int>::iterator;
+        std::vector<Itr> iterators;
+        for (auto it = error_counts[i].begin(); it != error_counts[i].end(); ++it) {
+            iterators.emplace_back(it);
+        }
+        std::sort(iterators.begin(), iterators.end(), [](const Itr& a, const Itr& b) {
+            return a->second == b->second ? a->first < b->first : a->second > b->second;
+        });
+        for (const auto& it : iterators) {
+            if (it->first.find("ENTITY") != std::string::npos) {
+                std::cout << it->second << " : " << it->first << std::endl;
+            }
+        }
+    }
+#endif
 }

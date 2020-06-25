@@ -59,6 +59,7 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
+            0,             // power radius
             7,             // connection_degree
             20,            // lookup size
             0.000,         // rank decay
@@ -118,6 +119,7 @@ TEST_CASE("Nearest Peer", "[peer_tracker]") {
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
+            0,             // power radius
             7,             // connection_degree
             20,            // lookup size
             0.000,         // rank decay

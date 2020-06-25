@@ -47,6 +47,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                             "node1",                  // name
                             "udp://127.0.0.1:11611",  // address
                             {0, 0},                   // coordinates
+                            0,                        // power radius
                             1,                        // connection_degree
                             20,                       // lookup size
                             0,                        // rank decay
@@ -112,6 +113,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                         "node" + id_str,                 // name
                         "udp://127.0.0.1:115" + id_str,  // address
                         std::move(coords),               // coordinates
+                        0,                               // power radius
                         4,                               // connection_degree
                         200,                             // lookup size
                         0,                               // rank decay

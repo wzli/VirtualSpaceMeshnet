@@ -20,6 +20,7 @@ PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
     _node_info.name = std::move(_config.name);
     _node_info.address = std::move(_config.address);
     _node_info.coordinates = std::move(_config.coordinates);
+    _node_info.power_radius = _config.power_radius;
 
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(PeerTracker::INITIALIZED)));
 }

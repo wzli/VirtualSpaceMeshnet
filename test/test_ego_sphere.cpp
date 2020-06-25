@@ -23,14 +23,15 @@ TEST_CASE("Single World", "[ego_sphere]") {
             msecs(1000),  // entity expiry interval
             {
                     // ego sphere
-                    10,       // timestamp_lookup_size
-                    nullptr,  // entity_update_handler
+                    10,       // timestamp lookup size
+                    nullptr,  // entity update handler
             },
             {
-                    // peer_manager
+                    // peer manager
                     "node",                   // name
                     "udp://127.0.0.1:11511",  // address
                     {0, 0},                   // coordinates
+                    0,                        // power radius
                     4,                        // connection_degree
                     200,                      // lookup size
                     0,                        // rank decay
@@ -150,10 +151,11 @@ TEST_CASE("4 corners", "[ego_sphere]") {
                 msecs(1000),  // entity expiry interval
                 {},
                 {
-                        // peer_manager
+                        // peer manager
                         "node" + std::to_string(id),                  // name
                         "udp://127.0.0.1:1151" + std::to_string(id),  // address
                         std::move(coords),                            // coordinates
+                        0,                                            // power radius
                         2,                                            // connection_degree
                 },
                 std::make_shared<ZmqTransport>("udp://*:1151" + std::to_string(id)),  // transport

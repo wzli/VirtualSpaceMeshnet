@@ -70,6 +70,7 @@ public:
         std::string address;
         std::vector<float> coordinates;
 
+        float power_radius = 0;
         size_t connection_degree = 10;
         size_t lookup_size = 128;  // 0 is inf
         float rank_decay = 0.0f;

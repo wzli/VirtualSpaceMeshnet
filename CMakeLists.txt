@@ -49,7 +49,6 @@ if(VSM_BUILD_TESTS)
 
   # add unit tests
   add_executable(tests
-    test/test_dummy.cpp
     test/test_logger.cpp
     test/test_mesh_node.cpp
     test/test_ego_sphere.cpp

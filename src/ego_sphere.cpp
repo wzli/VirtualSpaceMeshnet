@@ -34,7 +34,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         Filter filter = source && source->address == peer_tracker.getNodeInfo().address
                                 ? Filter::ALL
                                 : old_entity == _entities.end() ? entity->filter()
-                                                                : old_entity->second.filter;
+                                                                : old_entity->second.entity.filter;
         // reject if entity is missing coordinates and range or proximity filter is enabled
         if (!entity->coordinates() && (entity->range() || filter == Filter::NEAREST)) {
             IF_PTR(_logger, log, Logger::WARN, Error(STRERR(ENTITY_COORDINATES_MISSING)), entity);
@@ -65,7 +65,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         insertEntityTimestamp(name, msecs(msg->timestamp()));
         // reject and delete if entity already expired
         if (entity->expiry() <= current_time.count()) {
-            deleteEntity(name, current_time, source.get());
+            deleteEntity(name, source.get());
             IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
             continue;
         }
@@ -73,37 +73,36 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         if (entity->range() && (entity->range() * entity->range() <
                                        distanceSqr(*entity->coordinates(),
                                                peer_tracker.getNodeInfo().coordinates))) {
-            deleteEntity(name, current_time, source.get());
+            deleteEntity(name, source.get());
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
             continue;
         }
         // checks pass, proceed to update entity
-        EntityT new_entity;
-        entity->UnPackTo(&new_entity);
+        EntityUpdate new_entity{{}, msecs(msg->timestamp()), current_time};
+        entity->UnPackTo(&new_entity.entity);
         if (old_entity == _entities.end()) {
             // create new entity
-            IF_FUNC(_entity_update_handler, &new_entity, nullptr, source.get(), current_time);
+            IF_FUNC(_entity_update_handler, &new_entity, nullptr, source.get());
             old_entity = _entities.emplace(name, std::move(new_entity)).first;
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_CREATED)), entity);
         } else {
             // update existing entity
-            IF_FUNC(_entity_update_handler, &new_entity, &old_entity->second, source.get(),
-                    current_time);
+            IF_FUNC(_entity_update_handler, &new_entity, &old_entity->second, source.get());
             old_entity->second = std::move(new_entity);
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
         }
         // write updated entity to forward message
-        forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second));
+        forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second.entity));
     }
     return forward_entities;
 }
 
-bool EgoSphere::deleteEntity(const std::string& name, msecs current_time, const NodeInfoT* source) {
+bool EgoSphere::deleteEntity(const std::string& name, const NodeInfoT* source) {
     auto entity = _entities.find(name);
     if (entity == _entities.end()) {
         return false;
     }
-    IF_FUNC(_entity_update_handler, nullptr, &entity->second, source, current_time);
+    IF_FUNC(_entity_update_handler, nullptr, &entity->second, source);
     IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_DELETED)), &entity->second);
     _entities.erase(entity);
     return true;
@@ -111,8 +110,8 @@ bool EgoSphere::deleteEntity(const std::string& name, msecs current_time, const 
 
 void EgoSphere::expireEntities(msecs current_time, const NodeInfoT* source) {
     for (auto entity = _entities.begin(); entity != _entities.end();) {
-        if (entity->second.expiry <= current_time.count()) {
-            IF_FUNC(_entity_update_handler, nullptr, &entity->second, source, current_time);
+        if (entity->second.entity.expiry <= current_time.count()) {
+            IF_FUNC(_entity_update_handler, nullptr, &entity->second, source);
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_EXPIRED)), &entity->second);
             entity = _entities.erase(entity);
         } else {

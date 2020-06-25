@@ -41,22 +41,22 @@ MeshNode::MeshNode(Config config)
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(MeshNode::INITIALIZED)));
 }
 
-MessageBuffer MeshNode::updateEntities(const std::vector<EntityT>& entity_updates) {
-    if (entity_updates.empty()) {
+MessageBuffer MeshNode::updateEntities(const std::vector<EntityT>& entities) {
+    if (entities.empty()) {
         return {};
     }
     // write message in
     fb::FlatBufferBuilder fbb_in;
-    std::vector<fb::Offset<Entity>> entities;
-    for (const auto& entity : entity_updates) {
-        entities.emplace_back(Entity::Pack(fbb_in, &entity));
+    std::vector<fb::Offset<Entity>> entity_offsets;
+    for (const auto& entity : entities) {
+        entity_offsets.emplace_back(Entity::Pack(fbb_in, &entity));
     }
     fbb_in.Finish(CreateMessage(fbb_in,
             _time_sync.getTime().count(),                          // timestamp
             -1,                                                    // hops
             NodeInfo::Pack(fbb_in, &_peer_tracker.getNodeInfo()),  // source
             {},                                                    // peers
-            fbb_in.CreateVector(entities)                          // entities
+            fbb_in.CreateVector(entity_offsets)                    // entities
             ));
     fb::FlatBufferBuilder fbb_out(fbb_in.GetSize());
     if (!forwardEntityUpdates(fbb_out, GetRoot<Message>(fbb_in.GetBufferPointer()))) {

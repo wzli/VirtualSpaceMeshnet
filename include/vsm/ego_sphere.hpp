@@ -13,9 +13,6 @@ namespace vsm {
 
 class EgoSphere {
 public:
-    using EntityUpdateHandler = std::function<void(EntityT* new_version, const EntityT* old_version,
-            const NodeInfoT* source, msecs timestamp)>;
-
     enum ErrorType {
         SUCCESS = 0,
         START_OFFSET = 300,
@@ -37,6 +34,15 @@ public:
         ENTITY_RANGE_EXCEEDED,
     };
 
+    struct EntityUpdate {
+        EntityT entity;
+        msecs source_timestamp;
+        msecs receive_timestamp;
+    };
+
+    using EntityUpdateHandler = std::function<void(
+            EntityUpdate* new_entity, const EntityUpdate* old_entity, const NodeInfoT* source)>;
+
     struct Config {
         size_t timestamp_lookup_size = 128;
         EntityUpdateHandler entity_update_handler = nullptr;
@@ -50,7 +56,7 @@ public:
         }
     };
 
-    using EntityLookup = std::unordered_map<std::string, EntityT>;
+    using EntityLookup = std::unordered_map<std::string, EntityUpdate>;
 
     EgoSphere(Config config, std::shared_ptr<Logger> logger = nullptr)
             : _config(config)
@@ -63,8 +69,7 @@ public:
 
     bool insertEntityTimestamp(std::string name, msecs timestamp);
 
-    bool deleteEntity(
-            const std::string& name, msecs current_time, const NodeInfoT* source = nullptr);
+    bool deleteEntity(const std::string& name, const NodeInfoT* source = nullptr);
 
     void expireEntities(msecs current_time, const NodeInfoT* source = nullptr);
 

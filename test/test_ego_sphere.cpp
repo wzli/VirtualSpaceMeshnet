@@ -10,12 +10,12 @@ using namespace vsm;
 
 TEST_CASE("Single World", "[ego_sphere]") {
 #if 0
-    auto entity_update_handler = [](EntityT* new_version, const EntityT* old_version,
-                                         const NodeInfoT* source, msecs timestamp) {
-        std::cout << "entity_update: ts " << timestamp.count() << " source "
-                  << (source ? source->name : "null") << " old "
-                  << (old_version ? old_version->name : "null") << " new "
-                  << (new_version ? new_version->name : "null") << std::endl;
+    auto entity_update_handler = [](EgoSphere::EntityUpdate* new_entity,
+                                         const EgoSphere::EntityUpdate* old_entity,
+                                         const NodeInfoT* source) {
+        std::cout << "entity_update: source " << (source ? source->name : "null") << " old "
+                  << (old_entity ? old_entity->entity.name : "null") << " new "
+                  << (new_entity ? new_entity->entity.name : "null") << std::endl;
     };
 #endif
     MeshNode::Config config{
@@ -120,8 +120,8 @@ TEST_CASE("Single World", "[ego_sphere]") {
     REQUIRE(msg.get()->entities()->LookupByKey("e"));
 
     // test delete
-    REQUIRE(!mesh_node.getEgoSphere().deleteEntity("a", msecs(0)));
-    REQUIRE(mesh_node.getEgoSphere().deleteEntity("b", msecs(0)));
+    REQUIRE(!mesh_node.getEgoSphere().deleteEntity("a"));
+    REQUIRE(mesh_node.getEgoSphere().deleteEntity("b"));
 
     // test expire
     REQUIRE(error_counts.count("ENTITY_DELETED"));

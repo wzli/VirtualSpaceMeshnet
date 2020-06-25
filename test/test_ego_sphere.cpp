@@ -125,7 +125,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
     // test timestamp lookup trimming
     REQUIRE(!error_counts.count("ENTITY_TIMESTAMPS_TRIMMED"));
     for (size_t i = 2; i < 2 + config.ego_sphere.timestamp_lookup_size; ++i) {
-        const_cast<Message*>(msg.get())->mutate_timestamp(i);
+        msg.get()->mutate_timestamp(i);
         REQUIRE(mesh_node.forwardEntityUpdates(fbb, msg.get()));
     }
     REQUIRE(error_counts.count("ENTITY_TIMESTAMPS_TRIMMED"));

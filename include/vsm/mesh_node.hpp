@@ -17,6 +17,7 @@ struct MessageBuffer : public fb::DetachedBuffer {
     MessageBuffer(fb::DetachedBuffer&& buffer)
             : fb::DetachedBuffer(std::move(buffer)){};
     const Message* get() const { return data() ? fb::GetRoot<Message>(data()) : nullptr; }
+    Message* get() { return data() ? fb::GetMutableRoot<Message>(data()) : nullptr; }
 };
 
 class MeshNode {

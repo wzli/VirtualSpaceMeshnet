@@ -112,3 +112,34 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
     // require that ranked size matches connection degree
     REQUIRE(ranked_peers.size() == config.connection_degree);
 }
+
+TEST_CASE("Nearest Peer", "[peer_tracker]") {
+    PeerTracker::Config config{
+            "my_name",     // name
+            "my_address",  // address
+            {0, 0},        // coordinates
+            7,             // connection_degree
+            20,            // lookup size
+            0.000,         // rank decay
+    };
+    PeerTracker peer_tracker(config);
+    // add peers
+    FlatBufferBuilder fbb;
+    for (size_t i = 1; i <= 10; ++i) {
+        NodeInfoT peer;
+        peer.name = std::to_string(i);
+        peer.address = std::to_string(i);
+        peer.coordinates = {(float) i, (float) i};
+        peer.sequence = i;
+        fbb.Finish(NodeInfo::Pack(fbb, &peer));
+        REQUIRE(peer_tracker.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer())) ==
+                PeerTracker::SUCCESS);
+    }
+    std::vector<std::string> pool;
+    pool = {"3", "6", "8", "5"};
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{-4, -5}, pool).node_info.name == "my_name");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{0, 0}, pool).node_info.name == "my_name");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{2, 2}, pool).node_info.name == "3");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{4, 5}, pool).node_info.name == "5");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{10, 100}, pool).node_info.name == "8");
+}

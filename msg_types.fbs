@@ -1,5 +1,13 @@
 namespace vsm;
 
+table Message {
+  timestamp:uint32;
+  hops:uint32;
+  source:NodeInfo;
+  peers:[NodeInfo];
+  entities:[Entity];
+}
+
 table NodeInfo {
   name:string;
   address:string (key);
@@ -8,28 +16,17 @@ table NodeInfo {
   sequence:uint32;
 }
 
-table Message {
-  timestamp:uint32;
-  range:float;
-  expiry:uint32;
-  priority:uint8;
-  source:NodeInfo;
-  peers:[NodeInfo];
-  entities:[Entity];
-}
-
-enum SyncMode:uint8 {
-  AUTHORITY,
-  LATEST,
+enum Filter : uint8 {
+  ALL,
   NEAREST,
-  // AVERAGE,
-  CUSTOM,
 }
 
 table Entity {
-  sync_mode:SyncMode;
-  expiry:uint32;
   name:string (key);
+  coordinates:[float];
+  filter:Filter;
+  range:float;
+  expiry:uint32;
   type:uint32;
   data:[uint8];
 }

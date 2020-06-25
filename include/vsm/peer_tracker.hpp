@@ -31,7 +31,7 @@ struct Peer {
     float rank_cost = 0;
 
     template <class Vec>
-    float radialCost(const Vec& from) {
+    float radialCost(const Vec& from) const {
         return (distanceSqr(from, node_info.coordinates) * rank_factor) -
                (node_info.power_radius * node_info.power_radius);
     }
@@ -94,6 +94,24 @@ public:
 
     Logger* getLogger() { return _logger.get(); }
     const Logger* getLogger() const { return _logger.get(); }
+
+    template <class Vec>
+    const Peer& nearestPeer(const Vec& coordinates, const std::vector<std::string>& peers) const {
+        const Peer* min_radial_peer = &_peers.at(_node_info.address);
+        float min_radial_cost = min_radial_peer->radialCost(coordinates);
+        for (const auto& peer_address : peers) {
+            auto peer = _peers.find(peer_address);
+            if (peer == _peers.end()) {
+                continue;
+            }
+            float radial_cost = peer->second.radialCost(coordinates);
+            if (radial_cost < min_radial_cost) {
+                min_radial_cost = radial_cost;
+                min_radial_peer = &peer->second;
+            }
+        }
+        return *min_radial_peer;
+    }
 
 private:
     Config _config;

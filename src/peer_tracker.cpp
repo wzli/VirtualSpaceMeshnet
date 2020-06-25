@@ -21,7 +21,7 @@ PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
     _node_info.address = std::move(_config.address);
     _node_info.coordinates = std::move(_config.coordinates);
 
-    IF_PTR(_logger, log, Logger::INFO, Error("Peer tracker " STRERR(INITIALIZED)));
+    IF_PTR(_logger, log, Logger::INFO, Error(STRERR(PeerTracker::INITIALIZED)));
 }
 
 PeerTracker::ErrorType PeerTracker::latchPeer(const char* address, float rank_factor) {

@@ -26,6 +26,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wshadow")
 
 # add vsm library
 add_library(vsm
+  src/ego_sphere.cpp
   src/mesh_node.cpp
   src/peer_tracker.cpp
   src/zmq_transport.cpp
@@ -48,9 +49,9 @@ if(VSM_BUILD_TESTS)
 
   # add unit tests
   add_executable(tests
-    test/test_dummy.cpp
     test/test_logger.cpp
     test/test_mesh_node.cpp
+    test/test_ego_sphere.cpp
     test/test_peer_tracker.cpp
     test/test_zmq_transport.cpp
   )

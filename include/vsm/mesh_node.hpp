@@ -1,11 +1,24 @@
 #pragma once
 
 #include <vsm/logger.hpp>
+#include <vsm/ego_sphere.hpp>
 #include <vsm/peer_tracker.hpp>
 #include <vsm/time_sync.hpp>
 #include <vsm/transport.hpp>
 
+#include <mutex>
+
 namespace vsm {
+
+using EntitiesCallback = std::function<void(const EgoSphere::EntityLookup& entities)>;
+
+struct MessageBuffer : public fb::DetachedBuffer {
+    using fb::DetachedBuffer::DetachedBuffer;
+    MessageBuffer(fb::DetachedBuffer&& buffer)
+            : fb::DetachedBuffer(std::move(buffer)){};
+    const Message* get() const { return data() ? fb::GetRoot<Message>(data()) : nullptr; }
+    Message* get() { return data() ? fb::GetMutableRoot<Message>(data()) : nullptr; }
+};
 
 class MeshNode {
 public:
@@ -19,14 +32,20 @@ public:
         // Info
         INITIALIZED,
         PEER_UPDATES_SENT,
+        ENTITY_UPDATES_SENT,
+        // Debug
+        ENTITY_UPDATES_FORWARDED,
         // Trace
         SOURCE_UPDATE_RECEIVED,
         PEER_UPDATES_RECEIVED,
         ENTITY_UPDATES_RECEIVED,
+        TIME_SYNCED,
     };
 
     struct Config {
         msecs peer_update_interval = msecs(1000);
+        msecs entity_expiry_interval = msecs(1000);
+        EgoSphere::Config ego_sphere;
         PeerTracker::Config peer_tracker;
         std::shared_ptr<Transport> transport;
         std::shared_ptr<Logger> logger;
@@ -44,7 +63,17 @@ public:
 
     MeshNode(Config config);
 
-    void sendPeerUpdates();
+    // entities interface
+    void readEntities(const EntitiesCallback& entities_callback) {
+        const std::lock_guard<std::mutex> lock(_entities_mutex);
+        entities_callback(_ego_sphere.getEntities());
+    }
+    MessageBuffer updateEntities(const std::vector<EntityT>& entities);
+    const Message* forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
+
+    // accesors (FYI they are not thread safe)
+    EgoSphere& getEgoSphere() { return _ego_sphere; }
+    const EgoSphere& getEgoSphere() const { return _ego_sphere; }
 
     PeerTracker& getPeerTracker() { return _peer_tracker; }
     const PeerTracker& getPeerTracker() const { return _peer_tracker; }
@@ -61,8 +90,11 @@ public:
     const std::vector<std::string>& getConnectedPeers() const { return _connected_peers; }
 
 private:
+    // internall callbacks
+    void sendPeerUpdates();
     void receiveMessageHandler(const void* buffer, size_t len);
 
+    EgoSphere _ego_sphere;
     PeerTracker _peer_tracker;
     TimeSync<msecs> _time_sync;
     std::shared_ptr<Transport> _transport;
@@ -70,6 +102,8 @@ private:
     flatbuffers::FlatBufferBuilder _fbb;
     std::vector<std::string> _connected_peers;
     std::vector<std::string> _recipients_buffer;
+    std::mutex _entities_mutex;
+    std::mutex _transmit_mutex;
 };
 
 }  // namespace vsm

@@ -8,53 +8,191 @@
 
 namespace vsm {
 
-struct NodeInfo;
-struct NodeInfoBuilder;
-struct NodeInfoT;
-
 struct Message;
 struct MessageBuilder;
 struct MessageT;
+
+struct NodeInfo;
+struct NodeInfoBuilder;
+struct NodeInfoT;
 
 struct Entity;
 struct EntityBuilder;
 struct EntityT;
 
-enum class SyncMode : uint8_t {
-  AUTHORITY = 0,
-  LATEST = 1,
-  NEAREST = 2,
-  CUSTOM = 3,
-  MIN = AUTHORITY,
-  MAX = CUSTOM
+enum class Filter : uint8_t {
+  ALL = 0,
+  NEAREST = 1,
+  MIN = ALL,
+  MAX = NEAREST
 };
 
-inline const SyncMode (&EnumValuesSyncMode())[4] {
-  static const SyncMode values[] = {
-    SyncMode::AUTHORITY,
-    SyncMode::LATEST,
-    SyncMode::NEAREST,
-    SyncMode::CUSTOM
+inline const Filter (&EnumValuesFilter())[2] {
+  static const Filter values[] = {
+    Filter::ALL,
+    Filter::NEAREST
   };
   return values;
 }
 
-inline const char * const *EnumNamesSyncMode() {
-  static const char * const names[5] = {
-    "AUTHORITY",
-    "LATEST",
+inline const char * const *EnumNamesFilter() {
+  static const char * const names[3] = {
+    "ALL",
     "NEAREST",
-    "CUSTOM",
     nullptr
   };
   return names;
 }
 
-inline const char *EnumNameSyncMode(SyncMode e) {
-  if (flatbuffers::IsOutRange(e, SyncMode::AUTHORITY, SyncMode::CUSTOM)) return "";
+inline const char *EnumNameFilter(Filter e) {
+  if (flatbuffers::IsOutRange(e, Filter::ALL, Filter::NEAREST)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesSyncMode()[index];
+  return EnumNamesFilter()[index];
 }
+
+struct MessageT : public flatbuffers::NativeTable {
+  typedef Message TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "vsm.MessageT";
+  }
+  uint32_t timestamp;
+  uint32_t hops;
+  std::unique_ptr<vsm::NodeInfoT> source;
+  std::vector<std::unique_ptr<vsm::NodeInfoT>> peers;
+  std::vector<std::unique_ptr<vsm::EntityT>> entities;
+  MessageT()
+      : timestamp(0),
+        hops(0) {
+  }
+};
+
+struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef MessageT NativeTableType;
+  typedef MessageBuilder Builder;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "vsm.Message";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_TIMESTAMP = 4,
+    VT_HOPS = 6,
+    VT_SOURCE = 8,
+    VT_PEERS = 10,
+    VT_ENTITIES = 12
+  };
+  uint32_t timestamp() const {
+    return GetField<uint32_t>(VT_TIMESTAMP, 0);
+  }
+  bool mutate_timestamp(uint32_t _timestamp) {
+    return SetField<uint32_t>(VT_TIMESTAMP, _timestamp, 0);
+  }
+  uint32_t hops() const {
+    return GetField<uint32_t>(VT_HOPS, 0);
+  }
+  bool mutate_hops(uint32_t _hops) {
+    return SetField<uint32_t>(VT_HOPS, _hops, 0);
+  }
+  const vsm::NodeInfo *source() const {
+    return GetPointer<const vsm::NodeInfo *>(VT_SOURCE);
+  }
+  vsm::NodeInfo *mutable_source() {
+    return GetPointer<vsm::NodeInfo *>(VT_SOURCE);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *peers() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *>(VT_PEERS);
+  }
+  flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *mutable_peers() {
+    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *>(VT_PEERS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *entities() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *>(VT_ENTITIES);
+  }
+  flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *mutable_entities() {
+    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *>(VT_ENTITIES);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_TIMESTAMP) &&
+           VerifyField<uint32_t>(verifier, VT_HOPS) &&
+           VerifyOffset(verifier, VT_SOURCE) &&
+           verifier.VerifyTable(source()) &&
+           VerifyOffset(verifier, VT_PEERS) &&
+           verifier.VerifyVector(peers()) &&
+           verifier.VerifyVectorOfTables(peers()) &&
+           VerifyOffset(verifier, VT_ENTITIES) &&
+           verifier.VerifyVector(entities()) &&
+           verifier.VerifyVectorOfTables(entities()) &&
+           verifier.EndTable();
+  }
+  MessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(MessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<Message> Pack(flatbuffers::FlatBufferBuilder &_fbb, const MessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct MessageBuilder {
+  typedef Message Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_timestamp(uint32_t timestamp) {
+    fbb_.AddElement<uint32_t>(Message::VT_TIMESTAMP, timestamp, 0);
+  }
+  void add_hops(uint32_t hops) {
+    fbb_.AddElement<uint32_t>(Message::VT_HOPS, hops, 0);
+  }
+  void add_source(flatbuffers::Offset<vsm::NodeInfo> source) {
+    fbb_.AddOffset(Message::VT_SOURCE, source);
+  }
+  void add_peers(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>>> peers) {
+    fbb_.AddOffset(Message::VT_PEERS, peers);
+  }
+  void add_entities(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>>> entities) {
+    fbb_.AddOffset(Message::VT_ENTITIES, entities);
+  }
+  explicit MessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Message> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Message>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Message> CreateMessage(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t timestamp = 0,
+    uint32_t hops = 0,
+    flatbuffers::Offset<vsm::NodeInfo> source = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>>> peers = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>>> entities = 0) {
+  MessageBuilder builder_(_fbb);
+  builder_.add_entities(entities);
+  builder_.add_peers(peers);
+  builder_.add_source(source);
+  builder_.add_hops(hops);
+  builder_.add_timestamp(timestamp);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Message> CreateMessageDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t timestamp = 0,
+    uint32_t hops = 0,
+    flatbuffers::Offset<vsm::NodeInfo> source = 0,
+    std::vector<flatbuffers::Offset<vsm::NodeInfo>> *peers = nullptr,
+    std::vector<flatbuffers::Offset<vsm::Entity>> *entities = nullptr) {
+  auto peers__ = peers ? _fbb.CreateVectorOfSortedTables<vsm::NodeInfo>(peers) : 0;
+  auto entities__ = entities ? _fbb.CreateVectorOfSortedTables<vsm::Entity>(entities) : 0;
+  return vsm::CreateMessage(
+      _fbb,
+      timestamp,
+      hops,
+      source,
+      peers__,
+      entities__);
+}
+
+flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder &_fbb, const MessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct NodeInfoT : public flatbuffers::NativeTable {
   typedef NodeInfo TableType;
@@ -206,196 +344,21 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfoDirect(
 
 flatbuffers::Offset<NodeInfo> CreateNodeInfo(flatbuffers::FlatBufferBuilder &_fbb, const NodeInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct MessageT : public flatbuffers::NativeTable {
-  typedef Message TableType;
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "vsm.MessageT";
-  }
-  uint32_t timestamp;
-  float range;
-  uint32_t expiry;
-  uint8_t priority;
-  std::unique_ptr<vsm::NodeInfoT> source;
-  std::vector<std::unique_ptr<vsm::NodeInfoT>> peers;
-  std::vector<std::unique_ptr<vsm::EntityT>> entities;
-  MessageT()
-      : timestamp(0),
-        range(0.0f),
-        expiry(0),
-        priority(0) {
-  }
-};
-
-struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef MessageT NativeTableType;
-  typedef MessageBuilder Builder;
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "vsm.Message";
-  }
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TIMESTAMP = 4,
-    VT_RANGE = 6,
-    VT_EXPIRY = 8,
-    VT_PRIORITY = 10,
-    VT_SOURCE = 12,
-    VT_PEERS = 14,
-    VT_ENTITIES = 16
-  };
-  uint32_t timestamp() const {
-    return GetField<uint32_t>(VT_TIMESTAMP, 0);
-  }
-  bool mutate_timestamp(uint32_t _timestamp) {
-    return SetField<uint32_t>(VT_TIMESTAMP, _timestamp, 0);
-  }
-  float range() const {
-    return GetField<float>(VT_RANGE, 0.0f);
-  }
-  bool mutate_range(float _range) {
-    return SetField<float>(VT_RANGE, _range, 0.0f);
-  }
-  uint32_t expiry() const {
-    return GetField<uint32_t>(VT_EXPIRY, 0);
-  }
-  bool mutate_expiry(uint32_t _expiry) {
-    return SetField<uint32_t>(VT_EXPIRY, _expiry, 0);
-  }
-  uint8_t priority() const {
-    return GetField<uint8_t>(VT_PRIORITY, 0);
-  }
-  bool mutate_priority(uint8_t _priority) {
-    return SetField<uint8_t>(VT_PRIORITY, _priority, 0);
-  }
-  const vsm::NodeInfo *source() const {
-    return GetPointer<const vsm::NodeInfo *>(VT_SOURCE);
-  }
-  vsm::NodeInfo *mutable_source() {
-    return GetPointer<vsm::NodeInfo *>(VT_SOURCE);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *peers() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *>(VT_PEERS);
-  }
-  flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *mutable_peers() {
-    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>> *>(VT_PEERS);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *entities() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *>(VT_ENTITIES);
-  }
-  flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *mutable_entities() {
-    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>> *>(VT_ENTITIES);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyField<uint32_t>(verifier, VT_TIMESTAMP) &&
-           VerifyField<float>(verifier, VT_RANGE) &&
-           VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
-           VerifyField<uint8_t>(verifier, VT_PRIORITY) &&
-           VerifyOffset(verifier, VT_SOURCE) &&
-           verifier.VerifyTable(source()) &&
-           VerifyOffset(verifier, VT_PEERS) &&
-           verifier.VerifyVector(peers()) &&
-           verifier.VerifyVectorOfTables(peers()) &&
-           VerifyOffset(verifier, VT_ENTITIES) &&
-           verifier.VerifyVector(entities()) &&
-           verifier.VerifyVectorOfTables(entities()) &&
-           verifier.EndTable();
-  }
-  MessageT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(MessageT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Message> Pack(flatbuffers::FlatBufferBuilder &_fbb, const MessageT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct MessageBuilder {
-  typedef Message Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_timestamp(uint32_t timestamp) {
-    fbb_.AddElement<uint32_t>(Message::VT_TIMESTAMP, timestamp, 0);
-  }
-  void add_range(float range) {
-    fbb_.AddElement<float>(Message::VT_RANGE, range, 0.0f);
-  }
-  void add_expiry(uint32_t expiry) {
-    fbb_.AddElement<uint32_t>(Message::VT_EXPIRY, expiry, 0);
-  }
-  void add_priority(uint8_t priority) {
-    fbb_.AddElement<uint8_t>(Message::VT_PRIORITY, priority, 0);
-  }
-  void add_source(flatbuffers::Offset<vsm::NodeInfo> source) {
-    fbb_.AddOffset(Message::VT_SOURCE, source);
-  }
-  void add_peers(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>>> peers) {
-    fbb_.AddOffset(Message::VT_PEERS, peers);
-  }
-  void add_entities(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>>> entities) {
-    fbb_.AddOffset(Message::VT_ENTITIES, entities);
-  }
-  explicit MessageBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<Message> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Message>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<Message> CreateMessage(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    uint32_t timestamp = 0,
-    float range = 0.0f,
-    uint32_t expiry = 0,
-    uint8_t priority = 0,
-    flatbuffers::Offset<vsm::NodeInfo> source = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>>> peers = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>>> entities = 0) {
-  MessageBuilder builder_(_fbb);
-  builder_.add_entities(entities);
-  builder_.add_peers(peers);
-  builder_.add_source(source);
-  builder_.add_expiry(expiry);
-  builder_.add_range(range);
-  builder_.add_timestamp(timestamp);
-  builder_.add_priority(priority);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<Message> CreateMessageDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    uint32_t timestamp = 0,
-    float range = 0.0f,
-    uint32_t expiry = 0,
-    uint8_t priority = 0,
-    flatbuffers::Offset<vsm::NodeInfo> source = 0,
-    std::vector<flatbuffers::Offset<vsm::NodeInfo>> *peers = nullptr,
-    std::vector<flatbuffers::Offset<vsm::Entity>> *entities = nullptr) {
-  auto peers__ = peers ? _fbb.CreateVectorOfSortedTables<vsm::NodeInfo>(peers) : 0;
-  auto entities__ = entities ? _fbb.CreateVectorOfSortedTables<vsm::Entity>(entities) : 0;
-  return vsm::CreateMessage(
-      _fbb,
-      timestamp,
-      range,
-      expiry,
-      priority,
-      source,
-      peers__,
-      entities__);
-}
-
-flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder &_fbb, const MessageT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
 struct EntityT : public flatbuffers::NativeTable {
   typedef Entity TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.EntityT";
   }
-  vsm::SyncMode sync_mode;
-  uint32_t expiry;
   std::string name;
+  std::vector<float> coordinates;
+  vsm::Filter filter;
+  float range;
+  uint32_t expiry;
   uint32_t type;
   std::vector<uint8_t> data;
   EntityT()
-      : sync_mode(vsm::SyncMode::AUTHORITY),
+      : filter(vsm::Filter::ALL),
+        range(0.0f),
         expiry(0),
         type(0) {
   }
@@ -408,24 +371,14 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return "vsm.Entity";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_SYNC_MODE = 4,
-    VT_EXPIRY = 6,
-    VT_NAME = 8,
-    VT_TYPE = 10,
-    VT_DATA = 12
+    VT_NAME = 4,
+    VT_COORDINATES = 6,
+    VT_FILTER = 8,
+    VT_RANGE = 10,
+    VT_EXPIRY = 12,
+    VT_TYPE = 14,
+    VT_DATA = 16
   };
-  vsm::SyncMode sync_mode() const {
-    return static_cast<vsm::SyncMode>(GetField<uint8_t>(VT_SYNC_MODE, 0));
-  }
-  bool mutate_sync_mode(vsm::SyncMode _sync_mode) {
-    return SetField<uint8_t>(VT_SYNC_MODE, static_cast<uint8_t>(_sync_mode), 0);
-  }
-  uint32_t expiry() const {
-    return GetField<uint32_t>(VT_EXPIRY, 0);
-  }
-  bool mutate_expiry(uint32_t _expiry) {
-    return SetField<uint32_t>(VT_EXPIRY, _expiry, 0);
-  }
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
@@ -437,6 +390,30 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int KeyCompareWithValue(const char *val) const {
     return strcmp(name()->c_str(), val);
+  }
+  const flatbuffers::Vector<float> *coordinates() const {
+    return GetPointer<const flatbuffers::Vector<float> *>(VT_COORDINATES);
+  }
+  flatbuffers::Vector<float> *mutable_coordinates() {
+    return GetPointer<flatbuffers::Vector<float> *>(VT_COORDINATES);
+  }
+  vsm::Filter filter() const {
+    return static_cast<vsm::Filter>(GetField<uint8_t>(VT_FILTER, 0));
+  }
+  bool mutate_filter(vsm::Filter _filter) {
+    return SetField<uint8_t>(VT_FILTER, static_cast<uint8_t>(_filter), 0);
+  }
+  float range() const {
+    return GetField<float>(VT_RANGE, 0.0f);
+  }
+  bool mutate_range(float _range) {
+    return SetField<float>(VT_RANGE, _range, 0.0f);
+  }
+  uint32_t expiry() const {
+    return GetField<uint32_t>(VT_EXPIRY, 0);
+  }
+  bool mutate_expiry(uint32_t _expiry) {
+    return SetField<uint32_t>(VT_EXPIRY, _expiry, 0);
   }
   uint32_t type() const {
     return GetField<uint32_t>(VT_TYPE, 0);
@@ -452,10 +429,13 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint8_t>(verifier, VT_SYNC_MODE) &&
-           VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
            VerifyOffsetRequired(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_COORDINATES) &&
+           verifier.VerifyVector(coordinates()) &&
+           VerifyField<uint8_t>(verifier, VT_FILTER) &&
+           VerifyField<float>(verifier, VT_RANGE) &&
+           VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
            VerifyField<uint32_t>(verifier, VT_TYPE) &&
            VerifyOffset(verifier, VT_DATA) &&
            verifier.VerifyVector(data()) &&
@@ -470,14 +450,20 @@ struct EntityBuilder {
   typedef Entity Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_sync_mode(vsm::SyncMode sync_mode) {
-    fbb_.AddElement<uint8_t>(Entity::VT_SYNC_MODE, static_cast<uint8_t>(sync_mode), 0);
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Entity::VT_NAME, name);
+  }
+  void add_coordinates(flatbuffers::Offset<flatbuffers::Vector<float>> coordinates) {
+    fbb_.AddOffset(Entity::VT_COORDINATES, coordinates);
+  }
+  void add_filter(vsm::Filter filter) {
+    fbb_.AddElement<uint8_t>(Entity::VT_FILTER, static_cast<uint8_t>(filter), 0);
+  }
+  void add_range(float range) {
+    fbb_.AddElement<float>(Entity::VT_RANGE, range, 0.0f);
   }
   void add_expiry(uint32_t expiry) {
     fbb_.AddElement<uint32_t>(Entity::VT_EXPIRY, expiry, 0);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Entity::VT_NAME, name);
   }
   void add_type(uint32_t type) {
     fbb_.AddElement<uint32_t>(Entity::VT_TYPE, type, 0);
@@ -499,39 +485,86 @@ struct EntityBuilder {
 
 inline flatbuffers::Offset<Entity> CreateEntity(
     flatbuffers::FlatBufferBuilder &_fbb,
-    vsm::SyncMode sync_mode = vsm::SyncMode::AUTHORITY,
-    uint32_t expiry = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<flatbuffers::Vector<float>> coordinates = 0,
+    vsm::Filter filter = vsm::Filter::ALL,
+    float range = 0.0f,
+    uint32_t expiry = 0,
     uint32_t type = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
   EntityBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_type(type);
-  builder_.add_name(name);
   builder_.add_expiry(expiry);
-  builder_.add_sync_mode(sync_mode);
+  builder_.add_range(range);
+  builder_.add_coordinates(coordinates);
+  builder_.add_name(name);
+  builder_.add_filter(filter);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Entity> CreateEntityDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    vsm::SyncMode sync_mode = vsm::SyncMode::AUTHORITY,
-    uint32_t expiry = 0,
     const char *name = nullptr,
+    const std::vector<float> *coordinates = nullptr,
+    vsm::Filter filter = vsm::Filter::ALL,
+    float range = 0.0f,
+    uint32_t expiry = 0,
     uint32_t type = 0,
     const std::vector<uint8_t> *data = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto coordinates__ = coordinates ? _fbb.CreateVector<float>(*coordinates) : 0;
   auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
   return vsm::CreateEntity(
       _fbb,
-      sync_mode,
-      expiry,
       name__,
+      coordinates__,
+      filter,
+      range,
+      expiry,
       type,
       data__);
 }
 
 flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &_fbb, const EntityT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+inline MessageT *Message::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<vsm::MessageT> _o = std::unique_ptr<vsm::MessageT>(new MessageT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void Message::UnPackTo(MessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = timestamp(); _o->timestamp = _e; }
+  { auto _e = hops(); _o->hops = _e; }
+  { auto _e = source(); if (_e) _o->source = std::unique_ptr<vsm::NodeInfoT>(_e->UnPack(_resolver)); }
+  { auto _e = peers(); if (_e) { _o->peers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->peers[_i] = std::unique_ptr<vsm::NodeInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = entities(); if (_e) { _o->entities.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->entities[_i] = std::unique_ptr<vsm::EntityT>(_e->Get(_i)->UnPack(_resolver)); } } }
+}
+
+inline flatbuffers::Offset<Message> Message::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateMessage(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder &_fbb, const MessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _timestamp = _o->timestamp;
+  auto _hops = _o->hops;
+  auto _source = _o->source ? CreateNodeInfo(_fbb, _o->source.get(), _rehasher) : 0;
+  auto _peers = _o->peers.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::NodeInfo>> (_o->peers.size(), [](size_t i, _VectorArgs *__va) { return CreateNodeInfo(*__va->__fbb, __va->__o->peers[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _entities = _o->entities.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::Entity>> (_o->entities.size(), [](size_t i, _VectorArgs *__va) { return CreateEntity(*__va->__fbb, __va->__o->entities[i].get(), __va->__rehasher); }, &_va ) : 0;
+  return vsm::CreateMessage(
+      _fbb,
+      _timestamp,
+      _hops,
+      _source,
+      _peers,
+      _entities);
+}
 
 inline NodeInfoT *NodeInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<vsm::NodeInfoT> _o = std::unique_ptr<vsm::NodeInfoT>(new NodeInfoT());
@@ -571,50 +604,6 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(flatbuffers::FlatBufferBuild
       _sequence);
 }
 
-inline MessageT *Message::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<vsm::MessageT> _o = std::unique_ptr<vsm::MessageT>(new MessageT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Message::UnPackTo(MessageT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = timestamp(); _o->timestamp = _e; }
-  { auto _e = range(); _o->range = _e; }
-  { auto _e = expiry(); _o->expiry = _e; }
-  { auto _e = priority(); _o->priority = _e; }
-  { auto _e = source(); if (_e) _o->source = std::unique_ptr<vsm::NodeInfoT>(_e->UnPack(_resolver)); }
-  { auto _e = peers(); if (_e) { _o->peers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->peers[_i] = std::unique_ptr<vsm::NodeInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
-  { auto _e = entities(); if (_e) { _o->entities.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->entities[_i] = std::unique_ptr<vsm::EntityT>(_e->Get(_i)->UnPack(_resolver)); } } }
-}
-
-inline flatbuffers::Offset<Message> Message::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MessageT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateMessage(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder &_fbb, const MessageT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MessageT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _timestamp = _o->timestamp;
-  auto _range = _o->range;
-  auto _expiry = _o->expiry;
-  auto _priority = _o->priority;
-  auto _source = _o->source ? CreateNodeInfo(_fbb, _o->source.get(), _rehasher) : 0;
-  auto _peers = _o->peers.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::NodeInfo>> (_o->peers.size(), [](size_t i, _VectorArgs *__va) { return CreateNodeInfo(*__va->__fbb, __va->__o->peers[i].get(), __va->__rehasher); }, &_va ) : 0;
-  auto _entities = _o->entities.size() ? _fbb.CreateVector<flatbuffers::Offset<vsm::Entity>> (_o->entities.size(), [](size_t i, _VectorArgs *__va) { return CreateEntity(*__va->__fbb, __va->__o->entities[i].get(), __va->__rehasher); }, &_va ) : 0;
-  return vsm::CreateMessage(
-      _fbb,
-      _timestamp,
-      _range,
-      _expiry,
-      _priority,
-      _source,
-      _peers,
-      _entities);
-}
-
 inline EntityT *Entity::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<vsm::EntityT> _o = std::unique_ptr<vsm::EntityT>(new EntityT());
   UnPackTo(_o.get(), _resolver);
@@ -624,9 +613,11 @@ inline EntityT *Entity::UnPack(const flatbuffers::resolver_function_t *_resolver
 inline void Entity::UnPackTo(EntityT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = sync_mode(); _o->sync_mode = _e; }
-  { auto _e = expiry(); _o->expiry = _e; }
   { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = coordinates(); if (_e) { _o->coordinates.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->coordinates[_i] = _e->Get(_i); } } }
+  { auto _e = filter(); _o->filter = _e; }
+  { auto _e = range(); _o->range = _e; }
+  { auto _e = expiry(); _o->expiry = _e; }
   { auto _e = type(); _o->type = _e; }
   { auto _e = data(); if (_e) { _o->data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data[_i] = _e->Get(_i); } } }
 }
@@ -639,16 +630,20 @@ inline flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const EntityT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _sync_mode = _o->sync_mode;
-  auto _expiry = _o->expiry;
   auto _name = _fbb.CreateString(_o->name);
+  auto _coordinates = _o->coordinates.size() ? _fbb.CreateVector(_o->coordinates) : 0;
+  auto _filter = _o->filter;
+  auto _range = _o->range;
+  auto _expiry = _o->expiry;
   auto _type = _o->type;
   auto _data = _o->data.size() ? _fbb.CreateVector(_o->data) : 0;
   return vsm::CreateEntity(
       _fbb,
-      _sync_mode,
-      _expiry,
       _name,
+      _coordinates,
+      _filter,
+      _range,
+      _expiry,
       _type,
       _data);
 }

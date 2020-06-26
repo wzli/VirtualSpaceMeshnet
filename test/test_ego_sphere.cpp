@@ -23,8 +23,8 @@ TEST_CASE("Single World", "[ego_sphere]") {
             msecs(1000),  // entity expiry interval
             {
                     // ego sphere
-                    10,       // timestamp lookup size
                     nullptr,  // entity update handler
+                    10,       // timestamp lookup size
             },
             {
                     // peer manager

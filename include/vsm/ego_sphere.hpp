@@ -45,8 +45,8 @@ public:
             EntityUpdate* new_entity, const EntityUpdate* old_entity, const NodeInfoT* source)>;
 
     struct Config {
-        size_t timestamp_lookup_size = 128;
         EntityUpdateHandler entity_update_handler = nullptr;
+        size_t timestamp_lookup_size = 1024;
     };
 
     struct EntityTimestamp {

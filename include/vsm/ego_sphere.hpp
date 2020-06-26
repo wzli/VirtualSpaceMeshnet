@@ -41,7 +41,8 @@ public:
         uint32_t hops;
     };
 
-    using EntityUpdateHandler = std::function<void(
+    // return value determines whether to allow update
+    using EntityUpdateHandler = std::function<bool(
             EntityUpdate* new_entity, const EntityUpdate* old_entity, const NodeInfoT* source)>;
 
     struct Config {

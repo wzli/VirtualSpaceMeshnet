@@ -82,17 +82,23 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         entity->UnPackTo(&new_entity.entity);
         if (old_entity == _entities.end()) {
             // create new entity
-            IF_FUNC(_entity_update_handler, &new_entity, nullptr, source.get());
-            old_entity = _entities.emplace(name, std::move(new_entity)).first;
-            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_CREATED)), entity);
+            if (!_entity_update_handler ||
+                    _entity_update_handler(&new_entity, nullptr, source.get())) {
+                old_entity = _entities.emplace(name, std::move(new_entity)).first;
+                IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_CREATED)), entity);
+            }
         } else {
             // update existing entity
-            IF_FUNC(_entity_update_handler, &new_entity, &old_entity->second, source.get());
-            old_entity->second = std::move(new_entity);
-            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
+            if (!_entity_update_handler ||
+                    _entity_update_handler(&new_entity, &old_entity->second, source.get())) {
+                old_entity->second = std::move(new_entity);
+                IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
+            }
         }
         // write updated entity to forward message
-        forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second.entity));
+        if (old_entity != _entities.end()) {
+            forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second.entity));
+        }
     }
     return forward_entities;
 }
@@ -102,16 +108,20 @@ bool EgoSphere::deleteEntity(const std::string& name, const NodeInfoT* source) {
     if (entity == _entities.end()) {
         return false;
     }
-    IF_FUNC(_entity_update_handler, nullptr, &entity->second, source);
-    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_DELETED)), &entity->second);
-    _entities.erase(entity);
-    return true;
+    if (!_entity_update_handler || _entity_update_handler(nullptr, &entity->second, source)) {
+        IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_DELETED)), &entity->second);
+        _entities.erase(entity);
+        return true;
+    }
+    return false;
 }
 
 void EgoSphere::expireEntities(msecs current_time, const NodeInfoT* source) {
     for (auto entity = _entities.begin(); entity != _entities.end();) {
-        if (entity->second.entity.expiry && entity->second.entity.expiry <= current_time.count()) {
-            IF_FUNC(_entity_update_handler, nullptr, &entity->second, source);
+        if ((entity->second.entity.expiry &&
+                    entity->second.entity.expiry <= current_time.count()) &&
+                (!_entity_update_handler ||
+                        _entity_update_handler(nullptr, &entity->second, source))) {
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_EXPIRED)), &entity->second);
             entity = _entities.erase(entity);
         } else {

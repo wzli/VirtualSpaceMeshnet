@@ -10,10 +10,6 @@
     if (ptr)                   \
     ptr->func(__VA_ARGS__)
 
-#define IF_FUNC(func, ...) \
-    if (func)              \
-    func(__VA_ARGS__)
-
 namespace vsm {
 
 using msecs = std::chrono::milliseconds;

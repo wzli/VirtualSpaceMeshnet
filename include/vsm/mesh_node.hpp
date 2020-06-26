@@ -43,6 +43,7 @@ public:
     };
 
     struct Config {
+        size_t max_message_size = 8000;  // not strict since flatbuffers framing may vary
         msecs peer_update_interval = msecs(1000);
         msecs entity_expiry_interval = msecs(1000);
         EgoSphere::Config ego_sphere;
@@ -68,7 +69,7 @@ public:
         const std::lock_guard<std::mutex> lock(_entities_mutex);
         entities_callback(_ego_sphere.getEntities());
     }
-    MessageBuffer updateEntities(const std::vector<EntityT>& entities);
+    std::vector<MessageBuffer> updateEntities(const std::vector<EntityT>& entities);
     const Message* forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
 
     // accesors (FYI they are not thread safe)
@@ -104,6 +105,7 @@ private:
     std::vector<std::string> _recipients_buffer;
     std::mutex _entities_mutex;
     std::mutex _transmit_mutex;
+    size_t _max_message_size;
 };
 
 }  // namespace vsm

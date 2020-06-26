@@ -19,6 +19,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
     };
 #endif
     MeshNode::Config config{
+            8000,         // max message size
             msecs(1000),  // peer update interval
             msecs(1000),  // entity expiry interval
             {
@@ -88,16 +89,16 @@ TEST_CASE("Single World", "[ego_sphere]") {
     // trigger update after 1 ms
 
     mesh_node.getTransport().poll(msecs(2));
-    auto msg = mesh_node.updateEntities(entities);
+    auto msgs = mesh_node.updateEntities(entities);
+    REQUIRE(!msgs.empty());
 
     // send update again and expect to be rejected based on repeated timestamp
     fb::FlatBufferBuilder fbb;
-    REQUIRE(!mesh_node.forwardEntityUpdates(fbb, msg.get()));
+    REQUIRE(!mesh_node.forwardEntityUpdates(fbb, msgs[0].get()));
     REQUIRE(error_counts.count("ENTITY_ALREADY_RECEIVED"));
     // expect message forwarded to contain only "b" and "e"
-    REQUIRE(msg.get());
-    REQUIRE(msg.get()->entities());
-    REQUIRE(msg.get()->entities()->size() == 2);
+    REQUIRE(msgs[0].get()->entities());
+    REQUIRE(msgs[0].get()->entities()->size() == 2);
     REQUIRE(error_counts.at("ENTITY_CREATED") == 2);
     mesh_node.readEntities([](const EgoSphere::EntityLookup& entity_lookup) {
         REQUIRE(entity_lookup.size() == 2);
@@ -111,14 +112,14 @@ TEST_CASE("Single World", "[ego_sphere]") {
     });
 
     // check returned message for expected entity rejections
-    REQUIRE(!msg.get()->entities()->LookupByKey("a"));
+    REQUIRE(!msgs[0].get()->entities()->LookupByKey("a"));
     REQUIRE(error_counts.count("Received ENTITY_EXPIRED"));
-    REQUIRE(msg.get()->entities()->LookupByKey("b"));
-    REQUIRE(!msg.get()->entities()->LookupByKey("c"));
+    REQUIRE(msgs[0].get()->entities()->LookupByKey("b"));
+    REQUIRE(!msgs[0].get()->entities()->LookupByKey("c"));
     REQUIRE(error_counts.count("ENTITY_COORDINATES_MISSING"));
-    REQUIRE(!msg.get()->entities()->LookupByKey("d"));
+    REQUIRE(!msgs[0].get()->entities()->LookupByKey("d"));
     REQUIRE(error_counts.count("ENTITY_RANGE_EXCEEDED"));
-    REQUIRE(msg.get()->entities()->LookupByKey("e"));
+    REQUIRE(msgs[0].get()->entities()->LookupByKey("e"));
 
     // test delete
     REQUIRE(!mesh_node.getEgoSphere().deleteEntity("a"));
@@ -132,8 +133,8 @@ TEST_CASE("Single World", "[ego_sphere]") {
     // test timestamp lookup trimming
     REQUIRE(!error_counts.count("ENTITY_TIMESTAMPS_TRIMMED"));
     for (size_t i = 100; i < 100 + config.ego_sphere.timestamp_lookup_size; ++i) {
-        msg.get()->mutate_timestamp(i);
-        REQUIRE(mesh_node.forwardEntityUpdates(fbb, msg.get()));
+        msgs[0].get()->mutate_timestamp(i);
+        REQUIRE(mesh_node.forwardEntityUpdates(fbb, msgs[0].get()));
     }
     REQUIRE(error_counts.count("ENTITY_TIMESTAMPS_TRIMMED"));
 
@@ -147,6 +148,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
 TEST_CASE("4 corners", "[ego_sphere]") {
     auto make_config = [](int id, std::vector<float> coords) {
         return MeshNode::Config{
+                8000,         // max message size
                 msecs(1),     // peer update interval
                 msecs(1000),  // entity expiry interval
                 {},
@@ -213,7 +215,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().range = 10;
 
     // exchange messages
-    REQUIRE(mesh_nodes[0].updateEntities(entities).get());
+    REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
@@ -236,7 +238,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().range = 10;
 
     // exchange messages
-    REQUIRE(mesh_nodes[0].updateEntities(entities).get());
+    REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
@@ -259,7 +261,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().range = 10;
 
     // exchange messages
-    REQUIRE(mesh_nodes[0].updateEntities(entities).get());
+    REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
@@ -282,7 +284,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().range = 10;
 
     // exchange messages
-    REQUIRE(mesh_nodes[0].updateEntities(entities).get());
+    REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));

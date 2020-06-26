@@ -10,7 +10,8 @@ MeshNode::MeshNode(Config config)
         , _peer_tracker(std::move(config.peer_tracker), config.logger)
         , _time_sync(std::move(config.local_clock))
         , _transport(std::move(config.transport))
-        , _logger(std::move(config.logger)) {
+        , _logger(std::move(config.logger))
+        , _max_message_size(config.max_message_size) {
     if (!_transport) {
         Error error(STRERR(NO_TRANSPORT_SPECIFIED));
         IF_PTR(_logger, log, Logger::ERROR, error);
@@ -41,29 +42,38 @@ MeshNode::MeshNode(Config config)
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(MeshNode::INITIALIZED)));
 }
 
-MessageBuffer MeshNode::updateEntities(const std::vector<EntityT>& entities) {
+std::vector<MessageBuffer> MeshNode::updateEntities(const std::vector<EntityT>& entities) {
     if (entities.empty()) {
         return {};
     }
     // write message in
-    fb::FlatBufferBuilder fbb_in;
+    fb::FlatBufferBuilder fbb_in, fbb_out;
+    std::vector<MessageBuffer> forwarded_messages;
     std::vector<fb::Offset<Entity>> entity_offsets;
+    const auto forward_message = [&]() {
+        fbb_in.Finish(CreateMessage(fbb_in,
+                _time_sync.getTime().count(),                          // timestamp
+                -1,                                                    // hops
+                NodeInfo::Pack(fbb_in, &_peer_tracker.getNodeInfo()),  // source
+                {},                                                    // peers
+                fbb_in.CreateVector(entity_offsets)                    // entities
+                ));
+        if (forwardEntityUpdates(fbb_out, GetRoot<Message>(fbb_in.GetBufferPointer()))) {
+            forwarded_messages.emplace_back(std::move(fbb_out.Release()));
+        }
+        fbb_in.Reset();
+        fbb_out.Reset();
+        entity_offsets.clear();
+    };
     for (const auto& entity : entities) {
         entity_offsets.emplace_back(Entity::Pack(fbb_in, &entity));
+        if (fbb_in.GetSize() >= _max_message_size) {
+            forward_message();
+        }
     }
-    fbb_in.Finish(CreateMessage(fbb_in,
-            _time_sync.getTime().count(),                          // timestamp
-            -1,                                                    // hops
-            NodeInfo::Pack(fbb_in, &_peer_tracker.getNodeInfo()),  // source
-            {},                                                    // peers
-            fbb_in.CreateVector(entity_offsets)                    // entities
-            ));
-    fb::FlatBufferBuilder fbb_out(fbb_in.GetSize());
-    if (!forwardEntityUpdates(fbb_out, GetRoot<Message>(fbb_in.GetBufferPointer()))) {
-        return {};
-    }
+    forward_message();
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(ENTITY_UPDATES_SENT)));
-    return MessageBuffer(fbb_out.Release());
+    return forwarded_messages;
 }
 
 const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg) {

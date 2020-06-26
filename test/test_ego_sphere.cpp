@@ -62,7 +62,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
     // expect expired
     entities.emplace_back();
     entities.back().name = "a";
-    entities.back().expiry = 0;
+    entities.back().expiry = 1;
     // expect not expired
     entities.emplace_back();
     entities.back().name = "b";
@@ -87,7 +87,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
 
     // trigger update after 1 ms
 
-    mesh_node.getTransport().poll(msecs(1));
+    mesh_node.getTransport().poll(msecs(2));
     auto msg = mesh_node.updateEntities(entities);
 
     // send update again and expect to be rejected based on repeated timestamp

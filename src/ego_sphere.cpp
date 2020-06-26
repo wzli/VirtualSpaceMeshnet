@@ -64,7 +64,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         // insert entity timestamp once filter passes
         insertEntityTimestamp(name, msecs(msg->timestamp()));
         // reject and delete if entity already expired
-        if (entity->expiry() <= current_time.count()) {
+        if (entity->expiry() && entity->expiry() <= current_time.count()) {
             deleteEntity(name, source.get());
             IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
             continue;
@@ -110,7 +110,7 @@ bool EgoSphere::deleteEntity(const std::string& name, const NodeInfoT* source) {
 
 void EgoSphere::expireEntities(msecs current_time, const NodeInfoT* source) {
     for (auto entity = _entities.begin(); entity != _entities.end();) {
-        if (entity->second.entity.expiry <= current_time.count()) {
+        if (entity->second.entity.expiry && entity->second.entity.expiry <= current_time.count()) {
             IF_FUNC(_entity_update_handler, nullptr, &entity->second, source);
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_EXPIRED)), &entity->second);
             entity = _entities.erase(entity);

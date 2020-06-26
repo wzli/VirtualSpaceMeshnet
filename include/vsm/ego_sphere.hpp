@@ -75,6 +75,9 @@ public:
     void expireEntities(msecs current_time, const NodeInfoT* source = nullptr);
 
     // accesors
+    void setEntityUpdateHandler(EntityUpdateHandler handler) {
+        _entity_update_handler = std::move(handler);
+    }
     EntityLookup getEntities() { return _entities; }
     const EntityLookup getEntities() const { return _entities; }
 

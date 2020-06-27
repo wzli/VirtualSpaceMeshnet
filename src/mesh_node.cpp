@@ -11,7 +11,7 @@ MeshNode::MeshNode(Config config)
         , _time_sync(std::move(config.local_clock))
         , _transport(std::move(config.transport))
         , _logger(std::move(config.logger))
-        , _max_message_size(config.max_message_size) {
+        , _entity_updates_size(config.entity_updates_size) {
     if (!_transport) {
         Error error(STRERR(NO_TRANSPORT_SPECIFIED));
         IF_PTR(_logger, log, Logger::ERROR, error);
@@ -75,7 +75,7 @@ std::vector<MessageBuffer> MeshNode::updateEntities(
     };
     for (const auto& entity : entities) {
         entity_offsets.emplace_back(Entity::Pack(fbb_in, &entity));
-        if (fbb_in.GetSize() >= _max_message_size) {
+        if (fbb_in.GetSize() >= _entity_updates_size) {
             forward_message();
         }
     }

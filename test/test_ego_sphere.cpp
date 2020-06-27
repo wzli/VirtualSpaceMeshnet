@@ -19,9 +19,9 @@ TEST_CASE("Single World", "[ego_sphere]") {
     };
 #endif
     MeshNode::Config config{
-            8000,         // max message size
             msecs(1000),  // peer update interval
             msecs(1000),  // entity expiry interval
+            8000,         // entity updates size
             {
                     // ego sphere
                     nullptr,  // entity update handler
@@ -148,9 +148,9 @@ TEST_CASE("Single World", "[ego_sphere]") {
 TEST_CASE("4 corners", "[ego_sphere]") {
     auto make_config = [](int id, std::vector<float> coords) {
         return MeshNode::Config{
-                8000,         // max message size
                 msecs(1),     // peer update interval
                 msecs(1000),  // entity expiry interval
+                8000,         // entity updates size
                 {},
                 {
                         // peer manager

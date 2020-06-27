@@ -43,9 +43,9 @@ public:
     };
 
     struct Config {
-        size_t max_message_size = 8000;  // not strict since flatbuffers framing may vary
         msecs peer_update_interval = msecs(1000);
         msecs entity_expiry_interval = msecs(1000);
+        size_t entity_updates_size = 7000;  // message size aprox 600B more may vary
         EgoSphere::Config ego_sphere;
         PeerTracker::Config peer_tracker;
         std::shared_ptr<Transport> transport;
@@ -106,7 +106,7 @@ private:
     std::vector<std::string> _recipients_buffer;
     std::mutex _entities_mutex;
     std::mutex _transmit_mutex;
-    size_t _max_message_size;
+    size_t _entity_updates_size;
 };
 
 }  // namespace vsm

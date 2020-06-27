@@ -16,9 +16,9 @@ TEST_CASE("MeshNode Update Tick", "[mesh_node]") {
             {0, 0},                   // coordinates
     };
     MeshNode::Config mesh_node_config{
-            8000,                                             // max message size
             msecs(1),                                         // peer update interval
             msecs(1000),                                      // entity expiry interval
+            8000,                                             // entity updates size
             {},                                               // ego sphere
             std::move(peer_tracker_config),                   // peer tracker
             std::make_shared<ZmqTransport>("udp://*:11611"),  // transport
@@ -41,9 +41,9 @@ TEST_CASE("MeshNode Update Tick", "[mesh_node]") {
 TEST_CASE("MeshNode Loopback", "[mesh_node]") {
     std::vector<MeshNode::Config> configs{
             {
-                    8000,         // max message size
                     msecs(1),     // peer update interval
                     msecs(1000),  // entity expiry interval
+                    8000,         // entity updates size
                     {},           // ego sphere
                     {
                             "node1",                  // name
@@ -58,9 +58,9 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                     std::make_shared<Logger>(),                       // logger
             },
             {
-                    8000,         // max message size
                     msecs(1),     // peer update interval
                     msecs(1000),  // entity expiry interval
+                    8000,         // entity updates size
                     {},           // ego sphere
                     {
                             "node2",                  // name
@@ -109,9 +109,9 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
         sprintf(buf, "%02d", id);
         std::string id_str = buf;
         return MeshNode::Config{
-                8000,         // max message size
                 msecs(1),     // peer update interval
                 msecs(1000),  // entity expiry interval
+                8000,         // entity updates size
                 {},           // ego sphere
                 {
                         "node" + id_str,                 // name

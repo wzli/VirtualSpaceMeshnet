@@ -5,6 +5,7 @@ project(VirtualSpaceMeshnet)
 # ZeroMQ setup
 set(ZMQ_BUILD_TESTS OFF CACHE BOOL "")
 set(WITH_DOCS OFF CACHE BOOL "")
+set(WITH_LIBSODIUM OFF CACHE BOOL "")
 set(ENABLE_DRAFTS ON CACHE BOOL "")
 add_subdirectory(submodules/libzmq)
 

@@ -42,7 +42,8 @@ MeshNode::MeshNode(Config config)
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(MeshNode::INITIALIZED)));
 }
 
-std::vector<MessageBuffer> MeshNode::updateEntities(const std::vector<EntityT>& entities) {
+std::vector<MessageBuffer> MeshNode::updateEntities(
+        const std::vector<EntityT>& entities, bool relative_expiry) {
     if (entities.empty()) {
         return {};
     }
@@ -58,7 +59,14 @@ std::vector<MessageBuffer> MeshNode::updateEntities(const std::vector<EntityT>& 
                 {},                                                    // peers
                 fbb_in.CreateVector(entity_offsets)                    // entities
                 ));
-        if (forwardEntityUpdates(fbb_out, GetRoot<Message>(fbb_in.GetBufferPointer()))) {
+        auto msg = GetRoot<Message>(fbb_in.GetBufferPointer());
+        // increment expiry by timestamp if it's relative
+        if (relative_expiry) {
+            for (auto entity : *msg->entities()) {
+                const_cast<Entity*>(entity)->mutate_expiry(entity->expiry() + msg->timestamp());
+            }
+        }
+        if (forwardEntityUpdates(fbb_out, msg)) {
             forwarded_messages.emplace_back(std::move(fbb_out.Release()));
         }
         fbb_in.Reset();

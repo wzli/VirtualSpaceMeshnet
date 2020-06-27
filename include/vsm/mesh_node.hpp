@@ -69,7 +69,8 @@ public:
         const std::lock_guard<std::mutex> lock(_entities_mutex);
         entities_callback(_ego_sphere.getEntities());
     }
-    std::vector<MessageBuffer> updateEntities(const std::vector<EntityT>& entities);
+    std::vector<MessageBuffer> updateEntities(
+            const std::vector<EntityT>& entities, bool relative_expiry = true);
     const Message* forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
 
     // accesors (FYI they are not thread safe)

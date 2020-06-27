@@ -89,7 +89,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
     // trigger update after 1 ms
 
     mesh_node.getTransport().poll(msecs(2));
-    auto msgs = mesh_node.updateEntities(entities);
+    auto msgs = mesh_node.updateEntities(entities, false);
     REQUIRE(!msgs.empty());
 
     // send update again and expect to be rejected based on repeated timestamp
@@ -215,7 +215,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().range = 10;
 
     // exchange messages
-    REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
+    REQUIRE(!mesh_nodes[0].updateEntities(entities, false).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
@@ -238,7 +238,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().range = 10;
 
     // exchange messages
-    REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
+    REQUIRE(!mesh_nodes[0].updateEntities(entities, false).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
@@ -261,7 +261,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().range = 10;
 
     // exchange messages
-    REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
+    REQUIRE(!mesh_nodes[0].updateEntities(entities, false).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
@@ -284,7 +284,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().range = 10;
 
     // exchange messages
-    REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
+    REQUIRE(!mesh_nodes[0].updateEntities(entities, false).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));

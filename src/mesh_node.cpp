@@ -33,7 +33,7 @@ MeshNode::MeshNode(Config config)
     // register entity expiry timer
     if (0 > _transport->addTimer(config.entity_expiry_interval, [this](int) {
             const std::lock_guard<std::mutex> lock(_entities_mutex);
-            _ego_sphere.expireEntities(_time_sync.getTime(), &_peer_tracker.getNodeInfo());
+            _ego_sphere.expireEntities(_time_sync.getTime(), _peer_tracker.getNodeInfo());
         })) {
         Error error(STRERR(ADD_TIMER_FAIL));
         IF_PTR(_logger, log, Logger::ERROR, error);

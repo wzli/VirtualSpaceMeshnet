@@ -122,12 +122,13 @@ TEST_CASE("Single World", "[ego_sphere]") {
     REQUIRE(msgs[0].get()->entities()->LookupByKey("e"));
 
     // test delete
-    REQUIRE(!mesh_node.getEgoSphere().deleteEntity("a"));
-    REQUIRE(mesh_node.getEgoSphere().deleteEntity("b"));
+    auto& self = mesh_node.getPeerTracker().getNodeInfo();
+    REQUIRE(!mesh_node.getEgoSphere().deleteEntity("a", self));
+    REQUIRE(mesh_node.getEgoSphere().deleteEntity("b", self));
 
     // test expire
     REQUIRE(error_counts.count("ENTITY_DELETED"));
-    mesh_node.getEgoSphere().expireEntities(msecs(2000));
+    mesh_node.getEgoSphere().expireEntities(msecs(2000), self);
     REQUIRE(error_counts.count("ENTITY_EXPIRED"));
 
     // test timestamp lookup trimming
@@ -273,6 +274,22 @@ TEST_CASE("4 corners", "[ego_sphere]") {
         REQUIRE(error_counts[i]["ENTITY_CREATED"] == 1);
         REQUIRE(error_counts[i]["ENTITY_UPDATES_FORWARDED"] == 1);
         REQUIRE(error_counts[i].count("ENTITY_UPDATES_RECEIVED") == !!i);
+        error_counts[i].clear();
+    }
+
+    // send again and make sure it gets filtered the second time
+    REQUIRE(!mesh_nodes[0].updateEntities(entities, false).empty());
+    for (int i = 0; i < 30; ++i) {
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
+    }
+    REQUIRE(error_counts[0]["ENTITY_UPDATES_SENT"] == 1);
+    for (size_t i = 0; i < configs.size(); ++i) {
+        REQUIRE(error_counts[i].count("ENTITY_CREATED") == 0);
+        REQUIRE(error_counts[i]["ENTITY_UPDATES_RECEIVED"] == !!i);
+        REQUIRE(error_counts[i]["ENTITY_UPDATES_FORWARDED"] == !(i & 1));
+        REQUIRE(error_counts[i]["ENTITY_NEAREST_FILTERED"] == !!(i & 1));
         error_counts[i].clear();
     }
 

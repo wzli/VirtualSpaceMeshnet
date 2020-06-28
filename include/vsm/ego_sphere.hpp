@@ -43,7 +43,7 @@ public:
 
     // return value determines whether to allow update
     using EntityUpdateHandler = std::function<bool(
-            EntityUpdate* new_entity, const EntityUpdate* old_entity, const NodeInfoT* source)>;
+            EntityUpdate* new_entity, const EntityUpdate* old_entity, const NodeInfoT& source)>;
 
     struct Config {
         EntityUpdateHandler entity_update_handler = nullptr;
@@ -71,9 +71,9 @@ public:
 
     bool insertEntityTimestamp(std::string name, msecs timestamp);
 
-    bool deleteEntity(const std::string& name, const NodeInfoT* source = nullptr);
+    bool deleteEntity(const std::string& name, const NodeInfoT& source);
 
-    void expireEntities(msecs current_time, const NodeInfoT* source = nullptr);
+    void expireEntities(msecs current_time, const NodeInfoT& source);
 
     // accesors
     void setEntityUpdateHandler(EntityUpdateHandler handler) {

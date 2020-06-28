@@ -74,6 +74,8 @@ PeerTracker::ErrorType PeerTracker::updatePeer(const NodeInfo* node_info, bool i
         IF_PTR(_logger, log, Logger::INFO, Error(STRERR(NEW_PEER_DISCOVERED)), node_info);
         _peer_rankings.emplace_back(&peer);
     } else if (is_source) {
+        // reset rank factor if any message is directly recieved from source
+        peer.rank_factor = std::min(peer.rank_factor, 1.0f);
         if (node_info->sequence() <= peer.source_sequence) {
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(SOURCE_SEQUENCE_STALE)), node_info);
             return SOURCE_SEQUENCE_STALE;

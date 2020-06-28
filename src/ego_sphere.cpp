@@ -78,21 +78,21 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         // checks pass, proceed to update entity
         EntityUpdate new_entity{{}, current_time, msecs(msg->timestamp()), msg->hops()};
         entity->UnPackTo(&new_entity.entity);
-        // accept entity if handler doesn't exist or handler returns true
-        bool accept_entity =
-                !_entity_update_handler ||
-                _entity_update_handler(&new_entity,
-                        old_entity == _entities.end() ? nullptr : &old_entity->second, source);
-        if (accept_entity) {
-            if (old_entity == _entities.end()) {
-                old_entity = _entities.emplace(name, std::move(new_entity)).first;
-                IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_CREATED)), entity);
-            } else {
-                old_entity->second = std::move(new_entity);
-                IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
-            }
-            forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second.entity));
+        // reject update if handler returns false
+        if (_entity_update_handler &&
+                !_entity_update_handler(&new_entity,
+                        old_entity == _entities.end() ? nullptr : &old_entity->second, source)) {
+            continue;
         }
+        // update and forward entity
+        if (old_entity == _entities.end()) {
+            old_entity = _entities.emplace(name, std::move(new_entity)).first;
+            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_CREATED)), entity);
+        } else {
+            old_entity->second = std::move(new_entity);
+            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
+        }
+        forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second.entity));
     }
     return forward_entities;
 }

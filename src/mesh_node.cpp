@@ -109,14 +109,10 @@ const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const 
     if (msg->source() && msg->source()->address()) {
         source_address = msg->source()->address()->str();
     }
-    {
-        // lock transport and forwrad message
-        const std::lock_guard<std::mutex> lock(_transmit_mutex);
-        int disconnect_error = _transport->disconnect(source_address);
-        _transport->transmit(fbb.GetBufferPointer(), fbb.GetSize());
-        if (!disconnect_error) {
-            _transport->connect(source_address);
-        }
+    int disconnect_error = _transport->disconnect(source_address);
+    _transport->transmit(fbb.GetBufferPointer(), fbb.GetSize());
+    if (!disconnect_error) {
+        _transport->connect(source_address);
     }
     IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_FORWARDED)),
             fbb.GetBufferPointer(), fbb.GetSize());
@@ -142,18 +138,13 @@ void MeshNode::sendPeerUpdates() {
     };
     BackAssigner disconnector{[this](const std::string& addr) { _transport->disconnect(addr); }};
     BackAssigner connector{[this](const std::string& addr) { _transport->connect(addr); }};
-    {
-        // lock transport
-        const std::lock_guard<std::mutex> lock(_transmit_mutex);
-        // update transport connections
-        std::set_difference(_connected_peers.begin(), _connected_peers.end(),
-                _recipients_buffer.begin(), _recipients_buffer.end(),
-                std::back_inserter(disconnector));
-        std::set_difference(_recipients_buffer.begin(), _recipients_buffer.end(),
-                _connected_peers.begin(), _connected_peers.end(), std::back_inserter(connector));
-        // send message
-        _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
-    }
+    // update transport connections
+    std::set_difference(_connected_peers.begin(), _connected_peers.end(),
+            _recipients_buffer.begin(), _recipients_buffer.end(), std::back_inserter(disconnector));
+    std::set_difference(_recipients_buffer.begin(), _recipients_buffer.end(),
+            _connected_peers.begin(), _connected_peers.end(), std::back_inserter(connector));
+    // send message
+    _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
     _connected_peers.swap(_recipients_buffer);
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(PEER_UPDATES_SENT)));
 }

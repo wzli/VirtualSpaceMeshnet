@@ -105,7 +105,6 @@ private:
     std::vector<std::string> _connected_peers;
     std::vector<std::string> _recipients_buffer;
     std::mutex _entities_mutex;
-    std::mutex _transmit_mutex;
     size_t _entity_updates_size;
 };
 

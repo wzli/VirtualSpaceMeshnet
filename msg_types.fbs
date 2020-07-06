@@ -25,6 +25,7 @@ table Entity {
   name:string (key);
   coordinates:[float];
   filter:Filter;
+  hop_limit:uint32;
   range:float;
   expiry:uint32;
   type:uint32;

@@ -2,6 +2,7 @@
 #include <vsm/logger.hpp>
 #include <vsm/msg_types_generated.h>
 
+#include <cmath>
 #include <limits>
 #include <string>
 #include <unordered_map>
@@ -33,7 +34,8 @@ struct Peer {
     template <class Vec>
     float radialCost(const Vec& from) const {
         return (distanceSqr(from, node_info.coordinates) * rank_factor) -
-               (node_info.power_radius * node_info.power_radius);
+               std::copysign(
+                       node_info.power_radius * node_info.power_radius, node_info.power_radius);
     }
 };
 

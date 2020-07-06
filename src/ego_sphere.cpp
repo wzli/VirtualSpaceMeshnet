@@ -84,7 +84,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
                         old_entity == _entities.end() ? nullptr : &old_entity->second, source)) {
             continue;
         }
-        // update and forward entity
+        // update entity
         if (old_entity == _entities.end()) {
             old_entity = _entities.emplace(name, std::move(new_entity)).first;
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_CREATED)), entity);
@@ -92,7 +92,12 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
             old_entity->second = std::move(new_entity);
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
         }
-        forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second.entity));
+        // forward entity until hop limit is reached
+        if (!entity->hop_limit() || entity->hop_limit() > msg->hops()) {
+            forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second.entity));
+        } else {
+            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_HOPS_EXCEEDED)), entity);
+        }
     }
     return forward_entities;
 }

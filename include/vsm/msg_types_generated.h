@@ -62,7 +62,7 @@ struct MessageT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<vsm::EntityT>> entities;
   MessageT()
       : timestamp(0),
-        hops(0) {
+        hops(1) {
   }
 };
 
@@ -86,10 +86,10 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return SetField<uint32_t>(VT_TIMESTAMP, _timestamp, 0);
   }
   uint32_t hops() const {
-    return GetField<uint32_t>(VT_HOPS, 0);
+    return GetField<uint32_t>(VT_HOPS, 1);
   }
   bool mutate_hops(uint32_t _hops) {
-    return SetField<uint32_t>(VT_HOPS, _hops, 0);
+    return SetField<uint32_t>(VT_HOPS, _hops, 1);
   }
   const vsm::NodeInfo *source() const {
     return GetPointer<const vsm::NodeInfo *>(VT_SOURCE);
@@ -136,7 +136,7 @@ struct MessageBuilder {
     fbb_.AddElement<uint32_t>(Message::VT_TIMESTAMP, timestamp, 0);
   }
   void add_hops(uint32_t hops) {
-    fbb_.AddElement<uint32_t>(Message::VT_HOPS, hops, 0);
+    fbb_.AddElement<uint32_t>(Message::VT_HOPS, hops, 1);
   }
   void add_source(flatbuffers::Offset<vsm::NodeInfo> source) {
     fbb_.AddOffset(Message::VT_SOURCE, source);
@@ -161,7 +161,7 @@ struct MessageBuilder {
 inline flatbuffers::Offset<Message> CreateMessage(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t timestamp = 0,
-    uint32_t hops = 0,
+    uint32_t hops = 1,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>>> peers = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>>> entities = 0) {
@@ -177,7 +177,7 @@ inline flatbuffers::Offset<Message> CreateMessage(
 inline flatbuffers::Offset<Message> CreateMessageDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t timestamp = 0,
-    uint32_t hops = 0,
+    uint32_t hops = 1,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
     std::vector<flatbuffers::Offset<vsm::NodeInfo>> *peers = nullptr,
     std::vector<flatbuffers::Offset<vsm::Entity>> *entities = nullptr) {

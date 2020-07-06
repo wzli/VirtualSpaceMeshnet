@@ -311,6 +311,27 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     REQUIRE(error_counts[1]["ENTITY_NEAREST_FILTERED"] == 1);
     REQUIRE(error_counts[2]["ENTITY_NEAREST_FILTERED"] == 1);
     REQUIRE(error_counts[3].count("ENTITY_UPDATES_RECEIVED") == 0);
+    for (size_t i = 0; i < configs.size(); ++i) {
+        error_counts[i].clear();
+    }
+
+    // test hop limit
+    entities.back().name = "e";
+    entities.back().hop_limit = 1;
+    entities.back().filter = Filter::ALL;
+
+    // exchange messages
+    REQUIRE(!mesh_nodes[0].updateEntities(entities, false).empty());
+    for (int i = 0; i < 30; ++i) {
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
+    }
+
+    for (size_t i = 0; i < configs.size(); ++i) {
+        REQUIRE(error_counts[i]["ENTITY_CREATED"] == (i < 3));
+        error_counts[i].clear();
+    }
 
 #if 0
     // print error codes in order of frequency

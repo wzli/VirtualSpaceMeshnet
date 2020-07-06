@@ -32,6 +32,7 @@ public:
         ENTITY_ALREADY_RECEIVED,
         ENTITY_NEAREST_FILTERED,
         ENTITY_RANGE_EXCEEDED,
+        ENTITY_HOPS_EXCEEDED,
     };
 
     struct EntityUpdate {

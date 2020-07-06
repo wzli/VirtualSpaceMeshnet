@@ -54,7 +54,7 @@ std::vector<MessageBuffer> MeshNode::updateEntities(
     const auto forward_message = [&]() {
         fbb_in.Finish(CreateMessage(fbb_in,
                 _time_sync.getTime().count(),                          // timestamp
-                -1,                                                    // hops
+                0,                                                     // hops
                 NodeInfo::Pack(fbb_in, &_peer_tracker.getNodeInfo()),  // source
                 {},                                                    // peers
                 fbb_in.CreateVector(entity_offsets)                    // entities
@@ -126,7 +126,7 @@ void MeshNode::sendPeerUpdates() {
     // write message
     _fbb.Finish(CreateMessage(_fbb,
             _time_sync.getTime().count(),                        // timestamp
-            0,                                                   // hops
+            1,                                                   // hops
             NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()),  // source
             _fbb.CreateVector(ranked_peers)                      // peers
             ));
@@ -163,7 +163,7 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
     }
     switch (_peer_tracker.updatePeer(msg->source(), true)) {
         case PeerTracker::SUCCESS:
-            if (msg->hops() == 0 && msg->timestamp() > 0) {
+            if (msg->hops() == 1 && msg->timestamp() > 0) {
                 float weight = 1.0f / (1 + _connected_peers.size());
                 _time_sync.syncTime(msecs(msg->timestamp()), weight);
                 IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(TIME_SYNCED)), buffer, len);

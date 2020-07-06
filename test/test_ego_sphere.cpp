@@ -67,16 +67,16 @@ TEST_CASE("Single World", "[ego_sphere]") {
     // expect not expired
     entities.emplace_back();
     entities.back().name = "b";
-    entities.back().expiry = 1000;
+    entities.back().expiry = 10000;
     // expect missing coordinates
     entities.emplace_back();
     entities.back().name = "c";
-    entities.back().expiry = 1000;
+    entities.back().expiry = 10000;
     entities.back().range = 10;
     // expect out of range
     entities.emplace_back();
     entities.back().name = "d";
-    entities.back().expiry = 1000;
+    entities.back().expiry = 10000;
     entities.back().range = 10;
     entities.back().coordinates = {10, 1};
     // expect in range
@@ -212,7 +212,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().name = "a";
     entities.back().coordinates = {-1, -1};
     entities.back().filter = Filter::ALL;
-    entities.back().expiry = 1000;
+    entities.back().expiry = 10000;
     entities.back().range = 10;
 
     // exchange messages
@@ -235,7 +235,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().name = "b";
     entities.back().coordinates = {0, 0};
     entities.back().filter = Filter::NEAREST;
-    entities.back().expiry = 1000;
+    entities.back().expiry = 10000;
     entities.back().range = 10;
 
     // exchange messages
@@ -258,7 +258,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().name = "c";
     entities.back().coordinates = {0, 1};
     entities.back().filter = Filter::NEAREST;
-    entities.back().expiry = 1000;
+    entities.back().expiry = 10000;
     entities.back().range = 10;
 
     // exchange messages
@@ -297,7 +297,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().name = "d";
     entities.back().coordinates = {1, 1};
     entities.back().filter = Filter::NEAREST;
-    entities.back().expiry = 1000;
+    entities.back().expiry = 10000;
     entities.back().range = 10;
 
     // exchange messages

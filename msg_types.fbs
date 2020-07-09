@@ -28,6 +28,5 @@ table Entity {
   hop_limit:uint32;
   range:float;
   expiry:uint32;
-  type:uint32;
   data:[uint8];
 }

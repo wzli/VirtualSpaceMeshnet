@@ -355,14 +355,12 @@ struct EntityT : public flatbuffers::NativeTable {
   uint32_t hop_limit;
   float range;
   uint32_t expiry;
-  uint32_t type;
   std::vector<uint8_t> data;
   EntityT()
       : filter(vsm::Filter::ALL),
         hop_limit(0),
         range(0.0f),
-        expiry(0),
-        type(0) {
+        expiry(0) {
   }
 };
 
@@ -379,8 +377,7 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_HOP_LIMIT = 10,
     VT_RANGE = 12,
     VT_EXPIRY = 14,
-    VT_TYPE = 16,
-    VT_DATA = 18
+    VT_DATA = 16
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -424,12 +421,6 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool mutate_expiry(uint32_t _expiry) {
     return SetField<uint32_t>(VT_EXPIRY, _expiry, 0);
   }
-  uint32_t type() const {
-    return GetField<uint32_t>(VT_TYPE, 0);
-  }
-  bool mutate_type(uint32_t _type) {
-    return SetField<uint32_t>(VT_TYPE, _type, 0);
-  }
   const flatbuffers::Vector<uint8_t> *data() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_DATA);
   }
@@ -446,7 +437,6 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint32_t>(verifier, VT_HOP_LIMIT) &&
            VerifyField<float>(verifier, VT_RANGE) &&
            VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
-           VerifyField<uint32_t>(verifier, VT_TYPE) &&
            VerifyOffset(verifier, VT_DATA) &&
            verifier.VerifyVector(data()) &&
            verifier.EndTable();
@@ -478,9 +468,6 @@ struct EntityBuilder {
   void add_expiry(uint32_t expiry) {
     fbb_.AddElement<uint32_t>(Entity::VT_EXPIRY, expiry, 0);
   }
-  void add_type(uint32_t type) {
-    fbb_.AddElement<uint32_t>(Entity::VT_TYPE, type, 0);
-  }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
     fbb_.AddOffset(Entity::VT_DATA, data);
   }
@@ -504,11 +491,9 @@ inline flatbuffers::Offset<Entity> CreateEntity(
     uint32_t hop_limit = 0,
     float range = 0.0f,
     uint32_t expiry = 0,
-    uint32_t type = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
   EntityBuilder builder_(_fbb);
   builder_.add_data(data);
-  builder_.add_type(type);
   builder_.add_expiry(expiry);
   builder_.add_range(range);
   builder_.add_hop_limit(hop_limit);
@@ -526,7 +511,6 @@ inline flatbuffers::Offset<Entity> CreateEntityDirect(
     uint32_t hop_limit = 0,
     float range = 0.0f,
     uint32_t expiry = 0,
-    uint32_t type = 0,
     const std::vector<uint8_t> *data = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto coordinates__ = coordinates ? _fbb.CreateVector<float>(*coordinates) : 0;
@@ -539,7 +523,6 @@ inline flatbuffers::Offset<Entity> CreateEntityDirect(
       hop_limit,
       range,
       expiry,
-      type,
       data__);
 }
 
@@ -636,7 +619,6 @@ inline void Entity::UnPackTo(EntityT *_o, const flatbuffers::resolver_function_t
   { auto _e = hop_limit(); _o->hop_limit = _e; }
   { auto _e = range(); _o->range = _e; }
   { auto _e = expiry(); _o->expiry = _e; }
-  { auto _e = type(); _o->type = _e; }
   { auto _e = data(); if (_e) { _o->data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data[_i] = _e->Get(_i); } } }
 }
 
@@ -654,7 +636,6 @@ inline flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &
   auto _hop_limit = _o->hop_limit;
   auto _range = _o->range;
   auto _expiry = _o->expiry;
-  auto _type = _o->type;
   auto _data = _o->data.size() ? _fbb.CreateVector(_o->data) : 0;
   return vsm::CreateEntity(
       _fbb,
@@ -664,7 +645,6 @@ inline flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &
       _hop_limit,
       _range,
       _expiry,
-      _type,
       _data);
 }
 

@@ -12,7 +12,7 @@ add_subdirectory(submodules/libzmq)
 set(BUILD_TESTING OFF CACHE BOOL "")
 set(CPPZMQ_BUILD_TESTS OFF CACHE BOOL "")
 add_subdirectory(submodules/cppzmq)
-target_compile_definitions(cppzmq INTERFACE ZMQ_BUILD_DRAFT_API=1)
+target_compile_definitions(cppzmq-static INTERFACE ZMQ_BUILD_DRAFT_API=1)
 
 # flatbuffers setup
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
@@ -32,7 +32,7 @@ add_library(vsm
   src/peer_tracker.cpp
   src/zmq_transport.cpp
 )
-target_link_libraries(vsm PUBLIC cppzmq flatbuffers)
+target_link_libraries(vsm PUBLIC cppzmq-static flatbuffers)
 target_include_directories(vsm PUBLIC include)
 
 # add tests

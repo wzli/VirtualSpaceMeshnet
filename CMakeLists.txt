@@ -6,6 +6,7 @@ project(VirtualSpaceMeshnet)
 set(ZMQ_BUILD_TESTS OFF CACHE BOOL "")
 set(WITH_DOCS OFF CACHE BOOL "")
 set(WITH_LIBSODIUM OFF CACHE BOOL "")
+set(ENABLE_WS OFF CACHE BOOL "")
 set(ENABLE_DRAFTS ON CACHE BOOL "")
 add_subdirectory(submodules/libzmq)
 
@@ -34,6 +35,12 @@ add_library(vsm
 )
 target_link_libraries(vsm PUBLIC cppzmq flatbuffers)
 target_include_directories(vsm PUBLIC include)
+
+install(
+  TARGETS vsm EXPORT vsm-targets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # add tests
 option(VSM_BUILD_TESTS "Enable the build of tests and samples." OFF)

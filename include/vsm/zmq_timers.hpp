@@ -4,6 +4,8 @@
 #include <functional>
 #include <vector>
 
+namespace vsm {
+
 class ZmqTimers {
 public:
     ZmqTimers()
@@ -35,3 +37,5 @@ private:
     std::vector<std::function<void(int)>> _callbacks;
     void* _timers;
 };
+
+}  // namespace vsm

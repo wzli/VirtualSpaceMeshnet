@@ -48,7 +48,7 @@ private:
     zmq::context_t _zmq_ctx;
     zmq::socket_t _tx_socket;
     zmq::socket_t _rx_socket;
-    zmq::timers_t _timers;
+    zmq::ttimers_t _timers;
     zmq::message_t _rx_message;
     std::unordered_map<std::string, ReceiverCallback> _receiver_callbacks;
 };

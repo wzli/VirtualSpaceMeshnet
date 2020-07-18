@@ -6,12 +6,12 @@
 
 namespace zmq {
 
-class timers_t {
+class ttimers_t {
 public:
-    timers_t()
+    ttimers_t()
             : _timers(zmq_timers_new()) {}
 
-    ~timers_t() { zmq_timers_destroy(&_timers); }
+    ~ttimers_t() { zmq_timers_destroy(&_timers); }
 
     int add(size_t interval, std::function<void(int)> handler) {
         _callbacks.emplace_back(std::move(handler));
@@ -32,7 +32,7 @@ public:
 
 private:
     static void callback_wrapper(int timer_id, void* arg) {
-        reinterpret_cast<timers_t*>(arg)->_callbacks[timer_id - 1](timer_id);
+        reinterpret_cast<ttimers_t*>(arg)->_callbacks[timer_id - 1](timer_id);
     }
     std::vector<std::function<void(int)>> _callbacks;
     void* _timers;

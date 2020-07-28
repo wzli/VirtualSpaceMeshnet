@@ -61,9 +61,18 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         }
         // insert entity timestamp once filter passes
         insertEntityTimestamp(name, msecs(msg->timestamp()));
-        // reject and delete if entity already expired
+        // create lambda for delete and forward operation
+        const auto delete_and_forward = [&]() {
+            // if entity exists, delete entity and forward message
+            if (deleteEntity(name, source)) {
+                EntityT entity_obj;
+                entity->UnPackTo(&entity_obj);
+                forward_entities.emplace_back(Entity::Pack(fbb, &entity_obj));
+            }
+        };
+        // check if entity already expired
         if (entity->expiry() && entity->expiry() <= current_time.count()) {
-            deleteEntity(name, source);
+            delete_and_forward();
             IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
             continue;
         }
@@ -71,7 +80,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         if (entity->range() && (entity->range() * entity->range() <
                                        distanceSqr(*entity->coordinates(),
                                                peer_tracker.getNodeInfo().coordinates))) {
-            deleteEntity(name, source);
+            delete_and_forward();
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
             continue;
         }

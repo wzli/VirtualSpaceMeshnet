@@ -89,8 +89,9 @@ public:
     std::vector<fb::Offset<NodeInfo>> updatePeerRankings(
             fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients);
 
+    // accessors (FYI they are not thread safe)
     const PeerLookup& getPeers() const { return _peers; }
-    const std::vector<Peer*> getPeerRankings() const { return _peer_rankings; }
+    const std::vector<Peer*>& getPeerRankings() const { return _peer_rankings; }
 
     NodeInfoT& getNodeInfo() { return _node_info; }
     const NodeInfoT& getNodeInfo() const { return _node_info; }

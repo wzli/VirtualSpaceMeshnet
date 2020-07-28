@@ -73,7 +73,7 @@ public:
             const std::vector<EntityT>& entities, bool relative_expiry = true);
     const Message* forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
 
-    // accesors (FYI they are not thread safe)
+    // accessors (FYI they are not thread safe)
     EgoSphere& getEgoSphere() { return _ego_sphere; }
     const EgoSphere& getEgoSphere() const { return _ego_sphere; }
 

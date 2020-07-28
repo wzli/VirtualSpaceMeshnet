@@ -80,8 +80,8 @@ public:
     void setEntityUpdateHandler(EntityUpdateHandler handler) {
         _entity_update_handler = std::move(handler);
     }
-    EntityLookup getEntities() { return _entities; }
-    const EntityLookup getEntities() const { return _entities; }
+    EntityLookup& getEntities() { return _entities; }
+    const EntityLookup& getEntities() const { return _entities; }
 
     Logger* getLogger() { return _logger.get(); }
     const Logger* getLogger() const { return _logger.get(); }

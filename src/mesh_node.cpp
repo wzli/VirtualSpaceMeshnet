@@ -80,7 +80,7 @@ std::vector<MessageBuffer> MeshNode::updateEntities(
         }
     }
     forward_message();
-    IF_PTR(_logger, log, Logger::INFO, Error(STRERR(ENTITY_UPDATES_SENT)));
+    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_SENT)));
     return forwarded_messages;
 }
 
@@ -146,7 +146,7 @@ void MeshNode::sendPeerUpdates() {
     // send message
     _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
     _connected_peers.swap(_recipients_buffer);
-    IF_PTR(_logger, log, Logger::INFO, Error(STRERR(PEER_UPDATES_SENT)));
+    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(PEER_UPDATES_SENT)));
 }
 
 void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {

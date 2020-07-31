@@ -31,9 +31,9 @@ public:
         MESSAGE_VERIFY_FAIL,
         // Info
         INITIALIZED,
+        // Debug
         PEER_UPDATES_SENT,
         ENTITY_UPDATES_SENT,
-        // Debug
         ENTITY_UPDATES_FORWARDED,
         // Trace
         SOURCE_UPDATE_RECEIVED,

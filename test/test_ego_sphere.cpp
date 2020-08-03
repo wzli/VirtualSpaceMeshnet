@@ -231,6 +231,22 @@ TEST_CASE("4 corners", "[ego_sphere]") {
         error_counts[i].clear();
     }
 
+    // test entity delete propagation
+    entities.back().filter = Filter::NEAREST;
+    entities.back().expiry = 0;
+
+    REQUIRE(!mesh_nodes[0].updateEntities(entities, true).empty());
+    for (int i = 0; i < 30; ++i) {
+        for (auto& mesh_node : mesh_nodes) {
+            mesh_node.getTransport().poll(msecs(1));
+        }
+    }
+
+    for (size_t i = 0; i < configs.size(); ++i) {
+        REQUIRE(error_counts[i].count("Received ENTITY_EXPIRED"));
+        error_counts[i].clear();
+    }
+
     // test nearest filter (closest to self)
     entities.back().name = "b";
     entities.back().coordinates = {0, 0};

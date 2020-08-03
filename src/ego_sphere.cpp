@@ -71,7 +71,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
             }
         };
         // check if entity already expired
-        if (entity->expiry() && entity->expiry() <= current_time.count()) {
+        if (entity->expiry() <= current_time.count()) {
             delete_and_forward();
             IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
             continue;
@@ -126,7 +126,7 @@ bool EgoSphere::deleteEntity(const std::string& name, const NodeInfoT& source) {
 
 void EgoSphere::expireEntities(msecs current_time, const NodeInfoT& source) {
     for (auto entity = _entities.begin(); entity != _entities.end();) {
-        if (entity->second.entity.expiry && entity->second.entity.expiry <= current_time.count()) {
+        if (entity->second.entity.expiry <= current_time.count()) {
             if (_entity_update_handler) {
                 _entity_update_handler(nullptr, &entity->second, source);
             }

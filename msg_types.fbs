@@ -27,6 +27,6 @@ table Entity {
   filter:Filter;
   hop_limit:uint32;
   range:float;
-  expiry:uint32;
+  expiry:uint32 = 0xFFFFFFFF;
   data:[uint8];
 }

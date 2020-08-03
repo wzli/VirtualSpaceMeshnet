@@ -63,7 +63,10 @@ std::vector<MessageBuffer> MeshNode::updateEntities(
         // increment expiry by timestamp if it's relative
         if (relative_expiry) {
             for (auto entity : *msg->entities()) {
-                const_cast<Entity*>(entity)->mutate_expiry(entity->expiry() + msg->timestamp());
+                // overflow check
+                if (entity->expiry() <= 0xFFFFFFFF - msg->timestamp()) {
+                    const_cast<Entity*>(entity)->mutate_expiry(entity->expiry() + msg->timestamp());
+                }
             }
         }
         if (forwardEntityUpdates(fbb_out, msg)) {

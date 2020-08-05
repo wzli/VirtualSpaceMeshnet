@@ -40,6 +40,7 @@ public:
 
     const zmq::socket_t& getTxSocket() const { return _tx_socket; }
     const zmq::socket_t& getRxSocket() const { return _rx_socket; }
+    zmq::context_t& getContext() { return _zmq_ctx; }
 
 private:
     std::string _address;

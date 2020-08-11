@@ -360,7 +360,7 @@ struct EntityT : public flatbuffers::NativeTable {
       : filter(vsm::Filter::ALL),
         hop_limit(0),
         range(0.0f),
-        expiry(0) {
+        expiry(4294967295) {
   }
 };
 
@@ -416,10 +416,10 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return SetField<float>(VT_RANGE, _range, 0.0f);
   }
   uint32_t expiry() const {
-    return GetField<uint32_t>(VT_EXPIRY, 0);
+    return GetField<uint32_t>(VT_EXPIRY, 4294967295);
   }
   bool mutate_expiry(uint32_t _expiry) {
-    return SetField<uint32_t>(VT_EXPIRY, _expiry, 0);
+    return SetField<uint32_t>(VT_EXPIRY, _expiry, 4294967295);
   }
   const flatbuffers::Vector<uint8_t> *data() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_DATA);
@@ -466,7 +466,7 @@ struct EntityBuilder {
     fbb_.AddElement<float>(Entity::VT_RANGE, range, 0.0f);
   }
   void add_expiry(uint32_t expiry) {
-    fbb_.AddElement<uint32_t>(Entity::VT_EXPIRY, expiry, 0);
+    fbb_.AddElement<uint32_t>(Entity::VT_EXPIRY, expiry, 4294967295);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
     fbb_.AddOffset(Entity::VT_DATA, data);
@@ -490,7 +490,7 @@ inline flatbuffers::Offset<Entity> CreateEntity(
     vsm::Filter filter = vsm::Filter::ALL,
     uint32_t hop_limit = 0,
     float range = 0.0f,
-    uint32_t expiry = 0,
+    uint32_t expiry = 4294967295,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
   EntityBuilder builder_(_fbb);
   builder_.add_data(data);
@@ -510,7 +510,7 @@ inline flatbuffers::Offset<Entity> CreateEntityDirect(
     vsm::Filter filter = vsm::Filter::ALL,
     uint32_t hop_limit = 0,
     float range = 0.0f,
-    uint32_t expiry = 0,
+    uint32_t expiry = 4294967295,
     const std::vector<uint8_t> *data = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto coordinates__ = coordinates ? _fbb.CreateVector<float>(*coordinates) : 0;

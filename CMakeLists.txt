@@ -27,14 +27,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wshadow")
 
 # add vsm library
+add_library(quick_hull src/quick_hull.cpp)
+target_include_directories(quick_hull PUBLIC include submodules/quickhull/include)
+target_compile_options(quick_hull PRIVATE -Wno-pedantic)
+
+# add vsm library
 add_library(vsm
   src/ego_sphere.cpp
   src/mesh_node.cpp
   src/peer_tracker.cpp
   src/zmq_transport.cpp
 )
-target_link_libraries(vsm PUBLIC cppzmq-static flatbuffers)
-target_include_directories(vsm PUBLIC include)
+target_link_libraries(vsm PUBLIC cppzmq-static flatbuffers quick_hull)
 
 install(
   TARGETS vsm EXPORT vsm-targets
@@ -61,6 +65,7 @@ if(VSM_BUILD_TESTS)
     test/test_mesh_node.cpp
     test/test_ego_sphere.cpp
     test/test_peer_tracker.cpp
+    test/test_quick_hull.cpp
     test/test_zmq_transport.cpp
   )
   target_link_libraries(tests PUBLIC catch2_main vsm)

@@ -4,19 +4,22 @@
 namespace vsm {
 
 QuickHull::PointSet QuickHull::computeConvexHull(const std::vector<Point>& points) {
+    PointSet hull_points;
     // filter input
     std::vector<Point> filtered_points;
     filtered_points.reserve(points.size());
     for (const auto& point : points) {
-        // filter out if any coordinate extends to infinity
+        // filter out if any coordinate extends to infinity from input
         if (std::none_of(point.cbegin(), point.cend(), [](Value coord) {
                 return std::abs(coord) >= std::numeric_limits<Value>::max();
             })) {
             // append point after filters
             filtered_points.push_back(point);
+        } else {
+            // add infinite points directly to hull
+            hull_points.insert(point);
         }
     }
-    PointSet hull_points;
     for (auto n_dims = points.front().size(); n_dims > 1; --n_dims) {
         // force uniform dimensions
         for (auto& filtered_point : filtered_points) {

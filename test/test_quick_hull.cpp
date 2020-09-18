@@ -121,4 +121,53 @@ TEST_CASE("Random N-D Points", "[quick_hull]") {
 #endif
 }
 
-// TODO: test degenerate dims, test non uniform dims, test zero distance invert
+TEST_CASE("Zero Distance Interior", "[quick_hull]") {
+    // setup random generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
+
+    int n_points, n_dims;
+
+    SECTION("2D") {
+        n_points = 10000;
+        n_dims = 2;
+    }
+
+    SECTION("3D") {
+        n_points = 10000;
+        n_dims = 3;
+    }
+
+    SECTION("4D") {
+        n_points = 10000;
+        n_dims = 4;
+    }
+
+    // generate random 2D points
+    std::vector<QuickHull::Point> points;
+    points.reserve(n_points);
+    for (int i = 0; i < n_points; ++i) {
+        QuickHull::Point point;
+        point.reserve(n_dims);
+        for (int j = 0; j < n_dims; ++j) {
+            point.push_back(dis(gen));
+            // std::cout << point.back() << " ";
+        }
+        // puts(" ");
+        points.push_back(std::move(point));
+    }
+
+    auto origin = QuickHull::Point(n_dims, 0);
+    auto points_with_origin = points;
+    points_with_origin.push_back(origin);
+    QuickHull::sphereInversion(points, origin);
+    QuickHull::sphereInversion(points_with_origin, origin);
+    auto hull_points = QuickHull::convexHull(points);
+    auto hull_points_with_origin = QuickHull::convexHull(points_with_origin);
+    REQUIRE(!hull_points.empty());
+    REQUIRE(hull_points_with_origin.size() == hull_points.size() + 1);
+    for (auto& hull_point : hull_points) {
+        REQUIRE(hull_points_with_origin.count(hull_point));
+    }
+}

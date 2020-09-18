@@ -20,7 +20,7 @@ public:
 
     using PointSet = std::unordered_set<Point, PointHash>;
 
-    static PointSet computeConvexHull(const std::vector<Point>& points);
+    static PointSet convexHull(const std::vector<Point>& points, bool include_coplanar = false);
     static void sphereInversion(std::vector<Point>& points, const Point& origin);
 };
 }  // namespace vsm

@@ -7,47 +7,109 @@
 
 using namespace vsm;
 
-TEST_CASE("Simple 2D Hull", "[quick_hull]") {
+TEST_CASE("Degenerate Input", "[quick_hull]") {
     // setup random generator
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(-1.0, 1.0);
+    std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
 
-    static constexpr auto N_POINTS = 50;
-    static constexpr auto N_DIM = 2;
+    int n_points, n_dims;
 
-    std::cout << N_POINTS << " original points\r\n";
+    SECTION("2D") {
+        n_points = 100;
+        n_dims = 2;
+    }
 
-    // generate random 2D points
+    SECTION("3D") {
+        n_points = 1000;
+        n_dims = 3;
+    }
+
+    SECTION("4D") {
+        n_points = 1000;
+        n_dims = 4;
+    }
+
     std::vector<QuickHull::Point> points;
-    points.reserve(N_POINTS);
-    for (int i = 0; i < N_POINTS; ++i) {
+    points.reserve(n_points);
+    for (int i = 0; i < n_points; ++i) {
         QuickHull::Point point;
-        point.reserve(N_DIM);
-        for (int j = 0; j < N_DIM; ++j) {
+        point.reserve(n_dims);
+        for (int j = 0; j < n_dims; ++j) {
             point.push_back(dis(gen));
-            std::cout << point.back() << " ";
         }
-        puts(" ");
         points.push_back(std::move(point));
     }
 
-    puts("\r\ncomputing convex hull");
-    auto hull_points = QuickHull::computeConvexHull(points);
+    auto hull_points = QuickHull::convexHull(points);
     REQUIRE(!hull_points.empty());
+
+    points.front().resize(2 * n_dims, 0);
+    auto degenerate_hull_points = QuickHull::convexHull(points);
+    REQUIRE(degenerate_hull_points.size() == hull_points.size());
+    for (auto point : degenerate_hull_points) {
+        point.resize(n_dims);
+        REQUIRE(hull_points.count(point));
+    }
+}
+
+TEST_CASE("Random N-D Points", "[quick_hull]") {
+    // setup random generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
+
+    int n_points, n_dims;
+    SECTION("2D") {
+        n_points = 10000;
+        n_dims = 2;
+    }
+    SECTION("3D") {
+        n_points = 10000;
+        n_dims = 3;
+    }
+    SECTION("4D") {
+        n_points = 10000;
+        n_dims = 4;
+    }
+    SECTION("5D") {
+        n_points = 10000;
+        n_dims = 5;
+    }
+
+    // generate random 2D points
+    std::vector<QuickHull::Point> points;
+    points.reserve(n_points);
+    for (int i = 0; i < n_points; ++i) {
+        QuickHull::Point point;
+        point.reserve(n_dims);
+        for (int j = 0; j < n_dims; ++j) {
+            point.push_back(dis(gen));
+            // std::cout << point.back() << " ";
+        }
+        // puts(" ");
+        points.push_back(std::move(point));
+    }
+
+    auto hull_points = QuickHull::convexHull(points);
+    REQUIRE(!hull_points.empty());
+#if 0
+    puts("\r\nconvex hull");
     for (auto& point : hull_points) {
         for (const auto& coord : point) {
             std::cout << coord << ' ';
         }
         puts("");
     }
+#endif
 
-    puts("\r\ncomputing interior hull");
     auto inv_points = points;
-    QuickHull::sphereInversion(inv_points, QuickHull::Point(N_DIM, 0));
-    hull_points = QuickHull::computeConvexHull(inv_points);
+    QuickHull::sphereInversion(inv_points, QuickHull::Point(n_dims, 0));
+    hull_points = QuickHull::convexHull(inv_points);
     REQUIRE(!hull_points.empty());
     REQUIRE(points.size() == inv_points.size());
+#if 0
+    puts("\r\ninterior hull");
     for (size_t i = 0; i < inv_points.size(); ++i) {
         if (hull_points.count(inv_points[i])) {
             for (const auto& coord : points[i]) {
@@ -56,6 +118,7 @@ TEST_CASE("Simple 2D Hull", "[quick_hull]") {
             puts("");
         }
     }
-
-    // TODO: test degenerate dims, test more dims, test non uniform dims, test zero distance invert
+#endif
 }
+
+// TODO: test degenerate dims, test non uniform dims, test zero distance invert

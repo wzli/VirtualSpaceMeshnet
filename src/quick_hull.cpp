@@ -3,21 +3,23 @@
 
 namespace vsm {
 
-QuickHull::PointSet QuickHull::computeConvexHull(const std::vector<Point>& points) {
+QuickHull::PointSet QuickHull::convexHull(const std::vector<Point>& points, bool include_coplanar) {
+    static constexpr auto EPS = std::numeric_limits<Value>::epsilon();
     PointSet hull_points;
+
     // filter input
     std::vector<Point> filtered_points;
     filtered_points.reserve(points.size());
     for (const auto& point : points) {
         // filter out if any coordinate extends to infinity from input
-        if (std::none_of(point.cbegin(), point.cend(), [](Value coord) {
+        if (std::any_of(point.cbegin(), point.cend(), [](Value coord) {
                 return std::abs(coord) >= std::numeric_limits<Value>::max();
             })) {
-            // append point after filters
-            filtered_points.push_back(point);
-        } else {
             // add infinite points directly to hull
             hull_points.insert(point);
+        } else {
+            // append point after filters
+            filtered_points.push_back(point);
         }
     }
     for (auto n_dims = points.front().size(); n_dims > 1; --n_dims) {
@@ -25,8 +27,15 @@ QuickHull::PointSet QuickHull::computeConvexHull(const std::vector<Point>& point
         for (auto& filtered_point : filtered_points) {
             filtered_point.resize(n_dims, 0);
         }
+        // skip empty dimensions
+        if (std::all_of(filtered_points.cbegin(), filtered_points.cend(),
+                    [&filtered_points](const Point& filtered_point) {
+                        return std::abs(filtered_point.back() - filtered_points.front().back()) <
+                               EPS;
+                    })) {
+            continue;
+        }
         // instantiate quick hull
-        static constexpr auto EPS = std::numeric_limits<Value>::epsilon();
         quick_hull<std::vector<Point>::const_iterator> quick_hull(n_dims, EPS);
         // add points and find initial simplex
         quick_hull.add_points(filtered_points.cbegin(), filtered_points.cend());
@@ -42,8 +51,10 @@ QuickHull::PointSet QuickHull::computeConvexHull(const std::vector<Point>& point
                 for (const auto& vertex : facet.vertices_) {
                     hull_points.insert(*vertex);
                 }
-                for (const auto& vertex : facet.coplanar_) {
-                    hull_points.insert(*vertex);
+                if (include_coplanar) {
+                    for (const auto& vertex : facet.coplanar_) {
+                        hull_points.insert(*vertex);
+                    }
                 }
             }
             break;

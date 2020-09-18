@@ -6,7 +6,10 @@ namespace vsm {
 QuickHull::PointSet QuickHull::convexHull(
         const std::vector<Point>& points, bool include_coplanar, Value epsilon) {
     PointSet hull_points;
-
+    // reject empty input
+    if (points.empty() || points.front().empty()) {
+        return hull_points;
+    }
     // filter input
     std::vector<Point> filtered_points;
     filtered_points.reserve(points.size());

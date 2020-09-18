@@ -49,10 +49,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                             "node1",                  // name
                             "udp://127.0.0.1:11611",  // address
                             {0, 0},                   // coordinates
-                            0,                        // power radius
-                            1,                        // connection_degree
-                            20,                       // lookup size
-                            0,                        // rank decay
+                                                      // tracking_duration
                     },
                     std::make_shared<ZmqTransport>("udp://*:11611"),  // transport
                     std::make_shared<Logger>(),                       // logger
@@ -66,9 +63,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                             "node2",                  // name
                             "udp://127.0.0.1:11612",  // address
                             {1, 1},                   // coordinates
-                            1,                        // connection_degree
-                            20,                       // lookup size
-                            0,                        // rank decay
+                                                      // tracking duration
                     },
                     std::make_shared<ZmqTransport>("udp://*:11612"),  // transport
                     std::make_shared<Logger>(),                       // logger
@@ -97,10 +92,6 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
 
     REQUIRE(mesh_nodes[0].getConnectedPeers().front() == configs[1].peer_tracker.address);
     REQUIRE(mesh_nodes[1].getConnectedPeers().front() == configs[0].peer_tracker.address);
-    REQUIRE(mesh_nodes[1].getPeerTracker().getPeerRankings().front()->node_info.address ==
-            configs[0].peer_tracker.address);
-    REQUIRE(mesh_nodes[0].getPeerTracker().getPeerRankings().front()->node_info.address ==
-            configs[1].peer_tracker.address);
 }
 
 TEST_CASE("MeshNode Graph", "[mesh_node]") {
@@ -117,10 +108,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                         "node" + id_str,                 // name
                         "udp://127.0.0.1:115" + id_str,  // address
                         std::move(coords),               // coordinates
-                        0,                               // power radius
-                        4,                               // connection_degree
-                        200,                             // lookup size
-                        0,                               // rank decay
+                                                         // tracking_duration
                 },
                 std::make_shared<ZmqTransport>("udp://*:115" + id_str),  // transport
                 std::make_shared<Logger>(),                              // logger
@@ -133,7 +121,6 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
             configs.emplace_back(make_config(N * i + j, {(float) j, (float) i}));
         }
     }
-    configs.back().peer_tracker.connection_degree = configs.size();
 
     const char* previous_address;
     SECTION("Centralized Boostrap") { previous_address = nullptr; }
@@ -203,6 +190,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
 #endif
     }
 
+#if 0
     for (int i = 2; i < N - 2; ++i) {
         for (int j = 2; j < N - 2; ++j) {
             auto& mesh_node = mesh_nodes[N * i + j];
@@ -218,6 +206,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
             }
         }
     }
+#endif
 
 // for printing node connections
 #if 0

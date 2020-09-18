@@ -125,7 +125,7 @@ const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const 
 void MeshNode::sendPeerUpdates() {
     _fbb.Clear();
     // get peer rankings
-    auto ranked_peers = _peer_tracker.updatePeerRankings(_fbb, _recipients_buffer);
+    auto ranked_peers = _peer_tracker.updatePeerSelections(_fbb, _recipients_buffer);
     // write message
     _fbb.Finish(CreateMessage(_fbb,
             _time_sync.getTime().count(),                        // timestamp

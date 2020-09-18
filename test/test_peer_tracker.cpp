@@ -59,27 +59,17 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
-            0,             // power radius
-            7,             // connection_degree
-            20,            // lookup size
-            0.000,         // rank decay
+                           // tracking duration
     };
 
-    SECTION("1") { config.connection_degree = 4; }
+    SECTION("1") {}
 
-    SECTION("2") { config.connection_degree = 5; }
+    SECTION("2") { latch_end = 7; }
 
     SECTION("3") {
-        latch_end = 7;
-        config.connection_degree = 8;
-    }
-
-    SECTION("4") {
         n_peers = 1000;
         latch_start = 300;
         latch_end = 600;
-        config.connection_degree = 400;
-        config.lookup_size = 500;
     }
 
     PeerTracker peer_tracker(config, logger);
@@ -101,17 +91,13 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
     // generate peer rankings
     fbb.Clear();
     std::vector<std::string> recipients;
-    auto ranked_peers = peer_tracker.updatePeerRankings(fbb, recipients);
+    auto ranked_peers = peer_tracker.updatePeerSelections(fbb, recipients);
     fbb.Finish(fbb.CreateVector(ranked_peers));
-    // require that lookup size is not exceeded
-    REQUIRE(peer_tracker.getPeers().size() == std::min<size_t>(n_peers + 1, config.lookup_size));
     // required latched peers to be in recipients list
     for (int i = latch_start; i < latch_end; ++i) {
         REQUIRE(recipients.end() !=
                 std::find(recipients.begin(), recipients.end(), "address" + std::to_string(i)));
     }
-    // require that ranked size matches connection degree
-    REQUIRE(ranked_peers.size() == config.connection_degree);
 }
 
 TEST_CASE("Nearest Peer", "[peer_tracker]") {
@@ -119,10 +105,7 @@ TEST_CASE("Nearest Peer", "[peer_tracker]") {
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
-            0,             // power radius
-            7,             // connection_degree
-            20,            // lookup size
-            0.000,         // rank decay
+                           // tracking_duration
     };
     PeerTracker peer_tracker(config);
     // add peers

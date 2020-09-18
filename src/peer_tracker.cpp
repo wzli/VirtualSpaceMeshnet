@@ -1,4 +1,5 @@
 #include <vsm/peer_tracker.hpp>
+#include <vsm/quick_hull.hpp>
 #include <algorithm>
 
 namespace vsm {
@@ -12,20 +13,14 @@ PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
-    if (_config.rank_decay < 0) {
-        Error error(STRERR(NEGATIVE_RANK_DECAY));
-        IF_PTR(_logger, log, Logger::ERROR, error);
-        throw error;
-    }
     _node_info.name = std::move(_config.name);
     _node_info.address = std::move(_config.address);
     _node_info.coordinates = std::move(_config.coordinates);
-    _node_info.power_radius = _config.power_radius;
 
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(PeerTracker::INITIALIZED)));
 }
 
-PeerTracker::ErrorType PeerTracker::latchPeer(const char* address, float rank_factor) {
+PeerTracker::ErrorType PeerTracker::latchPeer(const char* address, uint32_t latch_duration) {
     if (!address) {
         Error error(STRERR(PEER_ADDRESS_MISSING));
         IF_PTR(_logger, log, Logger::ERROR, error, address);
@@ -39,9 +34,8 @@ PeerTracker::ErrorType PeerTracker::latchPeer(const char* address, float rank_fa
     auto& peer = _peers[address];
     if (peer.node_info.address.empty()) {
         peer.node_info.address = address;
-        _peer_rankings.emplace_back(&peer);
     }
-    peer.rank_factor = std::min(rank_factor, peer.rank_factor);
+    peer.latch_until = add32(_node_info.sequence, latch_duration);
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(PEER_LATCHED)), address);
     return SUCCESS;
 }
@@ -72,10 +66,9 @@ PeerTracker::ErrorType PeerTracker::updatePeer(const NodeInfo* node_info, bool i
     auto& peer = emplace_result.first->second;
     if (emplace_result.second) {
         IF_PTR(_logger, log, Logger::INFO, Error(STRERR(NEW_PEER_DISCOVERED)), node_info);
-        _peer_rankings.emplace_back(&peer);
     } else if (is_source) {
         // reset rank factor if any message is directly recieved from source
-        peer.rank_factor = std::min(peer.rank_factor, 1.0f);
+        peer.track_until = add32(_node_info.sequence, _config.tracking_duration);
         if (node_info->sequence() <= peer.source_sequence) {
             IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(SOURCE_SEQUENCE_STALE)), node_info);
             return SOURCE_SEQUENCE_STALE;
@@ -86,7 +79,7 @@ PeerTracker::ErrorType PeerTracker::updatePeer(const NodeInfo* node_info, bool i
         return PEER_SEQUENCE_STALE;
     }
     node_info->UnPackTo(&(peer.node_info));
-    peer.rank_factor = std::min(peer.rank_factor, 1.0f);
+    peer.track_until = add32(_node_info.sequence, _config.tracking_duration);
     IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(PEER_UPDATED)), &peer.node_info,
             sizeof(NodeInfoT));
     return SUCCESS;
@@ -112,21 +105,39 @@ int PeerTracker::receivePeerUpdates(const Message* msg) {
     return peers_updated;
 }
 
-std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerRankings(
+std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerSelections(
         fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients) {
-    // compute rank costs
-    for (auto& peer_ranking : _peer_rankings) {
-        peer_ranking->rank_cost = peer_ranking->radialCost(_node_info.coordinates);
-        peer_ranking->rank_factor *= 1.0f + _config.rank_decay;
+    std::vector<fb::Offset<NodeInfo>> selected_peers;
+    // build candidate points list
+    std::vector<std::vector<float>> candidate_points;
+    candidate_points.reserve(_peers.size());
+    for (auto peer = _peers.begin(); peer != _peers.end();) {
+        // add latched peer to selected list
+        if (peer->second.latch_until >= _node_info.sequence) {
+            selected_peers.emplace_back(NodeInfo::Pack(fbb, &peer->second.node_info));
+            _recipients.emplace_back(peer->second.node_info.address);
+            ++peer;
+            continue;
+        }
+        // delete peer if tracking expired
+        if (peer->second.track_until < _node_info.sequence) {
+            peer = _peers.erase(peer);
+            continue;
+        }
+        candidate_points.emplace_back(peer->second.node_info.coordinates);
+        ++peer;
     }
-    // sort rankings
-    std::sort(_peer_rankings.begin(), _peer_rankings.end(),
-            [](const Peer* a, const Peer* b) { return a->rank_cost < b->rank_cost; });
-    // create ranked peers list
-    std::vector<fb::Offset<NodeInfo>> ranked_peers;
-    for (size_t i = 0; i < _config.connection_degree && i < _peer_rankings.size(); ++i) {
-        ranked_peers.emplace_back(NodeInfo::Pack(fbb, &_peer_rankings[i]->node_info));
-        _recipients.emplace_back(_peer_rankings[i]->node_info.address);
+    // add interior hull neighbors to selected peers
+    QuickHull::sphereInversion(candidate_points, _node_info.coordinates);
+    auto neighbor_peers = QuickHull::convexHull(candidate_points);
+    for (auto peer = _peers.begin(); peer != _peers.end();) {
+        if (neighbor_peers.count(peer->second.node_info.coordinates)) {
+            selected_peers.emplace_back(NodeInfo::Pack(fbb, &peer->second.node_info));
+            _recipients.emplace_back(peer->second.node_info.address);
+            ++peer;
+        } else if (peer->second.latch_until < _node_info.sequence) {
+            peer = _peers.erase(peer);
+        }
     }
     // remove duplicates from recipients list
     std::sort(_recipients.begin(), _recipients.end());
@@ -134,20 +145,10 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerRankings(
     // swap recipients list with output and clear;
     _recipients.swap(recipients);
     _recipients.clear();
-
-    IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(PEER_RANKINGS_GENERATED)));
-    // remove lowest ranked peers
-    if (_config.lookup_size > 0 && _config.lookup_size < _peers.size()) {
-        for (auto peer_ranking = _peer_rankings.begin() + _config.lookup_size - 1;
-                peer_ranking != _peer_rankings.end(); ++peer_ranking) {
-            _peers.erase((*peer_ranking)->node_info.address);
-        }
-        _peer_rankings.resize(_peers.size() - 1);
-        IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(PEER_LOOKUP_TRUNCATED)));
-    }
     // tick node sequence
     ++_node_info.sequence;
-    return ranked_peers;
+    IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(PEER_SELECTIONS_GENERATED)));
+    return selected_peers;
 }
 
 }  // namespace vsm

@@ -3,8 +3,8 @@
 
 namespace vsm {
 
-QuickHull::PointSet QuickHull::convexHull(const std::vector<Point>& points, bool include_coplanar) {
-    static constexpr auto EPS = std::numeric_limits<Value>::epsilon();
+QuickHull::PointSet QuickHull::convexHull(
+        const std::vector<Point>& points, bool include_coplanar, Value epsilon) {
     PointSet hull_points;
 
     // filter input
@@ -29,14 +29,14 @@ QuickHull::PointSet QuickHull::convexHull(const std::vector<Point>& points, bool
         }
         // skip empty dimensions
         if (std::all_of(filtered_points.cbegin(), filtered_points.cend(),
-                    [&filtered_points](const Point& filtered_point) {
+                    [&](const Point& filtered_point) {
                         return std::abs(filtered_point.back() - filtered_points.front().back()) <
-                               EPS;
+                               epsilon;
                     })) {
             continue;
         }
         // instantiate quick hull
-        quick_hull<std::vector<Point>::const_iterator> quick_hull(n_dims, EPS);
+        quick_hull<std::vector<Point>::const_iterator> quick_hull(n_dims, epsilon);
         // add points and find initial simplex
         quick_hull.add_points(filtered_points.cbegin(), filtered_points.cend());
         const auto initial_simplex = quick_hull.get_affine_basis();

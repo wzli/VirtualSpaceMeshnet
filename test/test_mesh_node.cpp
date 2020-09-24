@@ -80,18 +80,20 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                 });
         mesh_nodes.emplace_back(config);
         if (previous_address) {
-            mesh_nodes.back().getPeerTracker().latchPeer(previous_address, 1);
+            mesh_nodes.back().getPeerTracker().latchPeer(previous_address);
         }
         previous_address = config.peer_tracker.address.c_str();
     }
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 50; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }
     }
 
-    // REQUIRE(mesh_nodes[0].getConnectedPeers().front() == configs[1].peer_tracker.address);
-    // REQUIRE(mesh_nodes[1].getConnectedPeers().front() == configs[0].peer_tracker.address);
+    REQUIRE(mesh_nodes[0].getConnectedPeers().size() == 1);
+    REQUIRE(mesh_nodes[1].getConnectedPeers().size() == 1);
+    REQUIRE(mesh_nodes[0].getConnectedPeers().front() == configs[1].peer_tracker.address);
+    REQUIRE(mesh_nodes[1].getConnectedPeers().front() == configs[0].peer_tracker.address);
 }
 
 TEST_CASE("MeshNode Graph", "[mesh_node]") {
@@ -190,23 +192,23 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
 #endif
     }
 
-#if 0
-    for (int i = 2; i < N - 2; ++i) {
-        for (int j = 2; j < N - 2; ++j) {
+    for (int i = 1; i < N - 1; ++i) {
+        for (int j = 1; j < N - 1; ++j) {
             auto& mesh_node = mesh_nodes[N * i + j];
             auto& config = configs[N * i + j];
-            auto peer_rankings = mesh_node.getPeerTracker().getPeerRankings();
-            REQUIRE(peer_rankings.size() >= config.peer_tracker.connection_degree);
-            for (size_t k = 0; k < config.peer_tracker.connection_degree; ++k) {
-                REQUIRE(distanceSqr(peer_rankings[k]->node_info.coordinates,
-                                mesh_node.getPeerTracker().getNodeInfo().coordinates) <= 1);
-                // plus 1 to include the monitoring node
-                REQUIRE(mesh_node.getConnectedPeers().size() ==
-                        config.peer_tracker.connection_degree + 1);
+            auto& connected_peers = mesh_node.getConnectedPeers();
+            // plus 1 to include the monitoring node
+            REQUIRE(connected_peers.size() == 5);
+            for (auto& connected_peer : connected_peers) {
+                auto peer_info = mesh_node.getPeerTracker().getPeers().find(connected_peer);
+                REQUIRE(((connected_peer == configs.back().peer_tracker.address) ||
+                         (peer_info != mesh_node.getPeerTracker().getPeers().end() &&
+                                 distanceSqr(peer_info->second.node_info.coordinates,
+                                         mesh_node.getPeerTracker().getNodeInfo().coordinates) <=
+                                         1)));
             }
         }
     }
-#endif
 
 // for printing node connections
 #if 0

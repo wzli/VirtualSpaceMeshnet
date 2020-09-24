@@ -131,6 +131,8 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerSelections(
     }
     // add interior hull neighbors to selected peers
     QuickHull::sphereInversion(candidate_points, _node_info.coordinates);
+    // constrain hull to contain origin point
+    candidate_points.emplace_back(_node_info.coordinates.size(), 0);
     auto neighbor_points = QuickHull::convexHull(candidate_points);
     for (size_t i = 0; i < candidate_peers.size(); ++i) {
         if (neighbor_points.count(candidate_points[i])) {

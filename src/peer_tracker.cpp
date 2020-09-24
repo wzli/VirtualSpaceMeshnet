@@ -6,7 +6,6 @@ namespace vsm {
 
 PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
         : _config(std::move(config))
-        , _node_info(_peers[_config.address].node_info)
         , _logger(std::move(logger)) {
     if (_config.address.empty()) {
         Error error(STRERR(ADDRESS_CONFIG_EMPTY));

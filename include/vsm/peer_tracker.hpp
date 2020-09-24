@@ -94,9 +94,10 @@ public:
     const Logger* getLogger() const { return _logger.get(); }
 
     template <class Vec>
-    const Peer& nearestPeer(const Vec& coordinates, const std::vector<std::string>& peers) const {
-        const Peer* nearest_peer = &_peers.at(_node_info.address);
-        float min_distance_sqr = distanceSqr(coordinates, nearest_peer->node_info.coordinates);
+    const NodeInfoT& nearestPeer(
+            const Vec& coordinates, const std::vector<std::string>& peers) const {
+        const auto* nearest_node = &_node_info;
+        float min_distance_sqr = distanceSqr(coordinates, nearest_node->coordinates);
         for (const auto& peer_address : peers) {
             auto peer = _peers.find(peer_address);
             if (peer == _peers.end()) {
@@ -105,16 +106,16 @@ public:
             float distance_sqr = distanceSqr(coordinates, peer->second.node_info.coordinates);
             if (distance_sqr < min_distance_sqr) {
                 min_distance_sqr = distance_sqr;
-                nearest_peer = &peer->second;
+                nearest_node = &peer->second.node_info;
             }
         }
-        return *nearest_peer;
+        return *nearest_node;
     }
 
 private:
     Config _config;
     PeerLookup _peers;
-    NodeInfoT& _node_info;
+    NodeInfoT _node_info;
     std::vector<std::string> _recipients;
     std::shared_ptr<Logger> _logger;
 };

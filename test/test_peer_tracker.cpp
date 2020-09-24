@@ -38,7 +38,7 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
             {0, 0},     // coordinates
     });
     REQUIRE(peer_tracker.updatePeer(node_info) == PeerTracker::SUCCESS);
-    REQUIRE(peer_tracker.getPeers().size() == 2);
+    REQUIRE(peer_tracker.getPeers().size() == 1);
     REQUIRE(peer_tracker.getPeers().at("peer_addr").node_info.name == "peer_name");
 }
 
@@ -87,7 +87,7 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
     for (int i = latch_start; i < latch_end; ++i) {
         peer_tracker.latchPeer(("address" + std::to_string(i)).c_str());
     }
-    REQUIRE(peer_tracker.getPeers().size() == n_peers + 1);
+    REQUIRE(peer_tracker.getPeers().size() == n_peers);
     // generate peer rankings
     fbb.Clear();
     std::vector<std::string> recipients;
@@ -122,9 +122,9 @@ TEST_CASE("Nearest Peer", "[peer_tracker]") {
     }
     std::vector<std::string> pool;
     pool = {"3", "6", "8", "5"};
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{-4, -5}, pool).node_info.name == "my_name");
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{0, 0}, pool).node_info.name == "my_name");
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{2, 2}, pool).node_info.name == "3");
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{4, 5}, pool).node_info.name == "5");
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{10, 100}, pool).node_info.name == "8");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{-4, -5}, pool).name == "my_name");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{0, 0}, pool).name == "my_name");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{2, 2}, pool).name == "3");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{4, 5}, pool).name == "5");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{10, 100}, pool).name == "8");
 }

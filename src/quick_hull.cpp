@@ -25,7 +25,7 @@ QuickHull::PointSet QuickHull::convexHull(
             filtered_points.push_back(point);
         }
     }
-    for (auto n_dims = points.front().size(); n_dims > 1; --n_dims) {
+    for (auto n_dims = filtered_points.front().size(); n_dims > 1; --n_dims) {
         // force uniform dimensions
         for (auto& filtered_point : filtered_points) {
             filtered_point.resize(n_dims, 0);
@@ -37,6 +37,13 @@ QuickHull::PointSet QuickHull::convexHull(
                                epsilon;
                     })) {
             continue;
+        }
+        // return if fewer points than required for initial basis
+        if (filtered_points.size() <= n_dims) {
+            for (const auto& filtered_point : filtered_points) {
+                hull_points.insert(filtered_point);
+            }
+            break;
         }
         // instantiate quick hull
         quick_hull<std::vector<Point>::const_iterator> quick_hull(n_dims, epsilon);

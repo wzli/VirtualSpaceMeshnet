@@ -108,7 +108,9 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerSelections(
         fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients) {
     std::vector<fb::Offset<NodeInfo>> selected_peers;
     // build candidate points list
+    std::vector<const Peer*> candidate_peers;
     std::vector<std::vector<float>> candidate_points;
+    candidate_peers.reserve(_peers.size());
     candidate_points.reserve(_peers.size());
     for (auto peer = _peers.begin(); peer != _peers.end();) {
         // add latched peer to selected list
@@ -124,20 +126,17 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerSelections(
             continue;
         }
         candidate_points.emplace_back(peer->second.node_info.coordinates);
+        candidate_peers.emplace_back(&peer->second);
         ++peer;
     }
     // add interior hull neighbors to selected peers
     QuickHull::sphereInversion(candidate_points, _node_info.coordinates);
-    auto neighbor_peers = QuickHull::convexHull(candidate_points);
-    for (auto peer = _peers.begin(); peer != _peers.end();) {
-        if (neighbor_peers.count(peer->second.node_info.coordinates)) {
-            selected_peers.emplace_back(NodeInfo::Pack(fbb, &peer->second.node_info));
-            _recipients.emplace_back(peer->second.node_info.address);
-        } else if (peer->second.latch_until < _node_info.sequence) {
-            peer = _peers.erase(peer);
-            continue;
+    auto neighbor_points = QuickHull::convexHull(candidate_points);
+    for (size_t i = 0; i < candidate_peers.size(); ++i) {
+        if (neighbor_points.count(candidate_points[i])) {
+            selected_peers.emplace_back(NodeInfo::Pack(fbb, &candidate_peers[i]->node_info));
+            _recipients.emplace_back(candidate_peers[i]->node_info.address);
         }
-        ++peer;
     }
     // remove duplicates from recipients list
     std::sort(_recipients.begin(), _recipients.end());

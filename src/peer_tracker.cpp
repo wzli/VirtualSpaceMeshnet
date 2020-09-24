@@ -134,10 +134,11 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerSelections(
         if (neighbor_peers.count(peer->second.node_info.coordinates)) {
             selected_peers.emplace_back(NodeInfo::Pack(fbb, &peer->second.node_info));
             _recipients.emplace_back(peer->second.node_info.address);
-            ++peer;
         } else if (peer->second.latch_until < _node_info.sequence) {
             peer = _peers.erase(peer);
+            continue;
         }
+        ++peer;
     }
     // remove duplicates from recipients list
     std::sort(_recipients.begin(), _recipients.end());

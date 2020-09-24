@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 #include <vsm/peer_tracker.hpp>
+#include <random>
 #include <iostream>
 
 using namespace vsm;
@@ -73,12 +74,16 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
     }
 
     PeerTracker peer_tracker(config, logger);
+    // setup random generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
     // add peers
     for (size_t i = 0; i < n_peers; ++i) {
         NodeInfoT peer;
         peer.name = "peer" + std::to_string(i);
         peer.address = "address" + std::to_string(i);
-        peer.coordinates = {(float) i, (float) i};
+        peer.coordinates = {dis(gen), dis(gen)};
         peer.sequence = i;
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
         peer_tracker.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()));
@@ -91,9 +96,11 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
     // generate peer rankings
     fbb.Clear();
     std::vector<std::string> recipients;
-    auto ranked_peers = peer_tracker.updatePeerSelections(fbb, recipients);
-    fbb.Finish(fbb.CreateVector(ranked_peers));
+    peer_tracker.updatePeerSelections(fbb, recipients);  // tick internal sequence count
+    auto selected_peers = peer_tracker.updatePeerSelections(fbb, recipients);
+    fbb.Finish(fbb.CreateVector(selected_peers));
     // required latched peers to be in recipients list
+    REQUIRE(selected_peers.size() == recipients.size());
     for (int i = latch_start; i < latch_end; ++i) {
         REQUIRE(recipients.end() !=
                 std::find(recipients.begin(), recipients.end(), "address" + std::to_string(i)));

@@ -13,7 +13,7 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     auto peer_addr = fbb.CreateString("peer_addr");
     std::vector<float> peer_coords{3, 4};
     auto node_info_offset =
-            CreateNodeInfo(fbb, peer_name, peer_addr, fbb.CreateVector(peer_coords), 5, 100);
+            CreateNodeInfo(fbb, peer_name, peer_addr, fbb.CreateVector(peer_coords), 100);
     fbb.Finish(node_info_offset);
 
     // deserialize
@@ -30,7 +30,6 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     REQUIRE(node_info->name()->str() == "peer_name");
     REQUIRE(node_info->address()->str() == "peer_addr");
     REQUIRE(distanceSqr(*node_info->coordinates(), peer_coords) == 0);
-    REQUIRE(node_info->power_radius() == 5);
     REQUIRE(node_info->sequence() == 100);
 
     PeerTracker peer_tracker({

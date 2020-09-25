@@ -195,7 +195,6 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
     for (int i = 1; i < N - 1; ++i) {
         for (int j = 1; j < N - 1; ++j) {
             auto& mesh_node = mesh_nodes[N * i + j];
-            auto& config = configs[N * i + j];
             auto& connected_peers = mesh_node.getConnectedPeers();
             // plus 1 to include the monitoring node
             REQUIRE(connected_peers.size() == 5);

@@ -15,6 +15,10 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         IF_PTR(_logger, log, Logger::WARN, Error(STRERR(MESSAGE_SOURCE_INVALID)), msg);
         return forward_entities;
     }
+    if (!(msg->source()->group_mask() & peer_tracker.getNodeInfo().group_mask)) {
+        IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(SOURCE_GROUP_MISMATCH)), msg);
+        return forward_entities;
+    }
     // unpack message source
     NodeInfoT source;
     msg->source()->UnPackTo(&source);

@@ -12,8 +12,8 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     auto peer_name = fbb.CreateString("peer_name");
     auto peer_addr = fbb.CreateString("peer_addr");
     std::vector<float> peer_coords{3, 4};
-    auto node_info_offset =
-            CreateNodeInfo(fbb, peer_name, peer_addr, fbb.CreateVector(peer_coords), 100);
+    auto node_info_offset = CreateNodeInfo(
+            fbb, peer_name, peer_addr, fbb.CreateVector(peer_coords), 0xFFFFFFFF, 100);
     fbb.Finish(node_info_offset);
 
     // deserialize

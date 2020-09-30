@@ -126,8 +126,11 @@ void PeerTracker::updatePeerSelections(
             peer = _peers.erase(peer);
             continue;
         }
-        candidate_points.emplace_back(peer->second.node_info.coordinates);
-        candidate_peers.emplace_back(&peer->second);
+        // add peer as candidate only of they belong in the same group
+        if (_node_info.group_mask & peer->second.node_info.group_mask) {
+            candidate_points.emplace_back(peer->second.node_info.coordinates);
+            candidate_peers.emplace_back(&peer->second);
+        }
         ++peer;
     }
     // add interior hull neighbors to selected peers

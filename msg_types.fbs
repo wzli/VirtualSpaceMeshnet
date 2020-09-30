@@ -12,6 +12,7 @@ table NodeInfo {
   name:string;
   address:string (key);
   coordinates:[float];
+  group_mask:uint32 = 0xFFFFFFFF;
   sequence:uint32;
 }
 

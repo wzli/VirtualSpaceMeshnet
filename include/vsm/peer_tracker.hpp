@@ -25,7 +25,7 @@ float distanceSqr(const VecA& a, const VecB& b) {
 static inline uint32_t add32(uint32_t a, uint32_t b) {
     uint32_t c = a + b;
     if (c < a) {
-        c = std::numeric_limits<uint32_t>::max();
+        c = 0xFFFFFFFF;
     }
     return c;
 }
@@ -67,13 +67,13 @@ public:
         std::string name;
         std::string address;
         std::vector<float> coordinates;
-        uint32_t tracking_duration = std::numeric_limits<uint32_t>::max();
+        uint32_t group_mask = 0xFFFFFFFF;
+        uint32_t tracking_duration = 0xFFFFFFFF;
     };
 
     PeerTracker(Config config, std::shared_ptr<Logger> logger = nullptr);
 
-    ErrorType latchPeer(
-            const char* address, uint32_t latch_duration = std::numeric_limits<uint32_t>::max());
+    ErrorType latchPeer(const char* address, uint32_t latch_duration = 0xFFFFFFFF);
 
     ErrorType updatePeer(const NodeInfo* node_info, bool is_source = false);
 

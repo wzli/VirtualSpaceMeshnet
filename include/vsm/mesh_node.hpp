@@ -46,6 +46,7 @@ public:
         msecs peer_update_interval = msecs(1000);
         msecs entity_expiry_interval = msecs(1000);
         size_t entity_updates_size = 7000;  // message size aprox 600B more may vary
+        bool spectator = false;
         EgoSphere::Config ego_sphere;
         PeerTracker::Config peer_tracker;
         std::shared_ptr<Transport> transport;
@@ -101,11 +102,14 @@ private:
     TimeSync<msecs> _time_sync;
     std::shared_ptr<Transport> _transport;
     std::shared_ptr<Logger> _logger;
-    flatbuffers::FlatBufferBuilder _fbb;
+    fb::FlatBufferBuilder _fbb;
+    std::vector<fb::Offset<NodeInfo>> _peer_offsets;
+    std::vector<std::string> _selected_peers;
     std::vector<std::string> _connected_peers;
     std::vector<std::string> _recipients_buffer;
     std::mutex _entities_mutex;
     size_t _entity_updates_size;
+    bool _spectator;
 };
 
 }  // namespace vsm

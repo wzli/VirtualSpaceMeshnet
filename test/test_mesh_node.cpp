@@ -19,6 +19,7 @@ TEST_CASE("MeshNode Update Tick", "[mesh_node]") {
             msecs(1),                                         // peer update interval
             msecs(1000),                                      // entity expiry interval
             8000,                                             // entity updates size
+            false,                                            // spectator
             {},                                               // ego sphere
             std::move(peer_tracker_config),                   // peer tracker
             std::make_shared<ZmqTransport>("udp://*:11611"),  // transport
@@ -44,6 +45,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                     msecs(1),     // peer update interval
                     msecs(1000),  // entity expiry interval
                     8000,         // entity updates size
+                    false,        // spectator
                     {},           // ego sphere
                     {
                             "node1",                  // name
@@ -58,6 +60,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                     msecs(1),     // peer update interval
                     msecs(1000),  // entity expiry interval
                     8000,         // entity updates size
+                    false,        // spectator
                     {},           // ego sphere
                     {
                             "node2",                  // name
@@ -105,6 +108,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                 msecs(1),     // peer update interval
                 msecs(1000),  // entity expiry interval
                 8000,         // entity updates size
+                false,        // spectator
                 {},           // ego sphere
                 {
                         "node" + id_str,                 // name
@@ -123,6 +127,8 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
             configs.emplace_back(make_config(N * i + j, {(float) j, (float) i}));
         }
     }
+    // last node is the monitoring node
+    configs.back().spectator = true;
 
     const char* previous_address;
     SECTION("Centralized Boostrap") { previous_address = nullptr; }
@@ -160,15 +166,8 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
     Graphviz graphviz;
     configs.back().logger->addLogHandler(Logger::TRACE,
             [&graphviz](msecs, Logger::Level, Error error, const void* data, size_t) {
-                switch (error.type) {
-                    case MeshNode::SOURCE_UPDATE_RECEIVED:
-                        graphviz.receivePeerUpdates(fb::GetRoot<Message>(data));
-                        break;
-                    case PeerTracker::PEER_UPDATED:
-                        NodeInfoT* node_info =
-                                reinterpret_cast<NodeInfoT*>(const_cast<void*>(data));
-                        node_info->coordinates.clear();
-                        break;
+                if (error.type == MeshNode::SOURCE_UPDATE_RECEIVED) {
+                    graphviz.receivePeerUpdates(fb::GetRoot<Message>(data));
                 }
             });
 

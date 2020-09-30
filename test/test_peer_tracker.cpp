@@ -93,11 +93,9 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
     }
     REQUIRE(peer_tracker.getPeers().size() == n_peers);
     // generate peer rankings
-    fbb.Clear();
-    std::vector<std::string> recipients;
-    peer_tracker.updatePeerSelections(fbb, recipients);  // tick internal sequence count
-    auto selected_peers = peer_tracker.updatePeerSelections(fbb, recipients);
-    fbb.Finish(fbb.CreateVector(selected_peers));
+    std::vector<std::string> selected_peers, recipients;
+    peer_tracker.updatePeerSelections(selected_peers, recipients);  // tick internal sequence count
+    peer_tracker.updatePeerSelections(selected_peers, recipients);
     // required latched peers to be in recipients list
     REQUIRE(selected_peers.size() == recipients.size());
     for (int i = latch_start; i < latch_end; ++i) {

@@ -9,8 +9,6 @@
 
 namespace vsm {
 
-namespace fb = flatbuffers;
-
 template <class VecA, class VecB>
 float distanceSqr(const VecA& a, const VecB& b) {
     if (a.size() != b.size()) {
@@ -81,8 +79,8 @@ public:
 
     int receivePeerUpdates(const Message* msg);
 
-    std::vector<fb::Offset<NodeInfo>> updatePeerSelections(
-            fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients);
+    void updatePeerSelections(
+            std::vector<std::string>& selected_peers, std::vector<std::string>& recipients);
 
     // accessors (FYI they are not thread safe)
     const PeerLookup& getPeers() const { return _peers; }

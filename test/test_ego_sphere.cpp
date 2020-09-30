@@ -22,6 +22,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
             msecs(1000),  // peer update interval
             msecs(1000),  // entity expiry interval
             8000,         // entity updates size
+            false,        // spectator
             {
                     // ego sphere
                     nullptr,  // entity update handler
@@ -149,6 +150,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
                 msecs(1),     // peer update interval
                 msecs(1000),  // entity expiry interval
                 8000,         // entity updates size
+                false,        // spectator
                 {},
                 {
                         // peer manager

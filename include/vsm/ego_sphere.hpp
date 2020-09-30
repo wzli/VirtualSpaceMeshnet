@@ -11,6 +11,8 @@
 
 namespace vsm {
 
+namespace fb = flatbuffers;
+
 class EgoSphere {
 public:
     enum ErrorType {

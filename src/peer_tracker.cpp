@@ -104,9 +104,10 @@ int PeerTracker::receivePeerUpdates(const Message* msg) {
     return peers_updated;
 }
 
-std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerSelections(
-        fb::FlatBufferBuilder& fbb, std::vector<std::string>& recipients) {
-    std::vector<fb::Offset<NodeInfo>> selected_peers;
+void PeerTracker::updatePeerSelections(
+        std::vector<std::string>& selected_peers, std::vector<std::string>& recipients) {
+    selected_peers.clear();
+    recipients.clear();
     // build candidate points list
     std::vector<const Peer*> candidate_peers;
     std::vector<std::vector<float>> candidate_points;
@@ -115,7 +116,7 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerSelections(
     for (auto peer = _peers.begin(); peer != _peers.end();) {
         // add latched peer to selected list
         if (peer->second.latch_until >= _node_info.sequence) {
-            selected_peers.emplace_back(NodeInfo::Pack(fbb, &peer->second.node_info));
+            selected_peers.emplace_back(peer->second.node_info.address);
             _recipients.emplace_back(peer->second.node_info.address);
             ++peer;
             continue;
@@ -136,7 +137,7 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerSelections(
     auto neighbor_points = QuickHull::convexHull(candidate_points);
     for (size_t i = 0; i < candidate_peers.size(); ++i) {
         if (neighbor_points.count(candidate_points[i])) {
-            selected_peers.emplace_back(NodeInfo::Pack(fbb, &candidate_peers[i]->node_info));
+            selected_peers.emplace_back(candidate_peers[i]->node_info.address);
             _recipients.emplace_back(candidate_peers[i]->node_info.address);
         }
     }
@@ -145,11 +146,9 @@ std::vector<fb::Offset<NodeInfo>> PeerTracker::updatePeerSelections(
     _recipients.erase(std::unique(_recipients.begin(), _recipients.end()), _recipients.end());
     // swap recipients list with output and clear;
     _recipients.swap(recipients);
-    _recipients.clear();
     // tick node sequence
     ++_node_info.sequence;
     IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(PEER_SELECTIONS_GENERATED)));
-    return selected_peers;
 }
 
 }  // namespace vsm

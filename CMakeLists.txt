@@ -27,9 +27,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wshadow")
 
 # add vsm library
-add_library(quick_hull src/quick_hull.cpp)
-target_include_directories(quick_hull PUBLIC include submodules/quickhull/include)
-target_compile_options(quick_hull PRIVATE -Wno-pedantic)
+add_library(quickhull src/quick_hull.cpp)
+target_include_directories(quickhull PUBLIC include submodules/quickhull/include)
+target_compile_options(quickhull PRIVATE -Wno-pedantic)
 
 # add vsm library
 add_library(vsm
@@ -38,10 +38,10 @@ add_library(vsm
   src/peer_tracker.cpp
   src/zmq_transport.cpp
 )
-target_link_libraries(vsm PUBLIC cppzmq-static flatbuffers quick_hull)
+target_link_libraries(vsm PUBLIC cppzmq-static flatbuffers quickhull)
 
 install(
-  TARGETS vsm quick_hull EXPORT vsm-targets
+  TARGETS vsm quickhull EXPORT vsm-targets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

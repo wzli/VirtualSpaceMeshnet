@@ -41,7 +41,7 @@ add_library(vsm
 target_link_libraries(vsm PUBLIC cppzmq-static flatbuffers quick_hull)
 
 install(
-  TARGETS vsm EXPORT vsm-targets
+  TARGETS vsm quick_hull EXPORT vsm-targets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

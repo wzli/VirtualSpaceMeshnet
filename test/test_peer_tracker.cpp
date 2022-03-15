@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 #include <vsm/peer_tracker.hpp>
+#include <random>
 #include <iostream>
 
 using namespace vsm;
@@ -11,8 +12,8 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     auto peer_name = fbb.CreateString("peer_name");
     auto peer_addr = fbb.CreateString("peer_addr");
     std::vector<float> peer_coords{3, 4};
-    auto node_info_offset =
-            CreateNodeInfo(fbb, peer_name, peer_addr, fbb.CreateVector(peer_coords), 5, 100);
+    auto node_info_offset = CreateNodeInfo(
+            fbb, peer_name, peer_addr, fbb.CreateVector(peer_coords), 0xFFFFFFFF, 100);
     fbb.Finish(node_info_offset);
 
     // deserialize
@@ -29,7 +30,6 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
     REQUIRE(node_info->name()->str() == "peer_name");
     REQUIRE(node_info->address()->str() == "peer_addr");
     REQUIRE(distanceSqr(*node_info->coordinates(), peer_coords) == 0);
-    REQUIRE(node_info->power_radius() == 5);
     REQUIRE(node_info->sequence() == 100);
 
     PeerTracker peer_tracker({
@@ -38,7 +38,7 @@ TEST_CASE("NodeInfo Serialization", "[flatbuffers][peer_tracker]") {
             {0, 0},     // coordinates
     });
     REQUIRE(peer_tracker.updatePeer(node_info) == PeerTracker::SUCCESS);
-    REQUIRE(peer_tracker.getPeers().size() == 2);
+    REQUIRE(peer_tracker.getPeers().size() == 1);
     REQUIRE(peer_tracker.getPeers().at("peer_addr").node_info.name == "peer_name");
 }
 
@@ -59,36 +59,30 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
-            0,             // power radius
-            7,             // connection_degree
-            20,            // lookup size
-            0.000,         // rank decay
+                           // tracking duration
     };
 
-    SECTION("1") { config.connection_degree = 4; }
+    SECTION("1") {}
 
-    SECTION("2") { config.connection_degree = 5; }
+    SECTION("2") { latch_end = 7; }
 
     SECTION("3") {
-        latch_end = 7;
-        config.connection_degree = 8;
-    }
-
-    SECTION("4") {
         n_peers = 1000;
         latch_start = 300;
         latch_end = 600;
-        config.connection_degree = 400;
-        config.lookup_size = 500;
     }
 
     PeerTracker peer_tracker(config, logger);
+    // setup random generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
     // add peers
     for (size_t i = 0; i < n_peers; ++i) {
         NodeInfoT peer;
         peer.name = "peer" + std::to_string(i);
         peer.address = "address" + std::to_string(i);
-        peer.coordinates = {(float) i, (float) i};
+        peer.coordinates = {dis(gen), dis(gen)};
         peer.sequence = i;
         fbb.Finish(NodeInfo::Pack(fbb, &peer));
         peer_tracker.updatePeer(GetRoot<NodeInfo>(fbb.GetBufferPointer()));
@@ -97,21 +91,17 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
     for (int i = latch_start; i < latch_end; ++i) {
         peer_tracker.latchPeer(("address" + std::to_string(i)).c_str());
     }
-    REQUIRE(peer_tracker.getPeers().size() == n_peers + 1);
+    REQUIRE(peer_tracker.getPeers().size() == n_peers);
     // generate peer rankings
-    fbb.Clear();
-    std::vector<std::string> recipients;
-    auto ranked_peers = peer_tracker.updatePeerRankings(fbb, recipients);
-    fbb.Finish(fbb.CreateVector(ranked_peers));
-    // require that lookup size is not exceeded
-    REQUIRE(peer_tracker.getPeers().size() == std::min<size_t>(n_peers + 1, config.lookup_size));
+    std::vector<std::string> selected_peers, recipients;
+    peer_tracker.updatePeerSelections(selected_peers, recipients);  // tick internal sequence count
+    peer_tracker.updatePeerSelections(selected_peers, recipients);
     // required latched peers to be in recipients list
+    REQUIRE(selected_peers.size() == recipients.size());
     for (int i = latch_start; i < latch_end; ++i) {
         REQUIRE(recipients.end() !=
                 std::find(recipients.begin(), recipients.end(), "address" + std::to_string(i)));
     }
-    // require that ranked size matches connection degree
-    REQUIRE(ranked_peers.size() == config.connection_degree);
 }
 
 TEST_CASE("Nearest Peer", "[peer_tracker]") {
@@ -119,10 +109,7 @@ TEST_CASE("Nearest Peer", "[peer_tracker]") {
             "my_name",     // name
             "my_address",  // address
             {0, 0},        // coordinates
-            0,             // power radius
-            7,             // connection_degree
-            20,            // lookup size
-            0.000,         // rank decay
+                           // tracking_duration
     };
     PeerTracker peer_tracker(config);
     // add peers
@@ -139,9 +126,9 @@ TEST_CASE("Nearest Peer", "[peer_tracker]") {
     }
     std::vector<std::string> pool;
     pool = {"3", "6", "8", "5"};
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{-4, -5}, pool).node_info.name == "my_name");
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{0, 0}, pool).node_info.name == "my_name");
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{2, 2}, pool).node_info.name == "3");
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{4, 5}, pool).node_info.name == "5");
-    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{10, 100}, pool).node_info.name == "8");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{-4, -5}, pool).name == "my_name");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{0, 0}, pool).name == "my_name");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{2, 2}, pool).name == "3");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{4, 5}, pool).name == "5");
+    REQUIRE(peer_tracker.nearestPeer(std::vector<float>{10, 100}, pool).name == "8");
 }

@@ -15,6 +15,10 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         IF_PTR(_logger, log, Logger::WARN, Error(STRERR(MESSAGE_SOURCE_INVALID)), msg);
         return forward_entities;
     }
+    if (!(msg->source()->group_mask() & peer_tracker.getNodeInfo().group_mask)) {
+        IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(SOURCE_GROUP_MISMATCH)), msg);
+        return forward_entities;
+    }
     // unpack message source
     NodeInfoT source;
     msg->source()->UnPackTo(&source);
@@ -51,9 +55,9 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
                             ? peer_tracker.nearestPeer(*entity->coordinates(), connected_peers)
                             : peer_tracker.nearestPeer(
                                       old_entity->second.entity.coordinates, connected_peers);
-            if (nearest_peer.node_info.address != source.address &&
+            if (nearest_peer.address != source.address &&
                     (old_entity != _entities.end() ||
-                            nearest_peer.node_info.address != peer_tracker.getNodeInfo().address)) {
+                            nearest_peer.address != peer_tracker.getNodeInfo().address)) {
                 Error error(STRERR(ENTITY_NEAREST_FILTERED));
                 IF_PTR(_logger, log, Logger::TRACE, error, entity);
                 continue;

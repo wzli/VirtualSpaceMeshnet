@@ -11,6 +11,8 @@
 
 namespace vsm {
 
+namespace fb = flatbuffers;
+
 class EgoSphere {
 public:
     enum ErrorType {
@@ -27,6 +29,7 @@ public:
         ENTITY_DELETED,
         ENTITY_EXPIRED,
         ENTITY_TIMESTAMPS_TRIMMED,
+        SOURCE_GROUP_MISMATCH,
         // Trace
         ENTITY_UPDATED,
         ENTITY_ALREADY_RECEIVED,

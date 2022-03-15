@@ -11,7 +11,8 @@ MeshNode::MeshNode(Config config)
         , _time_sync(std::move(config.local_clock))
         , _transport(std::move(config.transport))
         , _logger(std::move(config.logger))
-        , _entity_updates_size(config.entity_updates_size) {
+        , _entity_updates_size(config.entity_updates_size)
+        , _spectator(config.spectator) {
     if (!_transport) {
         Error error(STRERR(NO_TRANSPORT_SPECIFIED));
         IF_PTR(_logger, log, Logger::ERROR, error);
@@ -96,7 +97,8 @@ const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const 
         forward_entities = _ego_sphere.receiveEntityUpdates(
                 fbb, msg, _peer_tracker, _connected_peers, _time_sync.getTime());
     }
-    if (forward_entities.empty()) {
+    // don't forward updates if spectator
+    if (_spectator || forward_entities.empty()) {
         return nullptr;
     }
     // write forward message
@@ -123,15 +125,32 @@ const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const 
 }
 
 void MeshNode::sendPeerUpdates() {
-    _fbb.Clear();
     // get peer rankings
-    auto ranked_peers = _peer_tracker.updatePeerRankings(_fbb, _recipients_buffer);
+    _peer_tracker.updatePeerSelections(_selected_peers, _recipients_buffer);
     // write message
+    _fbb.Clear();
+    _peer_offsets.clear();
+    // serialize selected peers
+    for (const auto& selected_peer : _selected_peers) {
+        auto peer = _peer_tracker.getPeers().find(selected_peer);
+        if (peer == _peer_tracker.getPeers().end()) {
+            continue;
+        }
+        // only fill out peer address if spectator
+        if (_spectator) {
+            NodeInfoBuilder node_info_builder(_fbb);
+            node_info_builder.add_address(_fbb.CreateString(selected_peer));
+            _peer_offsets.emplace_back(node_info_builder.Finish());
+        } else {
+            _peer_offsets.emplace_back(NodeInfo::Pack(_fbb, &peer->second.node_info));
+        }
+    }
+    // finish message
     _fbb.Finish(CreateMessage(_fbb,
             _time_sync.getTime().count(),                        // timestamp
             1,                                                   // hops
             NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()),  // source
-            _fbb.CreateVector(ranked_peers)                      // peers
+            _fbb.CreateVector(_peer_offsets)                     // peers
             ));
     // create iterators for updating connections
     struct BackAssigner {

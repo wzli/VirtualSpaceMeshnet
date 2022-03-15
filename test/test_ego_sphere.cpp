@@ -22,6 +22,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
             msecs(1000),  // peer update interval
             msecs(1000),  // entity expiry interval
             8000,         // entity updates size
+            false,        // spectator
             {
                     // ego sphere
                     nullptr,  // entity update handler
@@ -32,10 +33,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
                     "node",                   // name
                     "udp://127.0.0.1:11511",  // address
                     {0, 0},                   // coordinates
-                    0,                        // power radius
-                    4,                        // connection_degree
-                    200,                      // lookup size
-                    0,                        // rank decay
+                                              // tracking duration
             },
             std::make_shared<ZmqTransport>("udp://*:11511"),  // transport
             std::make_shared<Logger>(),                       // logger
@@ -152,14 +150,14 @@ TEST_CASE("4 corners", "[ego_sphere]") {
                 msecs(1),     // peer update interval
                 msecs(1000),  // entity expiry interval
                 8000,         // entity updates size
+                false,        // spectator
                 {},
                 {
                         // peer manager
                         "node" + std::to_string(id),                  // name
                         "udp://127.0.0.1:1151" + std::to_string(id),  // address
                         std::move(coords),                            // coordinates
-                        0,                                            // power radius
-                        2,                                            // connection_degree
+                                                                      // tracking duration
                 },
                 std::make_shared<ZmqTransport>("udp://*:1151" + std::to_string(id)),  // transport
                 std::make_shared<Logger>(),                                           // logger
@@ -200,8 +198,8 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     }
     // check mesh connection
     for (size_t i = 0; i < configs.size(); ++i) {
-        REQUIRE(mesh_nodes[i].getConnectedPeers().size() ==
-                configs[i].peer_tracker.connection_degree);
+        // REQUIRE(mesh_nodes[i].getConnectedPeers().size() ==
+        //        configs[i].peer_tracker.connection_degree);
         configs[i].logger->addLogHandler(Logger::TRACE, make_log_handler(i));
     }
 
@@ -235,7 +233,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().filter = Filter::NEAREST;
     entities.back().expiry = 0;
 
-    REQUIRE(!mesh_nodes[0].updateEntities(entities, true).empty());
+    REQUIRE(!mesh_nodes[0].updateEntities(entities, false).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));

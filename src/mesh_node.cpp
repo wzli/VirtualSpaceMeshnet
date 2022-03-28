@@ -52,7 +52,9 @@ std::vector<MessageBuffer> MeshNode::updateEntities(
     fb::FlatBufferBuilder fbb_in, fbb_out;
     std::vector<MessageBuffer> forwarded_messages;
     std::vector<fb::Offset<Entity>> entity_offsets;
-    const auto forward_message = [&]() {
+    // lambda function to process a batch of entities to be updated
+    const auto update_entities = [&]() {
+        // create the flat buffers message
         fbb_in.Finish(CreateMessage(fbb_in,
                 _time_sync.getTime().count(),                          // timestamp
                 0,                                                     // hops
@@ -61,7 +63,7 @@ std::vector<MessageBuffer> MeshNode::updateEntities(
                 fbb_in.CreateVector(entity_offsets)                    // entities
                 ));
         auto msg = GetRoot<Message>(fbb_in.GetBufferPointer());
-        // increment expiry by timestamp if it's relative
+        // increment expiry of each entity by timestamp if it's relative
         if (relative_expiry) {
             for (auto entity : *msg->entities()) {
                 // overflow check
@@ -70,6 +72,7 @@ std::vector<MessageBuffer> MeshNode::updateEntities(
                 }
             }
         }
+        // process entities in ego_sphere and forward updates to peers
         if (forwardEntityUpdates(fbb_out, msg)) {
             forwarded_messages.emplace_back(std::move(fbb_out.Release()));
         }
@@ -77,13 +80,14 @@ std::vector<MessageBuffer> MeshNode::updateEntities(
         fbb_out.Reset();
         entity_offsets.clear();
     };
+    // split up messages when  entity updates size is exceeded
     for (const auto& entity : entities) {
         entity_offsets.emplace_back(Entity::Pack(fbb_in, &entity));
         if (fbb_in.GetSize() >= _entity_updates_size) {
-            forward_message();
+            update_entities();
         }
     }
-    forward_message();
+    update_entities();
     IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_SENT)));
     return forwarded_messages;
 }

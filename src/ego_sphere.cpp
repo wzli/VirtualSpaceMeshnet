@@ -44,10 +44,9 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         // find previous record of entity
         auto old_entity = _entities.find(name);
         // don't filter if from self, otherwise use filter of original entity if it exists
-        Filter filter = from_self
-                                ? Filter::ALL
-                                : old_entity == _entities.end() ? entity->filter()
-                                                                : old_entity->second.entity.filter;
+        Filter filter = from_self                       ? Filter::ALL
+                        : old_entity == _entities.end() ? entity->filter()
+                                                        : old_entity->second.entity.filter;
         // nearest filter rejection
         if (filter == Filter::NEAREST) {
             const auto& nearest_peer =
@@ -55,9 +54,11 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
                             ? peer_tracker.nearestPeer(*entity->coordinates(), connected_peers)
                             : peer_tracker.nearestPeer(
                                       old_entity->second.entity.coordinates, connected_peers);
+            // only allow entity update if source is from its nearest peer
             if (nearest_peer.address != source.address &&
-                    (old_entity != _entities.end() ||
-                            nearest_peer.address != peer_tracker.getNodeInfo().address)) {
+                    // unless it's a suggestion for a new entity nearest to you
+                    !(old_entity == _entities.end() &&
+                            nearest_peer.address == peer_tracker.getNodeInfo().address)) {
                 Error error(STRERR(ENTITY_NEAREST_FILTERED));
                 IF_PTR(_logger, log, Logger::TRACE, error, entity);
                 continue;
@@ -66,7 +67,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         // insert entity timestamp once filter passes
         insertEntityTimestamp(name, msecs(msg->timestamp()));
         // create lambda for delete and forward operation
-        const auto delete_and_forward = [&]() {
+        const auto delete_and_forward_if_exists = [&]() {
             // if entity exists, delete entity and forward message
             if (deleteEntity(name, source)) {
                 EntityT entity_obj;
@@ -76,7 +77,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         };
         // check if entity already expired
         if (entity->expiry() <= current_time.count()) {
-            delete_and_forward();
+            delete_and_forward_if_exists();
             IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
             continue;
         }
@@ -84,7 +85,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         if (entity->range() && (entity->range() * entity->range() <
                                        distanceSqr(*entity->coordinates(),
                                                peer_tracker.getNodeInfo().coordinates))) {
-            delete_and_forward();
+            delete_and_forward_if_exists();
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
             continue;
         }

@@ -171,7 +171,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                 }
             });
 
-    for (int i = 0; i < 60; ++i) {
+    for (int i = 0; i < 100; ++i) {
         for (auto& mesh_node : mesh_nodes) {
             mesh_node.getTransport().poll(msecs(1));
         }

@@ -55,15 +55,11 @@ struct MessageT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.MessageT";
   }
-  uint32_t timestamp;
-  uint32_t hops;
-  std::unique_ptr<vsm::NodeInfoT> source;
-  std::vector<std::unique_ptr<vsm::NodeInfoT>> peers;
-  std::vector<std::unique_ptr<vsm::EntityT>> entities;
-  MessageT()
-      : timestamp(0),
-        hops(1) {
-  }
+  uint32_t timestamp = 0;
+  uint32_t hops = 1;
+  std::unique_ptr<vsm::NodeInfoT> source{};
+  std::vector<std::unique_ptr<vsm::NodeInfoT>> peers{};
+  std::vector<std::unique_ptr<vsm::EntityT>> entities{};
 };
 
 struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -199,15 +195,11 @@ struct NodeInfoT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.NodeInfoT";
   }
-  std::string name;
-  std::string address;
-  std::vector<float> coordinates;
-  uint32_t group_mask;
-  uint32_t sequence;
-  NodeInfoT()
-      : group_mask(4294967295),
-        sequence(0) {
-  }
+  std::string name{};
+  std::string address{};
+  std::vector<float> coordinates{};
+  uint32_t group_mask = 4294967295;
+  uint32_t sequence = 0;
 };
 
 struct NodeInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -349,19 +341,13 @@ struct EntityT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.EntityT";
   }
-  std::string name;
-  std::vector<float> coordinates;
-  vsm::Filter filter;
-  uint32_t hop_limit;
-  float range;
-  uint32_t expiry;
-  std::vector<uint8_t> data;
-  EntityT()
-      : filter(vsm::Filter::ALL),
-        hop_limit(0),
-        range(0.0f),
-        expiry(4294967295) {
-  }
+  std::string name{};
+  std::vector<float> coordinates{};
+  vsm::Filter filter = vsm::Filter::ALL;
+  uint32_t hop_limit = 0;
+  float range = 0.0f;
+  uint32_t expiry = 4294967295;
+  std::vector<uint8_t> data{};
 };
 
 struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -529,7 +515,7 @@ inline flatbuffers::Offset<Entity> CreateEntityDirect(
 flatbuffers::Offset<Entity> CreateEntity(flatbuffers::FlatBufferBuilder &_fbb, const EntityT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 inline MessageT *Message::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<vsm::MessageT> _o = std::unique_ptr<vsm::MessageT>(new MessageT());
+  auto _o = std::unique_ptr<MessageT>(new MessageT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -567,7 +553,7 @@ inline flatbuffers::Offset<Message> CreateMessage(flatbuffers::FlatBufferBuilder
 }
 
 inline NodeInfoT *NodeInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<vsm::NodeInfoT> _o = std::unique_ptr<vsm::NodeInfoT>(new NodeInfoT());
+  auto _o = std::unique_ptr<NodeInfoT>(new NodeInfoT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -605,7 +591,7 @@ inline flatbuffers::Offset<NodeInfo> CreateNodeInfo(flatbuffers::FlatBufferBuild
 }
 
 inline EntityT *Entity::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<vsm::EntityT> _o = std::unique_ptr<vsm::EntityT>(new EntityT());
+  auto _o = std::unique_ptr<EntityT>(new EntityT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -619,7 +605,7 @@ inline void Entity::UnPackTo(EntityT *_o, const flatbuffers::resolver_function_t
   { auto _e = hop_limit(); _o->hop_limit = _e; }
   { auto _e = range(); _o->range = _e; }
   { auto _e = expiry(); _o->expiry = _e; }
-  { auto _e = data(); if (_e) { _o->data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data[_i] = _e->Get(_i); } } }
+  { auto _e = data(); if (_e) { _o->data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->data.begin()); } }
 }
 
 inline flatbuffers::Offset<Entity> Entity::Pack(flatbuffers::FlatBufferBuilder &_fbb, const EntityT* _o, const flatbuffers::rehasher_function_t *_rehasher) {

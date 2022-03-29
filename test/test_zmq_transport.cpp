@@ -59,7 +59,7 @@ TEST_CASE("ZMQ UDP Radio-Dish", "[zmq]") {
 
 TEST_CASE("ZMQ Transport Loopback", "[zmq][transport]") {
     // test inputs
-    std::string endpoint = "udp://127.0.0.1:11511";
+    auto endpoint = "udp://127.0.0.1:11511";
     std::string test_msg = "Hello!";
 
     // create loopback connection

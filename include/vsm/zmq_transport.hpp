@@ -2,6 +2,7 @@
 #include <vsm/transport.hpp>
 #include <vsm/zmq_timers.hpp>
 
+#include <string>
 #include <unordered_map>
 
 namespace vsm {
@@ -9,24 +10,24 @@ namespace vsm {
 class ZmqTransport : public Transport {
 public:
     // common interface
-    const std::string& getAddress() const { return _address; }
+    const char* getAddress() const { return _address.c_str(); }
 
-    int connect(const std::string& dst_addr) override {
-        return zmq_connect(_tx_socket.handle(), dst_addr.c_str());
+    int connect(const char* dst_addr) override {
+        return zmq_connect(_tx_socket.handle(), dst_addr);
     }
-    int disconnect(const std::string& dst_addr) override {
-        return zmq_disconnect(_tx_socket.handle(), dst_addr.c_str());
+    int disconnect(const char* dst_addr) override {
+        return zmq_disconnect(_tx_socket.handle(), dst_addr);
     }
 
-    int transmit(const void* buffer, size_t len, const std::string& group = "") override {
+    int transmit(const void* buffer, size_t len, const char* group = "") override {
         zmq::message_t msg(buffer, len);
-        msg.set_group(group.c_str());
+        msg.set_group(group);
         return zmq_sendmsg(_tx_socket.handle(), msg.handle(), 0);
     }
 
-    int addReceiver(ReceiverCallback receiver_callback, const std::string& group = "") override {
+    int addReceiver(ReceiverCallback receiver_callback, const char* group = "") override {
         _receiver_callbacks[group] = receiver_callback;
-        return zmq_join(_rx_socket.handle(), group.c_str());
+        return zmq_join(_rx_socket.handle(), group);
     }
 
     int addTimer(std::chrono::milliseconds interval, TimerCallback timer_callback) override {
@@ -36,7 +37,7 @@ public:
     int poll(std::chrono::milliseconds timeout);
 
     // implementation specific
-    ZmqTransport(const std::string& address = "udp://*:11511");
+    ZmqTransport(std::string address = "udp://*:11511");
 
     const zmq::socket_t& getTxSocket() const { return _tx_socket; }
     const zmq::socket_t& getRxSocket() const { return _rx_socket; }

@@ -112,14 +112,14 @@ const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const 
             fbb.CreateVector(forward_entities)                  // entities
             ));
     // don't send message back to the original source
-    std::string source_address;
-    if (msg->source() && msg->source()->address()) {
-        source_address = msg->source()->address()->str();
+    const char* src_addr =
+            msg->source() && msg->source()->address() ? msg->source()->address()->c_str() : nullptr;
+    if (src_addr && _transport->disconnect(src_addr)) {
+        src_addr = nullptr;
     }
-    int disconnect_error = _transport->disconnect(source_address);
     _transport->transmit(fbb.GetBufferPointer(), fbb.GetSize());
-    if (!disconnect_error) {
-        _transport->connect(source_address);
+    if (src_addr) {
+        _transport->connect(src_addr);
     }
     IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_FORWARDED)),
             fbb.GetBufferPointer(), fbb.GetSize());
@@ -160,8 +160,9 @@ void MeshNode::sendPeerUpdates() {
         void push_back(const std::string& address) { assign(address); };
         std::function<void(const std::string&)> assign;
     };
-    BackAssigner disconnector{[this](const std::string& addr) { _transport->disconnect(addr); }};
-    BackAssigner connector{[this](const std::string& addr) { _transport->connect(addr); }};
+    BackAssigner disconnector{
+            [this](const std::string& addr) { _transport->disconnect(addr.c_str()); }};
+    BackAssigner connector{[this](const std::string& addr) { _transport->connect(addr.c_str()); }};
     // update transport connections
     std::set_difference(_connected_peers.begin(), _connected_peers.end(),
             _recipients_buffer.begin(), _recipients_buffer.end(), std::back_inserter(disconnector));

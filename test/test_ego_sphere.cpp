@@ -98,16 +98,18 @@ TEST_CASE("Single World", "[ego_sphere]") {
     REQUIRE(msgs[0].get()->entities());
     REQUIRE(msgs[0].get()->entities()->size() == 2);
     REQUIRE(error_counts.at("ENTITY_CREATED") == 2);
-    mesh_node.readEntities([](const EgoSphere::EntityLookup& entity_lookup) {
-        REQUIRE(entity_lookup.size() == 2);
-        REQUIRE(entity_lookup.count("b"));
-        REQUIRE(entity_lookup.count("e"));
+
+    {
+        auto entity_lookup = mesh_node.getEntities();
+        REQUIRE(entity_lookup.first.size() == 2);
+        REQUIRE(entity_lookup.first.count("b"));
+        REQUIRE(entity_lookup.first.count("e"));
 #if 0
-        for (const auto& entity : entity_lookup) {
+        for (const auto& entity : entity_lookup.first) {
             std::cout << entity.first << std::endl;
         }
 #endif
-    });
+    }
 
     // check returned message for expected entity rejections
     REQUIRE(!msgs[0].get()->entities()->LookupByKey("a"));

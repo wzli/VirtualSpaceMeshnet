@@ -10,7 +10,8 @@
 
 namespace vsm {
 
-using EntitiesCallback = std::function<void(const EgoSphere::EntityLookup& entities)>;
+template <class T>
+using Locked = std::pair<T&, std::unique_lock<std::mutex>>;
 
 struct MessageBuffer : public fb::DetachedBuffer {
     using fb::DetachedBuffer::DetachedBuffer;
@@ -66,10 +67,11 @@ public:
     MeshNode(Config config);
 
     // entities interface
-    void readEntities(const EntitiesCallback& entities_callback) {
-        const std::lock_guard<std::mutex> lock(_entities_mutex);
-        entities_callback(_ego_sphere.getEntities());
+    Locked<const EgoSphere::EntityLookup> getEntities() const {
+        return Locked<const EgoSphere::EntityLookup>{
+                _ego_sphere.getEntities(), std::unique_lock<std::mutex>(_entities_mutex)};
     }
+
     std::vector<MessageBuffer> updateEntities(
             const std::vector<EntityT>& entities, bool relative_expiry = true);
     const Message* forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
@@ -107,7 +109,7 @@ private:
     std::vector<std::string> _selected_peers;
     std::vector<std::string> _connected_peers;
     std::vector<std::string> _recipients_buffer;
-    std::mutex _entities_mutex;
+    mutable std::mutex _entities_mutex;
     size_t _entity_updates_size;
     bool _spectator;
 };

@@ -72,8 +72,10 @@ public:
                 _ego_sphere.getEntities(), std::unique_lock<std::mutex>(_entities_mutex)};
     }
 
-    std::vector<MessageBuffer> updateEntities(
-            const std::vector<EntityT>& entities, bool relative_expiry = true);
+    void offsetRelativeExpiry(std::vector<EntityT>& entities) const;
+
+    std::vector<MessageBuffer> updateEntities(const std::vector<EntityT>& entities);
+
     const Message* forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const Message* msg);
 
     // accessors (FYI they are not thread safe)

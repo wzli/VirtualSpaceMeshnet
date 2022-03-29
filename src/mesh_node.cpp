@@ -43,8 +43,15 @@ MeshNode::MeshNode(Config config)
     IF_PTR(_logger, log, Logger::INFO, Error(STRERR(MeshNode::INITIALIZED)));
 }
 
-std::vector<MessageBuffer> MeshNode::updateEntities(
-        const std::vector<EntityT>& entities, bool relative_expiry) {
+void MeshNode::offsetRelativeExpiry(std::vector<EntityT>& entities) const {
+    // increment expiry of each entity by current time
+    auto current_time = _time_sync.getTime().count();
+    for (auto& entity : entities) {
+        entity.expiry += current_time;
+    }
+}
+
+std::vector<MessageBuffer> MeshNode::updateEntities(const std::vector<EntityT>& entities) {
     if (entities.empty()) {
         return {};
     }
@@ -63,15 +70,6 @@ std::vector<MessageBuffer> MeshNode::updateEntities(
                 fbb_in.CreateVector(entity_offsets)                    // entities
                 ));
         auto msg = GetRoot<Message>(fbb_in.GetBufferPointer());
-        // increment expiry of each entity by timestamp if it's relative
-        if (relative_expiry) {
-            for (auto entity : *msg->entities()) {
-                // overflow check
-                if (entity->expiry() <= 0xFFFFFFFF - msg->timestamp()) {
-                    const_cast<Entity*>(entity)->mutate_expiry(entity->expiry() + msg->timestamp());
-                }
-            }
-        }
         // process entities in ego_sphere and forward updates to peers
         if (forwardEntityUpdates(fbb_out, msg)) {
             forwarded_messages.emplace_back(std::move(fbb_out.Release()));

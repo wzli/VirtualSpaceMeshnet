@@ -1,7 +1,7 @@
 namespace vsm;
 
 table Message {
-  timestamp:uint32;
+  timestamp:int64;
   hops:uint32 = 1;
   source:NodeInfo;
   peers:[NodeInfo];
@@ -27,6 +27,6 @@ table Entity {
   filter:Filter;
   hop_limit:uint32;
   range:float;
-  expiry:uint32 = 0xFFFFFFFF;
+  expiry:int64;
   data:[uint8];
 }

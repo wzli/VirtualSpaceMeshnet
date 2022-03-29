@@ -55,7 +55,7 @@ struct MessageT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "vsm.MessageT";
   }
-  uint32_t timestamp = 0;
+  int64_t timestamp = 0;
   uint32_t hops = 1;
   std::unique_ptr<vsm::NodeInfoT> source{};
   std::vector<std::unique_ptr<vsm::NodeInfoT>> peers{};
@@ -75,11 +75,11 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_PEERS = 10,
     VT_ENTITIES = 12
   };
-  uint32_t timestamp() const {
-    return GetField<uint32_t>(VT_TIMESTAMP, 0);
+  int64_t timestamp() const {
+    return GetField<int64_t>(VT_TIMESTAMP, 0);
   }
-  bool mutate_timestamp(uint32_t _timestamp) {
-    return SetField<uint32_t>(VT_TIMESTAMP, _timestamp, 0);
+  bool mutate_timestamp(int64_t _timestamp) {
+    return SetField<int64_t>(VT_TIMESTAMP, _timestamp, 0);
   }
   uint32_t hops() const {
     return GetField<uint32_t>(VT_HOPS, 1);
@@ -107,7 +107,7 @@ struct Message FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint32_t>(verifier, VT_TIMESTAMP) &&
+           VerifyField<int64_t>(verifier, VT_TIMESTAMP) &&
            VerifyField<uint32_t>(verifier, VT_HOPS) &&
            VerifyOffset(verifier, VT_SOURCE) &&
            verifier.VerifyTable(source()) &&
@@ -128,8 +128,8 @@ struct MessageBuilder {
   typedef Message Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_timestamp(uint32_t timestamp) {
-    fbb_.AddElement<uint32_t>(Message::VT_TIMESTAMP, timestamp, 0);
+  void add_timestamp(int64_t timestamp) {
+    fbb_.AddElement<int64_t>(Message::VT_TIMESTAMP, timestamp, 0);
   }
   void add_hops(uint32_t hops) {
     fbb_.AddElement<uint32_t>(Message::VT_HOPS, hops, 1);
@@ -156,23 +156,23 @@ struct MessageBuilder {
 
 inline flatbuffers::Offset<Message> CreateMessage(
     flatbuffers::FlatBufferBuilder &_fbb,
-    uint32_t timestamp = 0,
+    int64_t timestamp = 0,
     uint32_t hops = 1,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::NodeInfo>>> peers = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<vsm::Entity>>> entities = 0) {
   MessageBuilder builder_(_fbb);
+  builder_.add_timestamp(timestamp);
   builder_.add_entities(entities);
   builder_.add_peers(peers);
   builder_.add_source(source);
   builder_.add_hops(hops);
-  builder_.add_timestamp(timestamp);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Message> CreateMessageDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    uint32_t timestamp = 0,
+    int64_t timestamp = 0,
     uint32_t hops = 1,
     flatbuffers::Offset<vsm::NodeInfo> source = 0,
     std::vector<flatbuffers::Offset<vsm::NodeInfo>> *peers = nullptr,
@@ -346,7 +346,7 @@ struct EntityT : public flatbuffers::NativeTable {
   vsm::Filter filter = vsm::Filter::ALL;
   uint32_t hop_limit = 0;
   float range = 0.0f;
-  uint32_t expiry = 4294967295;
+  int64_t expiry = 0;
   std::vector<uint8_t> data{};
 };
 
@@ -401,11 +401,11 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool mutate_range(float _range) {
     return SetField<float>(VT_RANGE, _range, 0.0f);
   }
-  uint32_t expiry() const {
-    return GetField<uint32_t>(VT_EXPIRY, 4294967295);
+  int64_t expiry() const {
+    return GetField<int64_t>(VT_EXPIRY, 0);
   }
-  bool mutate_expiry(uint32_t _expiry) {
-    return SetField<uint32_t>(VT_EXPIRY, _expiry, 4294967295);
+  bool mutate_expiry(int64_t _expiry) {
+    return SetField<int64_t>(VT_EXPIRY, _expiry, 0);
   }
   const flatbuffers::Vector<uint8_t> *data() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_DATA);
@@ -422,7 +422,7 @@ struct Entity FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_FILTER) &&
            VerifyField<uint32_t>(verifier, VT_HOP_LIMIT) &&
            VerifyField<float>(verifier, VT_RANGE) &&
-           VerifyField<uint32_t>(verifier, VT_EXPIRY) &&
+           VerifyField<int64_t>(verifier, VT_EXPIRY) &&
            VerifyOffset(verifier, VT_DATA) &&
            verifier.VerifyVector(data()) &&
            verifier.EndTable();
@@ -451,8 +451,8 @@ struct EntityBuilder {
   void add_range(float range) {
     fbb_.AddElement<float>(Entity::VT_RANGE, range, 0.0f);
   }
-  void add_expiry(uint32_t expiry) {
-    fbb_.AddElement<uint32_t>(Entity::VT_EXPIRY, expiry, 4294967295);
+  void add_expiry(int64_t expiry) {
+    fbb_.AddElement<int64_t>(Entity::VT_EXPIRY, expiry, 0);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
     fbb_.AddOffset(Entity::VT_DATA, data);
@@ -476,11 +476,11 @@ inline flatbuffers::Offset<Entity> CreateEntity(
     vsm::Filter filter = vsm::Filter::ALL,
     uint32_t hop_limit = 0,
     float range = 0.0f,
-    uint32_t expiry = 4294967295,
+    int64_t expiry = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
   EntityBuilder builder_(_fbb);
-  builder_.add_data(data);
   builder_.add_expiry(expiry);
+  builder_.add_data(data);
   builder_.add_range(range);
   builder_.add_hop_limit(hop_limit);
   builder_.add_coordinates(coordinates);
@@ -496,7 +496,7 @@ inline flatbuffers::Offset<Entity> CreateEntityDirect(
     vsm::Filter filter = vsm::Filter::ALL,
     uint32_t hop_limit = 0,
     float range = 0.0f,
-    uint32_t expiry = 4294967295,
+    int64_t expiry = 0,
     const std::vector<uint8_t> *data = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto coordinates__ = coordinates ? _fbb.CreateVector<float>(*coordinates) : 0;

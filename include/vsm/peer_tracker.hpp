@@ -23,11 +23,7 @@ float distanceSqr(const VecA& a, const VecB& b) {
 }
 
 static inline uint32_t add32(uint32_t a, uint32_t b) {
-    uint32_t c = a + b;
-    if (c < a) {
-        c = 0xFFFFFFFF;
-    }
-    return c;
+    return (a > 0xFFFFFFFF - b) ? 0xFFFFFFFF : a + b;
 }
 
 struct Peer {

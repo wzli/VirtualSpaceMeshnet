@@ -12,10 +12,6 @@
 
 namespace vsm {
 
-using secs = std::chrono::seconds;
-using msecs = std::chrono::milliseconds;
-using nsecs = std::chrono::nanoseconds;
-
 struct Error : public std::exception {
     Error(const char* err_msg, int err_type = 0, int err_code = 0)
             : msg(err_msg)
@@ -28,6 +24,12 @@ struct Error : public std::exception {
     int type;
     int code;
 };
+
+template <class Duration>
+Duration getNow() {
+    return std::chrono::duration_cast<Duration>(
+            std::chrono::steady_clock::now().time_since_epoch());
+}
 
 class Logger {
 public:
@@ -52,11 +54,8 @@ public:
     }
 
     void log(Level level, Error error, const void* data = nullptr, size_t data_len = 0) const {
-        static const auto start_time = std::chrono::steady_clock::now();
-        auto time = _clock ? _clock()
-                           : std::chrono::duration_cast<msecs>(
-                                     std::chrono::steady_clock::now() - start_time)
-                                     .count();
+        int64_t time =
+                _clock ? _clock() : getNow<std::chrono::milliseconds>().count() - _start_time;
         for (auto handler = _log_handlers.begin();
                 handler != _log_handlers.end() && handler->first <= level; ++handler) {
             handler->second(time, level, error, data, data_len);
@@ -64,6 +63,7 @@ public:
     };
 
 private:
+    const int64_t _start_time = getNow<std::chrono::milliseconds>().count();
     std::function<int64_t(void)> _clock;
     std::multimap<Level, LogHandler> _log_handlers;
 };

@@ -21,10 +21,10 @@ TEST_CASE("Single World", "[ego_sphere]") {
     };
 #endif
     MeshNode::Config config{
-            msecs(1000),  // peer update interval
-            msecs(1000),  // entity expiry interval
-            8000,         // entity updates size
-            false,        // spectator
+            1000,   // peer update interval
+            1000,   // entity expiry interval
+            8000,   // entity updates size
+            false,  // spectator
             {
                     // ego sphere
                     nullptr,  // entity update handler
@@ -88,7 +88,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
 
     // trigger update after 1 ms
 
-    mesh_node.getTransport().poll(msecs(2));
+    mesh_node.getTransport().poll(2);
     auto msgs = mesh_node.updateEntities(entities);
     REQUIRE(!msgs.empty());
 
@@ -151,10 +151,10 @@ TEST_CASE("Single World", "[ego_sphere]") {
 TEST_CASE("4 corners", "[ego_sphere]") {
     auto make_config = [](int id, std::vector<float> coords) {
         return MeshNode::Config{
-                msecs(1),     // peer update interval
-                msecs(1000),  // entity expiry interval
-                8000,         // entity updates size
-                false,        // spectator
+                1,      // peer update interval
+                1000,   // entity expiry interval
+                8000,   // entity updates size
+                false,  // spectator
                 {},
                 {
                         // peer manager
@@ -197,7 +197,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     // wait for mesh establishment
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
     }
     // check mesh connection
@@ -221,7 +221,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
     }
 
@@ -241,7 +241,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
     }
 
@@ -261,7 +261,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
     }
 
@@ -284,7 +284,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
     }
 
@@ -300,7 +300,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
     }
     REQUIRE(error_counts[0]["ENTITY_UPDATES_SENT"] == 1);
@@ -323,7 +323,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
     }
 
@@ -343,7 +343,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
     }
 

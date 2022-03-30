@@ -46,8 +46,8 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
     FlatBufferBuilder fbb;
     auto logger = std::make_shared<Logger>();
 #if 0
-    logger->addLogHandler(Logger::TRACE, [](msecs time, Logger::Level level, Error error, const void*, size_t) {
-        std::cout << "t " << time.count() << "lv: " << level << ", type: " << error.type << ", code: " << error.code
+    logger->addLogHandler(Logger::TRACE, [](int64_t time, Logger::Level level, Error error, const void*, size_t) {
+        std::cout << "t " << time << "lv: " << level << ", type: " << error.type << ", code: " << error.code
                   << ", msg: " << error.what() << std::endl;
     });
 #endif

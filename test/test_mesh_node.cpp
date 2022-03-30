@@ -16,8 +16,8 @@ TEST_CASE("MeshNode Update Tick", "[mesh_node]") {
             {0, 0},                   // coordinates
     };
     MeshNode::Config mesh_node_config{
-            msecs(1),                                         // peer update interval
-            msecs(1000),                                      // entity expiry interval
+            1,                                                // peer update interval
+            1000,                                             // entity expiry interval
             8000,                                             // entity updates size
             false,                                            // spectator
             {},                                               // ego sphere
@@ -34,7 +34,7 @@ TEST_CASE("MeshNode Update Tick", "[mesh_node]") {
             });
     MeshNode mesh_node(std::move(mesh_node_config));
     for (int i = 0; i < 5; ++i) {
-        mesh_node.getTransport().poll(msecs(2));
+        mesh_node.getTransport().poll(2);
     }
     REQUIRE(peer_updates_sent >= 4);
 }
@@ -42,11 +42,11 @@ TEST_CASE("MeshNode Update Tick", "[mesh_node]") {
 TEST_CASE("MeshNode Loopback", "[mesh_node]") {
     std::vector<MeshNode::Config> configs{
             {
-                    msecs(1),     // peer update interval
-                    msecs(1000),  // entity expiry interval
-                    8000,         // entity updates size
-                    false,        // spectator
-                    {},           // ego sphere
+                    1,      // peer update interval
+                    1000,   // entity expiry interval
+                    8000,   // entity updates size
+                    false,  // spectator
+                    {},     // ego sphere
                     {
                             "node1",                  // name
                             "udp://127.0.0.1:11611",  // address
@@ -57,11 +57,11 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                     std::make_shared<Logger>(),                       // logger
             },
             {
-                    msecs(1),     // peer update interval
-                    msecs(1000),  // entity expiry interval
-                    8000,         // entity updates size
-                    false,        // spectator
-                    {},           // ego sphere
+                    1,      // peer update interval
+                    1000,   // entity expiry interval
+                    8000,   // entity updates size
+                    false,  // spectator
+                    {},     // ego sphere
                     {
                             "node2",                  // name
                             "udp://127.0.0.1:11612",  // address
@@ -89,7 +89,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
     }
     for (int i = 0; i < 50; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
     }
 
@@ -105,11 +105,11 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
         sprintf(buf, "%02d", id);
         std::string id_str = buf;
         return MeshNode::Config{
-                msecs(1),     // peer update interval
-                msecs(1000),  // entity expiry interval
-                8000,         // entity updates size
-                false,        // spectator
-                {},           // ego sphere
+                1,      // peer update interval
+                1000,   // entity expiry interval
+                8000,   // entity updates size
+                false,  // spectator
+                {},     // ego sphere
                 {
                         "node" + id_str,                 // name
                         "udp://127.0.0.1:115" + id_str,  // address
@@ -138,12 +138,12 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
     for (auto& config : configs) {
 #if 0
         config.logger->addLogHandler(
-                Logger::TRACE, [&config](msecs time, Logger::Level level,
+                Logger::TRACE, [&config](int64_t time, Logger::Level level,
                                        Error error, const void*, size_t) {
                     if (error.type == PeerTracker::PEER_COORDINATES_MISSING) {
                         return;
                     }
-                    std::cout << time.count() << " " << config.peer_tracker.name << " lv: " << level
+                    std::cout << time << " " << config.peer_tracker.name << " lv: " << level
                               << ", type: " << error.type << ", code: " << error.code
                               << ", msg: " << error.what() << std::endl;
                 });
@@ -173,7 +173,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
 
     for (int i = 0; i < 50; ++i) {
         for (auto& mesh_node : mesh_nodes) {
-            mesh_node.getTransport().poll(msecs(1));
+            mesh_node.getTransport().poll(1);
         }
 // for printing time sync csv
 #if 0

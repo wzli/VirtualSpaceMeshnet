@@ -44,8 +44,8 @@ public:
     };
 
     struct Config {
-        msecs peer_update_interval = msecs(1000);
-        msecs entity_expiry_interval = msecs(1000);
+        size_t peer_update_interval_ms = 1000;
+        size_t entity_expiry_interval_ms = 1000;
         size_t entity_updates_size = 7000;  // message size aprox 600B more may vary
         bool spectator = false;
         EgoSphere::Config ego_sphere;
@@ -53,7 +53,7 @@ public:
         std::shared_ptr<Transport> transport;
         std::shared_ptr<Logger> logger;
         std::function<int64_t(void)> local_clock = []() {
-            return std::chrono::duration_cast<msecs>(
+            return std::chrono::duration_cast<std::chrono::nanoseconds>(
                     std::chrono::steady_clock::now().time_since_epoch())
                     .count();
         };

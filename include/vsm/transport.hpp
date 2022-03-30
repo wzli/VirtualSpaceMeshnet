@@ -1,5 +1,4 @@
 #pragma once
-#include <chrono>
 #include <functional>
 
 namespace vsm {
@@ -17,9 +16,9 @@ public:
     virtual int transmit(const void* buffer, size_t len, const char* group = "") = 0;
 
     virtual int addReceiver(ReceiverCallback receiver_callback, const char* group = "") = 0;
-    virtual int addTimer(std::chrono::milliseconds interval, TimerCallback timer_callback) = 0;
+    virtual int addTimer(size_t interval_ms, TimerCallback timer_callback) = 0;
 
-    virtual int poll(std::chrono::milliseconds timeout) = 0;  // -1 = inf, 0 = non-blocking
+    virtual int poll(size_t timeout_ms) = 0;  // -1 = inf, 0 = non-blocking
 };
 
 }  // namespace vsm

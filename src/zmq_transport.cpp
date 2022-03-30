@@ -9,9 +9,9 @@ ZmqTransport::ZmqTransport(std::string address)
     _rx_socket.bind(_address);
 }
 
-int ZmqTransport::poll(std::chrono::milliseconds timeout) {
+int ZmqTransport::poll(size_t timeout_ms) {
     _timers.execute();
-    int next_timeout = std::min<uint32_t>(timeout.count(), _timers.timeout());
+    int next_timeout = std::min<uint32_t>(timeout_ms, _timers.timeout());
     _rx_socket.set(zmq::sockopt::rcvtimeo, next_timeout);
     int n_msgs = 0;
     while (zmq_recvmsg(_rx_socket.handle(), _rx_message.handle(), n_msgs ? ZMQ_DONTWAIT : 0) > 0) {

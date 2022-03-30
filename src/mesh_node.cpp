@@ -26,13 +26,14 @@ MeshNode::MeshNode(Config config)
         throw error;
     }
     // register peer update timer
-    if (0 > _transport->addTimer(config.peer_update_interval, [this](int) { sendPeerUpdates(); })) {
+    if (0 > _transport->addTimer(
+                    config.peer_update_interval_ms, [this](int) { sendPeerUpdates(); })) {
         Error error(STRERR(ADD_TIMER_FAIL));
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
     // register entity expiry timer
-    if (0 > _transport->addTimer(config.entity_expiry_interval, [this](int) {
+    if (0 > _transport->addTimer(config.entity_expiry_interval_ms, [this](int) {
             const std::lock_guard<std::mutex> lock(_entities_mutex);
             _ego_sphere.expireEntities(_time_sync.getTime(), _peer_tracker.getNodeInfo());
         })) {

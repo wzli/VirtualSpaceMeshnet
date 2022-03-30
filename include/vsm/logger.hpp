@@ -1,6 +1,5 @@
 #pragma once
 #include <chrono>
-#include <exception>
 #include <functional>
 #include <map>
 
@@ -12,7 +11,7 @@
 
 namespace vsm {
 
-struct Error : public std::exception {
+struct Error {
     Error(const char* err_msg, int err_type = 0, int err_code = 0)
             : msg(err_msg)
             , type(err_type)

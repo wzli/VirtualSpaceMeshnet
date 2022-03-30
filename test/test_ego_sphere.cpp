@@ -8,6 +8,8 @@
 
 using namespace vsm;
 
+static constexpr int64_t SECS = 1000000000;
+
 TEST_CASE("Single World", "[ego_sphere]") {
 #if 0
     auto entity_update_handler = [](EgoSphere::EntityUpdate* new_entity,
@@ -41,7 +43,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
 
     std::unordered_map<std::string, int> error_counts;
     config.logger->addLogHandler(
-            Logger::TRACE, [&config, &error_counts](msecs time, Logger::Level level, Error error,
+            Logger::TRACE, [&config, &error_counts](int64_t time, Logger::Level level, Error error,
                                    const void*, size_t) {
                 (void) time;
                 (void) level;
@@ -65,22 +67,22 @@ TEST_CASE("Single World", "[ego_sphere]") {
     // expect not expired
     entities.emplace_back();
     entities.back().name = "b";
-    entities.back().expiry = 10000;
+    entities.back().expiry = 10 * SECS;
     // expect missing coordinates
     entities.emplace_back();
     entities.back().name = "c";
-    entities.back().expiry = 10000;
+    entities.back().expiry = 10 * SECS;
     entities.back().range = 10;
     // expect out of range
     entities.emplace_back();
     entities.back().name = "d";
-    entities.back().expiry = 10000;
+    entities.back().expiry = 10 * SECS;
     entities.back().range = 10;
     entities.back().coordinates = {10, 1};
     // expect in range
     entities.emplace_back();
     entities.back().name = "e";
-    entities.back().expiry = 1000;
+    entities.back().expiry = 1 * SECS;
     entities.back().range = 10;
     entities.back().coordinates = {9, 0};
 
@@ -128,7 +130,7 @@ TEST_CASE("Single World", "[ego_sphere]") {
 
     // test expire
     REQUIRE(error_counts.count("ENTITY_DELETED"));
-    mesh_node.getEgoSphere().expireEntities(msecs(2000), self);
+    mesh_node.getEgoSphere().expireEntities(2 * SECS, self);
     REQUIRE(error_counts.count("ENTITY_EXPIRED"));
 
     // test timestamp lookup trimming
@@ -174,7 +176,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     std::vector<std::unordered_map<std::string, int>> error_counts(configs.size());
     auto make_log_handler = [&error_counts](int i) {
         return [&error_counts, i](
-                       msecs time, Logger::Level level, Error error, const void*, size_t) {
+                       int64_t time, Logger::Level level, Error error, const void*, size_t) {
             (void) time;
             (void) level;
             ++error_counts[i][error.what()];
@@ -182,7 +184,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
                 return;
             }
 #if 0
-            std::cout << time.count() << " " << i << " lv: " << level << ", type: " << error.type
+            std::cout << time << " " << i << " lv: " << level << ", type: " << error.type
                       << ", code: " << error.code << ", msg: " << error.what() << std::endl;
 #endif
         };
@@ -212,7 +214,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().name = "a";
     entities.back().coordinates = {-1, -1};
     entities.back().filter = Filter::ALL;
-    entities.back().expiry = 10000;
+    entities.back().expiry = 10 * SECS;
     entities.back().range = 10;
 
     // exchange messages
@@ -252,7 +254,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().name = "b";
     entities.back().coordinates = {0, 0};
     entities.back().filter = Filter::NEAREST;
-    entities.back().expiry = 10000;
+    entities.back().expiry = 10 * SECS;
     entities.back().range = 10;
 
     // exchange messages
@@ -275,7 +277,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().name = "c";
     entities.back().coordinates = {0, 1};
     entities.back().filter = Filter::NEAREST;
-    entities.back().expiry = 10000;
+    entities.back().expiry = 10 * SECS;
     entities.back().range = 10;
 
     // exchange messages
@@ -314,7 +316,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().name = "d";
     entities.back().coordinates = {1, 1};
     entities.back().filter = Filter::NEAREST;
-    entities.back().expiry = 10000;
+    entities.back().expiry = 10 * SECS;
     entities.back().range = 10;
 
     // exchange messages

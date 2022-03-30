@@ -14,8 +14,8 @@ TEST_CASE("Logger") {
 
     int log_count[Logger::N_LEVELS] = {0};
     auto add_log_counter = [&](Logger::Level level) {
-        logger.addLogHandler(
-                level, [&](msecs, Logger::Level err_lv, Error error, const void* data, size_t len) {
+        logger.addLogHandler(level,
+                [&](int64_t, Logger::Level err_lv, Error error, const void* data, size_t len) {
                     ++log_count[err_lv];
                     REQUIRE(!strcmp(error.msg, test_error.msg));
                     REQUIRE(error.type == test_error.type);

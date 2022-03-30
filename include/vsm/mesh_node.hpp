@@ -52,9 +52,10 @@ public:
         PeerTracker::Config peer_tracker;
         std::shared_ptr<Transport> transport;
         std::shared_ptr<Logger> logger;
-        std::function<msecs(void)> local_clock = []() {
+        std::function<int64_t(void)> local_clock = []() {
             return std::chrono::duration_cast<msecs>(
-                    std::chrono::steady_clock::now().time_since_epoch());
+                    std::chrono::steady_clock::now().time_since_epoch())
+                    .count();
         };
     };
 
@@ -85,8 +86,8 @@ public:
     PeerTracker& getPeerTracker() { return _peer_tracker; }
     const PeerTracker& getPeerTracker() const { return _peer_tracker; }
 
-    TimeSync<msecs>& getTimeSync() { return _time_sync; }
-    const TimeSync<msecs>& getTimeSync() const { return _time_sync; }
+    TimeSync& getTimeSync() { return _time_sync; }
+    const TimeSync& getTimeSync() const { return _time_sync; }
 
     Transport& getTransport() { return *_transport; }
     const Transport& getTransport() const { return *_transport; }
@@ -103,7 +104,7 @@ private:
 
     EgoSphere _ego_sphere;
     PeerTracker _peer_tracker;
-    TimeSync<msecs> _time_sync;
+    TimeSync _time_sync;
     std::shared_ptr<Transport> _transport;
     std::shared_ptr<Logger> _logger;
     fb::FlatBufferBuilder _fbb;

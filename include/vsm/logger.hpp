@@ -12,7 +12,9 @@
 
 namespace vsm {
 
+using secs = std::chrono::seconds;
 using msecs = std::chrono::milliseconds;
+using nsecs = std::chrono::nanoseconds;
 
 struct Error : public std::exception {
     Error(const char* err_msg, int err_type = 0, int err_code = 0)
@@ -39,9 +41,9 @@ public:
         N_LEVELS,
     };
 
-    using LogHandler = std::function<void(msecs time, Level, Error error, const void*, size_t)>;
+    using LogHandler = std::function<void(int64_t time, Level, Error error, const void*, size_t)>;
 
-    std::function<msecs(void)>& getClock() { return _clock; }
+    std::function<int64_t(void)>& getClock() { return _clock; }
 
     void addLogHandler(Level level, LogHandler log_handler) {
         if (log_handler) {
@@ -53,7 +55,8 @@ public:
         static const auto start_time = std::chrono::steady_clock::now();
         auto time = _clock ? _clock()
                            : std::chrono::duration_cast<msecs>(
-                                     std::chrono::steady_clock::now() - start_time);
+                                     std::chrono::steady_clock::now() - start_time)
+                                     .count();
         for (auto handler = _log_handlers.begin();
                 handler != _log_handlers.end() && handler->first <= level; ++handler) {
             handler->second(time, level, error, data, data_len);
@@ -61,7 +64,7 @@ public:
     };
 
 private:
-    std::function<msecs(void)> _clock;
+    std::function<int64_t(void)> _clock;
     std::multimap<Level, LogHandler> _log_handlers;
 };
 

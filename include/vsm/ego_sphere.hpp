@@ -40,8 +40,8 @@ public:
 
     struct EntityUpdate {
         EntityT entity;
-        msecs receive_timestamp;
-        msecs source_timestamp;
+        int64_t receive_timestamp;
+        int64_t source_timestamp;
         uint32_t hops;
     };
 
@@ -56,7 +56,7 @@ public:
 
     struct EntityTimestamp {
         std::string name;
-        msecs timestamp;
+        int64_t timestamp;
         bool operator<(const EntityTimestamp& rhs) const {
             return timestamp == rhs.timestamp ? name < rhs.name : timestamp < rhs.timestamp;
         }
@@ -71,13 +71,13 @@ public:
 
     std::vector<fb::Offset<Entity>> receiveEntityUpdates(fb::FlatBufferBuilder& fbb,
             const Message* msg, const PeerTracker& peer_tracker,
-            const std::vector<std::string>& connected_peers, msecs current_time);
+            const std::vector<std::string>& connected_peers, int64_t current_time);
 
-    bool insertEntityTimestamp(std::string name, msecs timestamp);
+    bool insertEntityTimestamp(std::string name, int64_t timestamp);
 
     bool deleteEntity(const std::string& name, const NodeInfoT& source);
 
-    void expireEntities(msecs current_time, const NodeInfoT& source);
+    void expireEntities(int64_t current_time, const NodeInfoT& source);
 
     // accesors
     void setEntityUpdateHandler(EntityUpdateHandler handler) {

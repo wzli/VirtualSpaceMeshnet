@@ -27,7 +27,7 @@ TEST_CASE("MeshNode Update Tick", "[mesh_node]") {
     };
     int peer_updates_sent = 0;
     mesh_node_config.logger->addLogHandler(Logger::TRACE,
-            [&peer_updates_sent](msecs, Logger::Level, Error error, const void*, size_t) {
+            [&peer_updates_sent](int64_t, Logger::Level, Error error, const void*, size_t) {
                 peer_updates_sent += error.type == MeshNode::PEER_UPDATES_SENT;
                 // std::cout << "lv: " << level << ", type: " << error.type << ", code: " <<
                 // error.code << ", msg: " << error.what() << std::endl;
@@ -76,8 +76,8 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
     const char* previous_address = nullptr;
     for (auto& config : configs) {
         config.logger->addLogHandler(Logger::ERROR,
-                [&config](msecs time, Logger::Level level, Error error, const void*, size_t) {
-                    std::cout << time.count() << " " << config.peer_tracker.name << " lv: " << level
+                [&config](int64_t time, Logger::Level level, Error error, const void*, size_t) {
+                    std::cout << time << " " << config.peer_tracker.name << " lv: " << level
                               << ", type: " << error.type << ", code: " << error.code
                               << ", msg: " << error.what() << std::endl;
                 });
@@ -165,7 +165,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
 
     Graphviz graphviz;
     configs.back().logger->addLogHandler(Logger::TRACE,
-            [&graphviz](msecs, Logger::Level, Error error, const void* data, size_t) {
+            [&graphviz](int64_t, Logger::Level, Error error, const void* data, size_t) {
                 if (error.type == MeshNode::SOURCE_UPDATE_RECEIVED) {
                     graphviz.receivePeerUpdates(fb::GetRoot<Message>(data));
                 }

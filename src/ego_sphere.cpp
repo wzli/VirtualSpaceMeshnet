@@ -5,7 +5,7 @@ namespace vsm {
 
 std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBuilder& fbb,
         const Message* msg, const PeerTracker& peer_tracker,
-        const std::vector<std::string>& connected_peers, msecs current_time) {
+        const std::vector<std::string>& connected_peers, int64_t current_time) {
     std::vector<fb::Offset<Entity>> forward_entities;
     // input checks
     if (!msg || !msg->entities()) {
@@ -37,16 +37,17 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         }
         std::string name = entity->name()->str();
         // reject if entity timestamp was already received
-        if (_timestamps.count({name, msecs(msg->timestamp())})) {
+        if (_timestamps.count({name, msg->timestamp()})) {
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_ALREADY_RECEIVED)), entity);
             continue;
         }
         // find previous record of entity
         auto old_entity = _entities.find(name);
         // don't filter if from self, otherwise use filter of original entity if it exists
-        Filter filter = from_self                       ? Filter::ALL
-                        : old_entity == _entities.end() ? entity->filter()
-                                                        : old_entity->second.entity.filter;
+        Filter filter = from_self
+                                ? Filter::ALL
+                                : old_entity == _entities.end() ? entity->filter()
+                                                                : old_entity->second.entity.filter;
         // nearest filter rejection
         if (filter == Filter::NEAREST) {
             const auto& nearest_peer =
@@ -65,7 +66,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
             }
         }
         // insert entity timestamp once filter passes
-        insertEntityTimestamp(name, msecs(msg->timestamp()));
+        insertEntityTimestamp(name, msg->timestamp());
         // create lambda for delete and forward operation
         const auto delete_and_forward_if_exists = [&]() {
             // if entity exists, delete entity and forward message
@@ -76,7 +77,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
             }
         };
         // check if entity already expired
-        if (entity->expiry() && entity->expiry() <= current_time.count()) {
+        if (entity->expiry() && entity->expiry() <= current_time) {
             delete_and_forward_if_exists();
             IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
             continue;
@@ -90,7 +91,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
             continue;
         }
         // checks pass, proceed to update entity
-        EntityUpdate new_entity{{}, current_time, msecs(msg->timestamp()), msg->hops()};
+        EntityUpdate new_entity{{}, current_time, msg->timestamp(), msg->hops()};
         entity->UnPackTo(&new_entity.entity);
         // reject update if handler returns false
         if (_entity_update_handler &&
@@ -131,9 +132,9 @@ bool EgoSphere::deleteEntity(const std::string& name, const NodeInfoT& source) {
     return true;
 }
 
-void EgoSphere::expireEntities(msecs current_time, const NodeInfoT& source) {
+void EgoSphere::expireEntities(int64_t current_time, const NodeInfoT& source) {
     for (auto entity = _entities.begin(); entity != _entities.end();) {
-        if (entity->second.entity.expiry <= current_time.count()) {
+        if (entity->second.entity.expiry <= current_time) {
             if (_entity_update_handler) {
                 _entity_update_handler(nullptr, &entity->second, source);
             }
@@ -145,7 +146,7 @@ void EgoSphere::expireEntities(msecs current_time, const NodeInfoT& source) {
     }
 }
 
-bool EgoSphere::insertEntityTimestamp(std::string name, msecs timestamp) {
+bool EgoSphere::insertEntityTimestamp(std::string name, int64_t timestamp) {
     if (!_timestamps.insert({std::move(name), timestamp}).second) {
         return false;
     }

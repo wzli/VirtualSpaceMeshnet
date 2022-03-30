@@ -45,7 +45,7 @@ MeshNode::MeshNode(Config config)
 
 void MeshNode::offsetRelativeExpiry(std::vector<EntityT>& entities) const {
     // increment expiry of each entity by current time
-    auto current_time = _time_sync.getTime().count();
+    int64_t current_time = _time_sync.getTime();
     for (auto& entity : entities) {
         entity.expiry += current_time;
     }
@@ -63,7 +63,7 @@ std::vector<MessageBuffer> MeshNode::updateEntities(const std::vector<EntityT>& 
     const auto update_entities = [&]() {
         // create the flat buffers message
         fbb_in.Finish(CreateMessage(fbb_in,
-                _time_sync.getTime().count(),                          // timestamp
+                _time_sync.getTime(),                                  // timestamp
                 0,                                                     // hops
                 NodeInfo::Pack(fbb_in, &_peer_tracker.getNodeInfo()),  // source
                 {},                                                    // peers
@@ -149,7 +149,7 @@ void MeshNode::sendPeerUpdates() {
     }
     // finish message
     _fbb.Finish(CreateMessage(_fbb,
-            _time_sync.getTime().count(),                        // timestamp
+            _time_sync.getTime(),                                // timestamp
             1,                                                   // hops
             NodeInfo::Pack(_fbb, &_peer_tracker.getNodeInfo()),  // source
             _fbb.CreateVector(_peer_offsets)                     // peers
@@ -191,7 +191,7 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
         case PeerTracker::SUCCESS:
             if (msg->hops() == 1 && msg->timestamp() > 0) {
                 float weight = 1.0f / (1 + _connected_peers.size());
-                _time_sync.syncTime(msecs(msg->timestamp()), weight);
+                _time_sync.syncTime(msg->timestamp(), weight);
                 IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(TIME_SYNCED)), buffer, len);
             }
             IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(SOURCE_UPDATE_RECEIVED)), buffer, len);

@@ -237,7 +237,6 @@ TEST_CASE("4 corners", "[ego_sphere]") {
     entities.back().filter = Filter::NEAREST;
     entities.back().expiry = -1;
 
-    mesh_nodes[0].offsetRelativeExpiry(entities);
     REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());
     for (int i = 0; i < 30; ++i) {
         for (auto& mesh_node : mesh_nodes) {

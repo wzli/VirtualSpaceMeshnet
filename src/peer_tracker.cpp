@@ -17,7 +17,7 @@ PeerTracker::PeerTracker(Config config, std::shared_ptr<Logger> logger)
     _node_info.coordinates = std::move(_config.coordinates);
     _node_info.group_mask = std::move(_config.group_mask);
 
-    IF_PTR(_logger, log, Logger::INFO, Error{STRERR(PeerTracker::INITIALIZED)});
+    IF_PTR(_logger, log, Logger::INFO, Error{STRERR(PeerTracker::INITIALIZED)}, &_node_info);
 }
 
 PeerTracker::ErrorType PeerTracker::latchPeer(const char* address, uint32_t latch_duration) {

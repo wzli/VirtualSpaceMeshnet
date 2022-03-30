@@ -12,16 +12,9 @@
 namespace vsm {
 
 struct Error {
-    Error(const char* err_msg, int err_type = 0, int err_code = 0)
-            : msg(err_msg)
-            , type(err_type)
-            , code(err_code) {}
-
-    virtual const char* what() const noexcept { return msg; }
-
     const char* msg;
-    int type;
-    int code;
+    int type = 0;
+    int code = 0;
 };
 
 template <class Duration>

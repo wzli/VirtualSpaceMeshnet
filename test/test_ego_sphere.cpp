@@ -47,14 +47,14 @@ TEST_CASE("Single World", "[ego_sphere]") {
                                    const void*, size_t) {
                 (void) time;
                 (void) level;
-                ++error_counts[error.what()];
+                ++error_counts[error.msg];
 #if 0
                 if (error.type == PeerTracker::PEER_COORDINATES_MISSING) {
                     return;
                 }
                 std::cout << time.count() << " " << config.peer_tracker.name << " lv: " << level
                           << ", type: " << error.type << ", code: " << error.code
-                          << ", msg: " << error.what() << std::endl;
+                          << ", msg: " << error.msg << std::endl;
 #endif
             });
     MeshNode mesh_node(config);
@@ -179,13 +179,13 @@ TEST_CASE("4 corners", "[ego_sphere]") {
                        int64_t time, Logger::Level level, Error error, const void*, size_t) {
             (void) time;
             (void) level;
-            ++error_counts[i][error.what()];
+            ++error_counts[i][error.msg];
             if (error.type == PeerTracker::PEER_COORDINATES_MISSING) {
                 return;
             }
 #if 0
             std::cout << time << " " << i << " lv: " << level << ", type: " << error.type
-                      << ", code: " << error.code << ", msg: " << error.what() << std::endl;
+                      << ", code: " << error.code << ", msg: " << error.msg << std::endl;
 #endif
         };
     };
@@ -235,7 +235,7 @@ TEST_CASE("4 corners", "[ego_sphere]") {
 
     // test entity delete propagation
     entities.back().filter = Filter::NEAREST;
-    entities.back().expiry = 0;
+    entities.back().expiry = -1;
 
     mesh_nodes[0].offsetRelativeExpiry(entities);
     REQUIRE(!mesh_nodes[0].updateEntities(entities).empty());

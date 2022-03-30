@@ -14,21 +14,21 @@ MeshNode::MeshNode(Config config)
         , _entity_updates_size(config.entity_updates_size)
         , _spectator(config.spectator) {
     if (!_transport) {
-        Error error(STRERR(NO_TRANSPORT_SPECIFIED));
+        Error error{STRERR(NO_TRANSPORT_SPECIFIED)};
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
     // register receive handler
     if (int err_code = _transport->addReceiver(
                 [this](const void* buffer, size_t len) { receiveMessageHandler(buffer, len); })) {
-        Error error(STRERR(ADD_MESSAGE_HANDLER_FAIL), err_code);
+        Error error{STRERR(ADD_MESSAGE_HANDLER_FAIL), err_code};
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
     // register peer update timer
     if (0 > _transport->addTimer(
                     config.peer_update_interval_ms, [this](int) { sendPeerUpdates(); })) {
-        Error error(STRERR(ADD_TIMER_FAIL));
+        Error error{STRERR(ADD_TIMER_FAIL)};
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
@@ -37,11 +37,11 @@ MeshNode::MeshNode(Config config)
             const std::lock_guard<std::mutex> lock(_entities_mutex);
             _ego_sphere.expireEntities(_time_sync.getTime(), _peer_tracker.getNodeInfo());
         })) {
-        Error error(STRERR(ADD_TIMER_FAIL));
+        Error error{STRERR(ADD_TIMER_FAIL)};
         IF_PTR(_logger, log, Logger::ERROR, error);
         throw error;
     }
-    IF_PTR(_logger, log, Logger::INFO, Error(STRERR(MeshNode::INITIALIZED)));
+    IF_PTR(_logger, log, Logger::INFO, Error{STRERR(MeshNode::INITIALIZED)});
 }
 
 void MeshNode::offsetRelativeExpiry(std::vector<EntityT>& entities) const {
@@ -87,7 +87,7 @@ std::vector<MessageBuffer> MeshNode::updateEntities(const std::vector<EntityT>& 
         }
     }
     update_entities();
-    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_SENT)));
+    IF_PTR(_logger, log, Logger::DEBUG, Error{STRERR(ENTITY_UPDATES_SENT)});
     return forwarded_messages;
 }
 
@@ -122,7 +122,7 @@ const Message* MeshNode::forwardEntityUpdates(fb::FlatBufferBuilder& fbb, const 
     if (src_addr) {
         _transport->connect(src_addr);
     }
-    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_UPDATES_FORWARDED)),
+    IF_PTR(_logger, log, Logger::DEBUG, Error{STRERR(ENTITY_UPDATES_FORWARDED)},
             fbb.GetBufferPointer(), fbb.GetSize());
     return GetRoot<Message>(fbb.GetBufferPointer());
 }
@@ -172,7 +172,7 @@ void MeshNode::sendPeerUpdates() {
     // send message
     _transport->transmit(_fbb.GetBufferPointer(), _fbb.GetSize());
     _connected_peers.swap(_recipients_buffer);
-    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(PEER_UPDATES_SENT)), _fbb.GetBufferPointer(),
+    IF_PTR(_logger, log, Logger::DEBUG, Error{STRERR(PEER_UPDATES_SENT)}, _fbb.GetBufferPointer(),
             _fbb.GetSize());
 }
 
@@ -184,7 +184,7 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
     len = verifier.GetComputedSize();
 #endif
     if (!msg->Verify(verifier)) {
-        Error error(STRERR(MESSAGE_VERIFY_FAIL));
+        Error error{STRERR(MESSAGE_VERIFY_FAIL)};
         IF_PTR(_logger, log, Logger::WARN, error, buffer, len);
         return;
     }
@@ -193,21 +193,21 @@ void MeshNode::receiveMessageHandler(const void* buffer, size_t len) {
             if (msg->hops() == 1 && msg->timestamp() > 0) {
                 float weight = 1.0f / (1 + _connected_peers.size());
                 _time_sync.syncTime(msg->timestamp(), weight);
-                IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(TIME_SYNCED)), buffer, len);
+                IF_PTR(_logger, log, Logger::TRACE, Error{STRERR(TIME_SYNCED)}, buffer, len);
             }
-            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(SOURCE_UPDATE_RECEIVED)), buffer, len);
+            IF_PTR(_logger, log, Logger::TRACE, Error{STRERR(SOURCE_UPDATE_RECEIVED)}, buffer, len);
             // fall through
         case PeerTracker::PEER_IS_NULL:
         case PeerTracker::PEER_ADDRESS_MISSING:
         case PeerTracker::PEER_COORDINATES_MISSING:
             if (_peer_tracker.receivePeerUpdates(msg) > 0) {
-                Error error(STRERR(PEER_UPDATES_RECEIVED));
+                Error error{STRERR(PEER_UPDATES_RECEIVED)};
                 IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
             }
             // fall through
         case PeerTracker::SOURCE_SEQUENCE_STALE:
             if (msg->entities()) {
-                Error error(STRERR(ENTITY_UPDATES_RECEIVED));
+                Error error{STRERR(ENTITY_UPDATES_RECEIVED)};
                 IF_PTR(_logger, log, Logger::TRACE, error, buffer, len);
                 forwardEntityUpdates(_fbb, msg);
             }

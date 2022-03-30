@@ -8,7 +8,7 @@ using namespace vsm;
 
 TEST_CASE("Logger") {
     Logger logger;
-    Error test_error("test_msg", 5, 6);
+    Error test_error{"test_msg", 5, 6};
     const void* test_data = test_error.msg;
     size_t test_data_len = 3;
 

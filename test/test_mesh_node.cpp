@@ -30,7 +30,7 @@ TEST_CASE("MeshNode Update Tick", "[mesh_node]") {
             [&peer_updates_sent](int64_t, Logger::Level, Error error, const void*, size_t) {
                 peer_updates_sent += error.type == MeshNode::PEER_UPDATES_SENT;
                 // std::cout << "lv: " << level << ", type: " << error.type << ", code: " <<
-                // error.code << ", msg: " << error.what() << std::endl;
+                // error.code << ", msg: " << error.msg << std::endl;
             });
     MeshNode mesh_node(std::move(mesh_node_config));
     for (int i = 0; i < 5; ++i) {
@@ -79,7 +79,7 @@ TEST_CASE("MeshNode Loopback", "[mesh_node]") {
                 [&config](int64_t time, Logger::Level level, Error error, const void*, size_t) {
                     std::cout << time << " " << config.peer_tracker.name << " lv: " << level
                               << ", type: " << error.type << ", code: " << error.code
-                              << ", msg: " << error.what() << std::endl;
+                              << ", msg: " << error.msg << std::endl;
                 });
         mesh_nodes.emplace_back(config);
         if (previous_address) {
@@ -145,7 +145,7 @@ TEST_CASE("MeshNode Graph", "[mesh_node]") {
                     }
                     std::cout << time << " " << config.peer_tracker.name << " lv: " << level
                               << ", type: " << error.type << ", code: " << error.code
-                              << ", msg: " << error.what() << std::endl;
+                              << ", msg: " << error.msg << std::endl;
                 });
 #endif
         mesh_nodes.emplace_back(config);

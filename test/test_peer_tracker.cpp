@@ -48,7 +48,7 @@ TEST_CASE("Peer Ranking", "[peer_tracker]") {
 #if 0
     logger->addLogHandler(Logger::TRACE, [](int64_t time, Logger::Level level, Error error, const void*, size_t) {
         std::cout << "t " << time << "lv: " << level << ", type: " << error.type << ", code: " << error.code
-                  << ", msg: " << error.what() << std::endl;
+                  << ", msg: " << error.msg << std::endl;
     });
 #endif
     // configer and create peer tracker

@@ -12,11 +12,11 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         return forward_entities;
     }
     if (!msg->source() || !msg->source()->address()) {
-        IF_PTR(_logger, log, Logger::WARN, Error(STRERR(MESSAGE_SOURCE_INVALID)), msg);
+        IF_PTR(_logger, log, Logger::WARN, Error{STRERR(MESSAGE_SOURCE_INVALID)}, msg);
         return forward_entities;
     }
     if (!(msg->source()->group_mask() & peer_tracker.getNodeInfo().group_mask)) {
-        IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(SOURCE_GROUP_MISMATCH)), msg);
+        IF_PTR(_logger, log, Logger::DEBUG, Error{STRERR(SOURCE_GROUP_MISMATCH)}, msg);
         return forward_entities;
     }
     // unpack message source
@@ -27,18 +27,18 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
     for (auto entity : *msg->entities()) {
         // reject if entity is missing coordinates and range or proximity filter is enabled
         if (!entity->coordinates() && (entity->range() || entity->filter() == Filter::NEAREST)) {
-            IF_PTR(_logger, log, Logger::WARN, Error(STRERR(ENTITY_COORDINATES_MISSING)), entity);
+            IF_PTR(_logger, log, Logger::WARN, Error{STRERR(ENTITY_COORDINATES_MISSING)}, entity);
             continue;
         }
         // reject if entity is missing name
         if (!entity->name()) {
-            IF_PTR(_logger, log, Logger::WARN, Error(STRERR(ENTITY_NAME_MISSING)), entity);
+            IF_PTR(_logger, log, Logger::WARN, Error{STRERR(ENTITY_NAME_MISSING)}, entity);
             continue;
         }
         std::string name = entity->name()->str();
         // reject if entity timestamp was already received
         if (_timestamps.count({name, msg->timestamp()})) {
-            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_ALREADY_RECEIVED)), entity);
+            IF_PTR(_logger, log, Logger::TRACE, Error{STRERR(ENTITY_ALREADY_RECEIVED)}, entity);
             continue;
         }
         // find previous record of entity
@@ -60,7 +60,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
                     // unless it's a suggestion for a new entity nearest to you
                     !(old_entity == _entities.end() &&
                             nearest_peer.address == peer_tracker.getNodeInfo().address)) {
-                Error error(STRERR(ENTITY_NEAREST_FILTERED));
+                Error error{STRERR(ENTITY_NEAREST_FILTERED)};
                 IF_PTR(_logger, log, Logger::TRACE, error, entity);
                 continue;
             }
@@ -79,7 +79,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         // check if entity already expired
         if (entity->expiry() && entity->expiry() <= current_time) {
             delete_and_forward_if_exists();
-            IF_PTR(_logger, log, Logger::DEBUG, Error("Received " STRERR(ENTITY_EXPIRED)), entity);
+            IF_PTR(_logger, log, Logger::DEBUG, Error{"Received " STRERR(ENTITY_EXPIRED)}, entity);
             continue;
         }
         // reject and delete if entity range is exceeded
@@ -87,7 +87,7 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
                                        distanceSqr(*entity->coordinates(),
                                                peer_tracker.getNodeInfo().coordinates))) {
             delete_and_forward_if_exists();
-            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_RANGE_EXCEEDED)), entity);
+            IF_PTR(_logger, log, Logger::TRACE, Error{STRERR(ENTITY_RANGE_EXCEEDED)}, entity);
             continue;
         }
         // checks pass, proceed to update entity
@@ -103,17 +103,17 @@ std::vector<fb::Offset<Entity>> EgoSphere::receiveEntityUpdates(fb::FlatBufferBu
         if (entity->expiry()) {
             if (old_entity == _entities.end()) {
                 old_entity = _entities.emplace(name, std::move(new_entity)).first;
-                IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_CREATED)), entity);
+                IF_PTR(_logger, log, Logger::DEBUG, Error{STRERR(ENTITY_CREATED)}, entity);
             } else {
                 old_entity->second = std::move(new_entity);
-                IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_UPDATED)), entity);
+                IF_PTR(_logger, log, Logger::TRACE, Error{STRERR(ENTITY_UPDATED)}, entity);
             }
         }
         // forward entity until hop limit is reached
         if (!entity->hop_limit() || entity->hop_limit() > msg->hops()) {
             forward_entities.emplace_back(Entity::Pack(fbb, &old_entity->second.entity));
         } else {
-            IF_PTR(_logger, log, Logger::TRACE, Error(STRERR(ENTITY_HOPS_EXCEEDED)), entity);
+            IF_PTR(_logger, log, Logger::TRACE, Error{STRERR(ENTITY_HOPS_EXCEEDED)}, entity);
         }
     }
     return forward_entities;
@@ -127,7 +127,7 @@ bool EgoSphere::deleteEntity(const std::string& name, const NodeInfoT& source) {
     if (_entity_update_handler) {
         _entity_update_handler(nullptr, &entity->second, source);
     }
-    IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_DELETED)), &entity->second);
+    IF_PTR(_logger, log, Logger::DEBUG, Error{STRERR(ENTITY_DELETED)}, &entity->second);
     _entities.erase(entity);
     return true;
 }
@@ -138,7 +138,7 @@ void EgoSphere::expireEntities(int64_t current_time, const NodeInfoT& source) {
             if (_entity_update_handler) {
                 _entity_update_handler(nullptr, &entity->second, source);
             }
-            IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_EXPIRED)), &entity->second);
+            IF_PTR(_logger, log, Logger::DEBUG, Error{STRERR(ENTITY_EXPIRED)}, &entity->second);
             entity = _entities.erase(entity);
         } else {
             ++entity;
@@ -154,7 +154,7 @@ bool EgoSphere::insertEntityTimestamp(std::string name, int64_t timestamp) {
     if (_timestamps.size() > _config.timestamp_lookup_size) {
         _timestamps.erase(
                 _timestamps.begin(), std::next(_timestamps.begin(), _timestamps.size() / 2));
-        IF_PTR(_logger, log, Logger::DEBUG, Error(STRERR(ENTITY_TIMESTAMPS_TRIMMED)));
+        IF_PTR(_logger, log, Logger::DEBUG, Error{STRERR(ENTITY_TIMESTAMPS_TRIMMED)});
     }
     return true;
 }
